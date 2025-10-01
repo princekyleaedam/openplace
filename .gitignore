@@ -4,4 +4,5 @@
 .pnpm-store/
 *.db
 *.log
+dist/
 node_modules/
