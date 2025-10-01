@@ -10,7 +10,7 @@ This is where you will be preparing your machine to run openplace.
 1. install brew, node and git
 2. run `git clone --recurse-submodules https://github.com/openplaceteam/openplace`
 3. cd into the openplace directory
-4. run ``npm i && brew install mariadb caddy``
+4. run ``npm i && brew install mariadb caddy nss``
 5. brew will then spit out a command to inform you on how to start it. if it doesn't, run `brew services start mariadb && brew services start caddy`
 #### Configuring and building the database
 1. run `sudo mysql_secure_installation`

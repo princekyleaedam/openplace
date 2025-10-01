@@ -105,11 +105,11 @@ export default function (app: App) {
 				.json({
 					notes: notes.map(note => ({
 						id: note.id,
-						admin: {
+						author: {
 							id: note.user.id,
 							name: note.user.name
 						},
-						content: note.content,
+						note: note.content,
 						createdAt: note.createdAt
 					}))
 				});
