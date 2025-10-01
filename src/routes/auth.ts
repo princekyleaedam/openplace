@@ -67,7 +67,7 @@ export default function (app: App) {
 					exp: Math.floor(session.expiresAt.getTime() / 1000),
 					iat: Math.floor(Date.now() / 1000)
 				},
-				JWT_SECRET
+				JWT_SECRET!
 			);
 
 			res.setHeader("Set-Cookie", [
@@ -87,7 +87,7 @@ export default function (app: App) {
 			if (req.user?.sessionId) {
 				await prisma.session.delete({
 					where: { id: req.user.sessionId }
-				})
+				});
 			}
 
 			res.setHeader("Set-Cookie", [

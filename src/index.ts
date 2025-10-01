@@ -19,7 +19,7 @@ dotenv.config();
 
 const app = new App({
 	noMatchHandler: async (_req, res) => {
-		const html = await fs.readFile("./frontend/404.html", "utf-8");
+		const html = await fs.readFile("./frontend/404.html", "utf8");
 		return res.status(404)
 			.setHeader("Content-Type", "text/html")
 			.send(html);

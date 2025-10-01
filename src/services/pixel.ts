@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { createCanvas } from "@napi-rs/canvas";
 import { checkColorUnlocked, COLOR_PALETTE } from "../utils/colors.js";
 import { calculateChargeRecharge } from "../utils/charges.js";
@@ -100,7 +100,7 @@ export class PixelService {
 		};
 	}
 
-	async getPixelInfo(tileX: number, tileY: number, x: number, y: number): Promise<PixelInfoResult> {
+	async getPixelInfo(tileX: number, tileY: number, x: number, y: number, season: number = 0): Promise<PixelInfoResult> {
 		let paintedBy = {
 			id: 0,
 			name: "",
@@ -111,7 +111,7 @@ export class PixelService {
 
 		const pixel = await this.prisma.pixel.findUnique({
 			where: {
-				tileX_tileY_x_y: { tileX, tileY, x, y }
+				season_tileX_tileY_x_y: { season, tileX, tileY, x, y }
 			},
 			include: {
 				user: {
@@ -120,7 +120,7 @@ export class PixelService {
 			}
 		});
 
-		if (pixel) {
+		if (pixel && pixel.season === season) {
 			paintedBy = {
 				id: pixel.user.id,
 				name: pixel.user.name,
@@ -135,27 +135,74 @@ export class PixelService {
 		return { paintedBy, region };
 	}
 
-	async generateTileImage(tileX: number, tileY: number): Promise<Buffer> {
+	async getTileImage(tileX: number, tileY: number, season: number = 0): Promise<Buffer> {
+		const tile = await this.prisma.tile.findUnique({
+			where: {
+				season_x_y: {
+					season,
+					x: tileX,
+					y: tileY
+				}
+			}
+		});
+
+		if (!tile) {
+			return Buffer.from([]);
+		}
+
+		return tile.imageData
+			? Buffer.from(tile.imageData)
+			: await this.updatePixelTile(tileX, tileY, season);
+	}
+
+	async updatePixelTile(tileX: number, tileY: number, season: number = 0): Promise<Buffer> {
 		const canvas = createCanvas(1000, 1000);
 		const ctx = canvas.getContext("2d");
 
+		ctx.clearRect(0, 0, 1000, 1000);
+
 		const pixels = await this.prisma.pixel.findMany({
-			where: { tileX, tileY }
+			where: { tileX, tileY, season }
 		});
 
 		for (const pixel of pixels) {
 			const color = COLOR_PALETTE[pixel.colorId];
-			if (color && pixel.colorId !== 0) {
-				const [r, g, b] = color.rgb;
-				ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-				ctx.fillRect(pixel.x, pixel.y, 1, 1);
+			if (color) {
+				if (pixel.colorId === 0) {
+					ctx.clearRect(pixel.x, pixel.y, 1, 1);
+				} else {
+					const [r, g, b] = color.rgb;
+					ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+					ctx.fillRect(pixel.x, pixel.y, 1, 1);
+				}
 			}
 		}
 
-		return canvas.toBuffer("image/png");
+		const imageData = canvas.toBuffer("image/png");
+
+		await this.prisma.tile.upsert({
+			where: {
+				season_x_y: {
+					season,
+					x: tileX,
+					y: tileY
+				}
+			},
+			create: {
+				season,
+				x: tileX,
+				y: tileY,
+				imageData
+			},
+			update: {
+				imageData
+			}
+		});
+
+		return imageData;
 	}
 
-	async paintPixels(userId: number, input: PaintPixelsInput): Promise<PaintPixelsResult> {
+	async paintPixels(userId: number, input: PaintPixelsInput, season: number = 0): Promise<PaintPixelsResult> {
 		const { tileX, tileY, colors, coords } = input;
 
 		if (!colors || !coords || !Array.isArray(colors) || !Array.isArray(coords)) {
@@ -251,31 +298,35 @@ export class PixelService {
 		}
 
 		await this.prisma.tile.upsert({
-			where: { x_y: { x: tileX, y: tileY } },
-			create: { x: tileX, y: tileY },
+			where: { season_x_y: { season, x: tileX, y: tileY } },
+			create: { season, x: tileX, y: tileY },
 			update: {}
 		});
 
 		const now = new Date();
 
 		if (validPixels.length > 0) {
-			const values = validPixels.map(pixel =>
-				`(${tileX}, ${tileY}, ${pixel.x}, ${pixel.y}, ${pixel.colorId}, ${userId}, '${now.toISOString()
-					.slice(0, 19)
-					.replace("T", " ")}')`
-			)
-				.join(", ");
+			const values = validPixels.map(pixel => ({
+				season,
+				tileX,
+				tileY,
+				x: pixel.x,
+				y: pixel.y,
+				colorId: pixel.colorId,
+				paintedBy: userId,
+				paintedAt: now
+			}));
 
-			const bulkQuery = `
-				INSERT INTO Pixel (tileX, tileY, x, y, colorId, paintedBy, paintedAt)
-				VALUES ${values}
+			await this.prisma.$executeRaw`
+				INSERT INTO Pixel (season, tileX, tileY, x, y, colorId, paintedBy, paintedAt)
+				VALUES ${Prisma.join(values.map(v =>
+		Prisma.sql`(${v.season}, ${v.tileX}, ${v.tileY}, ${v.x}, ${v.y}, ${v.colorId}, ${v.paintedBy}, ${v.paintedAt})`
+	))}
 				ON DUPLICATE KEY UPDATE
 					colorId = VALUES(colorId),
 					paintedBy = VALUES(paintedBy),
 					paintedAt = VALUES(paintedAt)
 			`;
-
-			await this.prisma.$executeRawUnsafe(bulkQuery);
 		}
 
 		const newCharges = Math.max(0, user.currentCharges - totalChargeCost);
@@ -300,6 +351,8 @@ export class PixelService {
 				}
 			});
 		}
+
+		await this.updatePixelTile(tileX, tileY, season);
 
 		return { painted };
 	}

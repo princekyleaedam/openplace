@@ -5,6 +5,7 @@ generator client {
 datasource db {
 	provider = "mysql"
 	url      = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model User {
@@ -87,16 +88,18 @@ model FavoriteLocation {
 
 model Tile {
 	id        Int    @id @default(autoincrement())
+	season    Int    @default(0)
 	x         Int
 	y         Int
 	imageData Bytes?
 	pixels    Pixel[]
 
-	@@unique([x, y])
+	@@unique([season, x, y])
 }
 
 model Pixel {
 	id        Int      @id @default(autoincrement())
+	season    Int      @default(0)
 	tileX     Int
 	tileY     Int
 	x         Int
@@ -104,10 +107,10 @@ model Pixel {
 	colorId   Int
 	paintedBy Int
 	user      User     @relation(fields: [paintedBy], references: [id])
-	tile      Tile     @relation(fields: [tileX, tileY], references: [x, y])
+	tile      Tile     @relation(fields: [season, tileX, tileY], references: [season, x, y])
 	paintedAt DateTime @default(now())
 
-	@@unique([tileX, tileY, x, y])
+	@@unique([season, tileX, tileY, x, y])
 }
 
 model Region {
