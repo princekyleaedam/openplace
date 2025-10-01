@@ -106,7 +106,7 @@ export default function (app: App) {
 					notes: notes.map(note => ({
 						id: note.id,
 						author: {
-							role: user.role,
+							role: note.user.role,
 							id: note.user.id,
 							name: note.user.name
 						},
