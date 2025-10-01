@@ -1,0 +1,2 @@
+call StopNSSMDaemons.cmd
+call StartNSSMDaemons.cmd

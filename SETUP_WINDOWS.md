@@ -13,16 +13,20 @@ You need **Node.js**, **Git**, **MariaDB**, **Caddy**.
 ```powershell
 winget install Git.Git
 winget install OpenJS.NodeJS.LTS
-winget install MariaDB.Server
 winget install CaddyServer.Caddy
+winget install nssm
 ```
 
 - Using **Chocolatey** (cmd as Administrator):
 
 ```cmd
-choco install git nodejs-lts mariadb caddy -y
+choco install git nodejs-lts caddy nssm -y
 ```
 
+- Download MariaDB Server via this link: [MariaDB Server](https://mirror.mva-n.net/mariadb///mariadb-12.0.2/winx64-packages/mariadb-12.0.2-winx64.msi)
+- Run the Installer
+- Set a root password and keep everything default
+  
 ---
 
 ## 2. Clone the repository
@@ -61,7 +65,7 @@ net stop caddy
 Copy-Item .env.example .env
 ```
 
-Edit `.env` and replace `root:password` with your MariaDB root password.
+Edit `.env` and replace `root:password` with your MariaDB root password and change the `JWT_SECRET`.
 
 > [!WARNING]
 > Escape special character listed in this table: [Percent-Encoding](https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding)
@@ -78,21 +82,47 @@ npx prisma db push
 
 ---
 
-## 7. Run the development server
+## 7.A Run each server on its own
 
+run frontend in one terminal: 
 ```powershell
 npm run dev
+```
+run caddy in a second terminal:
+```powershell
+caddy run --config .\Caddyfile
 ```
 
 ---
 
-## 8. Run Caddy
+## 7.B Run both with one terminal
 
-If not already running, start Caddy in another terminal:
-
-```powershell
-caddy run --config .\Caddyfile
+```cmd
+npm run exec
 ```
+
+## 7.C Run both in background
+
+Install Daemons:
+```
+installNSSMDaemons_AS_ADMIN.cmd
+```
+
+Start Daemons:
+```
+StartNSSMDaemons_AS_ADMIN.cmd
+```
+
+Stop Daemons:
+```
+StopNSSMDaemons_AS_ADMIN.cmd
+```
+
+Restart Daemons:
+```
+RestartNSSMDaemons_AS_ADMIN.cmd
+```
+
 
 ---
 
