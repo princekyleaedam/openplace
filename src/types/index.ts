@@ -1,0 +1,44 @@
+import { Request } from "@tinyhttp/app";
+
+export interface AuthenticatedRequest extends Request {
+	user?: {
+		id: number;
+		sessionId: string;
+	};
+	file?: {
+		filename: string;
+		path: string;
+		mimetype: string;
+		size: number;
+	};
+}
+
+export interface ColorPalette {
+	[key: number]: {
+		rgb: [number, number, number];
+		paid: boolean;
+	};
+}
+
+export interface BitMap {
+	bytes: Uint8Array;
+	set(index: number, value: boolean): void;
+	get(index: number): boolean;
+	toBase64(): string;
+}
+
+export enum UserRole {
+	User = "user",
+	Admin = "admin",
+	Moderator = "moderator",
+	GlobalModerator = "global_moderator"
+}
+
+export enum BanReason {
+	Doxxing = "doxxing",
+	Bot = "bot",
+	HateSpeech = "hate-speech",
+	MultiAccounting = "multi-accounting",
+	InappropriateContent = "inappropriate-content",
+	Other = "other"
+}

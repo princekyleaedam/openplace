@@ -1,0 +1,161 @@
+generator client {
+	provider = "prisma-client-js"
+}
+
+datasource db {
+	provider = "mysql"
+	url      = env("DATABASE_URL")
+}
+
+model User {
+	id                     Int      @id @default(autoincrement())
+	name                   String
+	discord                String?
+	country                String
+	email                  String?  @unique
+	passwordHash           String
+	banned                 Boolean  @default(false)
+	timeoutUntil           DateTime @default(now())
+	needsPhoneVerification Boolean  @default(false)
+	isCustomer             Boolean  @default(false)
+	role                   String   @default("user")
+	pixelsPainted          Int      @default(0)
+	droplets               Int      @default(0)
+	maxCharges             Float    @default(20)
+	currentCharges         Float    @default(20)
+	chargesCooldownMs      Int      @default(30000)
+	chargesLastUpdatedAt   DateTime @default(now())
+	extraColorsBitmap      Int      @default(0)
+	flagsBitmap            Bytes?
+	equippedFlag           Int      @default(0)
+	showLastPixel          Boolean  @default(true)
+	maxFavoriteLocations   Int      @default(15)
+	picture                String?
+	level                  Float    @default(1)
+	allianceId             Int?
+	allianceRole           String   @default("member")
+	alliance               Alliance? @relation(fields: [allianceId], references: [id])
+	paintedPixels          Pixel[]
+	favoriteLocations      FavoriteLocation[]
+	createdTickets         Ticket[] @relation("TicketUser")
+	reportedTickets        Ticket[] @relation("TicketReportedUser")
+	createdNotes           UserNote[] @relation("UserNoteUser")
+	reportedNotes          UserNote[] @relation("UserNoteReportedUser")
+	createdAt              DateTime @default(now())
+	updatedAt              DateTime @updatedAt
+}
+
+model Alliance {
+	id               Int      @id @default(autoincrement())
+	name             String   @unique
+	description      String?
+	hqLatitude       Float?
+	hqLongitude      Float?
+	pixelsPainted    Int      @default(0)
+	members          User[]
+	bannedUsers      BannedUser[]
+	invites          AllianceInvite[]
+	createdAt        DateTime @default(now())
+	updatedAt        DateTime @updatedAt
+}
+
+model BannedUser {
+	id         Int      @id @default(autoincrement())
+	userId     Int
+	allianceId Int
+	alliance   Alliance @relation(fields: [allianceId], references: [id])
+	createdAt  DateTime @default(now())
+
+	@@unique([userId, allianceId])
+}
+
+model AllianceInvite {
+	id         String   @id @default(uuid())
+	allianceId Int
+	alliance   Alliance @relation(fields: [allianceId], references: [id])
+	createdAt  DateTime @default(now())
+}
+
+model FavoriteLocation {
+	id        Int    @id @default(autoincrement())
+	userId    Int
+	user      User   @relation(fields: [userId], references: [id])
+	name      String @default("")
+	latitude  Float
+	longitude Float
+}
+
+model Tile {
+	id        Int    @id @default(autoincrement())
+	x         Int
+	y         Int
+	imageData Bytes?
+	pixels    Pixel[]
+
+	@@unique([x, y])
+}
+
+model Pixel {
+	id        Int      @id @default(autoincrement())
+	tileX     Int
+	tileY     Int
+	x         Int
+	y         Int
+	colorId   Int
+	paintedBy Int
+	user      User     @relation(fields: [paintedBy], references: [id])
+	tile      Tile     @relation(fields: [tileX, tileY], references: [x, y])
+	paintedAt DateTime @default(now())
+
+	@@unique([tileX, tileY, x, y])
+}
+
+model Region {
+	id        Int    @id @default(autoincrement())
+	cityId    Int    @unique
+	name      String
+	number    Int
+	countryId Int
+}
+
+model ProfilePicture {
+	id     Int    @id @default(autoincrement())
+	userId Int
+	url    String
+}
+
+model Session {
+	id        String   @id @default(uuid())
+	userId    Int
+	expiresAt DateTime
+	createdAt DateTime @default(now())
+}
+
+model Ticket {
+	id             String   @id @default(uuid())
+	userId         Int
+	user           User     @relation("TicketUser", fields: [userId], references: [id])
+	reportedUserId Int
+	reportedUser   User     @relation("TicketReportedUser", fields: [reportedUserId], references: [id])
+	latitude       Float
+	longitude      Float
+	zoom           Float
+	reason         String
+	notes          String
+	image          String
+	resolved       Boolean  @default(false)
+	severe         Boolean  @default(false)
+	createdAt      DateTime @default(now())
+	updatedAt      DateTime @updatedAt
+}
+
+model UserNote {
+	id             Int      @id @default(autoincrement())
+	userId         Int
+	user           User     @relation("UserNoteUser", fields: [userId], references: [id])
+	reportedUserId Int
+	reportedUser   User     @relation("UserNoteReportedUser", fields: [reportedUserId], references: [id])
+	content        String
+	createdAt      DateTime @default(now())
+	updatedAt      DateTime @updatedAt
+}
