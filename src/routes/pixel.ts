@@ -69,7 +69,9 @@ export default function (app: App) {
 			const imageBuffer = await pixelService.getTileImage(tileX, tileY);
 
 			res.setHeader("Content-Type", "image/png");
-			res.setHeader("Cache-Control", "public, max-age=300");
+			res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate")
+            res.setHeader("Pragma", "no-cache")
+            res.setHeader("Expires", "0")
 			return res.send(imageBuffer);
 		} catch (error) {
 			console.error("Error generating tile image:", error);
