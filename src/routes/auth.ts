@@ -34,12 +34,14 @@ export default function (app: App) {
 				}
 			} else {
 				const passwordHash = await bcrypt.hash(password, 10);
+				const firstUser = (await prisma.user.count()) === 0;
 
 				user = await prisma.user.create({
 					data: {
 						name: username,
 						passwordHash,
 						country: "US", // TODO
+						role: firstUser ? "admin" : "user",
 						droplets: 1000,
 						currentCharges: 20,
 						maxCharges: 20,
@@ -67,7 +69,7 @@ export default function (app: App) {
 					exp: Math.floor(session.expiresAt.getTime() / 1000),
 					iat: Math.floor(Date.now() / 1000)
 				},
-				JWT_SECRET
+				JWT_SECRET!
 			);
 
 			res.setHeader("Set-Cookie", [
@@ -87,7 +89,7 @@ export default function (app: App) {
 			if (req.user?.sessionId) {
 				await prisma.session.delete({
 					where: { id: req.user.sessionId }
-				})
+				});
 			}
 
 			res.setHeader("Set-Cookie", [

@@ -56,7 +56,7 @@ export default function (app: App) {
 			}
 			// TODO: calculate country pixel data
 			const mockCountries = [
-				{ id: 235, pixelsPainted: 1_234 }
+				{ id: 235, pixelsPainted: 1234 }
 			];
 
 			return res.json(mockCountries);

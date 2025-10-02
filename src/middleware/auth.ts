@@ -11,7 +11,7 @@ export async function authMiddleware(req: any, res: any, next: any) {
 				.json({ error: "Unauthorized", status: 401 });
 		}
 
-		const decoded = jwt.verify(token, JWT_SECRET) as any;
+		const decoded = jwt.verify(token, JWT_SECRET!) as any;
 
 		if (!decoded.userId || !decoded.sessionId) {
 			return res.status(401)

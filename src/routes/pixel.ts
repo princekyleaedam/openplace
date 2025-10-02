@@ -66,7 +66,12 @@ export default function (app: App) {
 					.json(createErrorResponse("Bad Request", HTTP_STATUS.BAD_REQUEST));
 			}
 
-			const imageBuffer = await pixelService.generateTileImage(tileX, tileY);
+			const imageBuffer = await pixelService.getTileImage(tileX, tileY);
+
+			if (imageBuffer.length === 0) {
+				return res.status(HTTP_STATUS.NOT_FOUND)
+					.end();
+			}
 
 			res.setHeader("Content-Type", "image/png");
 			res.setHeader("Cache-Control", "public, max-age=300");

@@ -7,6 +7,15 @@ export interface UpdateUserInput {
 	discord?: string;
 }
 
+const EXPERIMENTS = {
+	"2025-09_pawtect": {
+		variant: "disabled"
+	},
+	"2025-09_discord_linking": {
+		enabled: false
+	}
+};
+
 export class UserService {
 	constructor(private prisma: PrismaClient) {}
 
@@ -77,7 +86,8 @@ export class UserService {
 			showLastPixel: user.showLastPixel,
 			timeoutUntil: user.timeoutUntil.toISOString(),
 			allianceId: user.allianceId,
-			allianceRole: user.allianceRole
+			allianceRole: user.allianceRole,
+			experiments: EXPERIMENTS
 		};
 	}
 
