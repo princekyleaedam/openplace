@@ -2,6 +2,7 @@ import { App } from "@tinyhttp/app";
 import { WplaceBitMap } from "../utils/bitmap.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { prisma } from "../config/database.js";
+import { calculateChargeRecharge } from "../utils/charges.js";
 
 const STORE_ITEMS = {
 	70: { name: "+5 Max. Charges", price: 500, type: "charges" },
@@ -51,10 +52,14 @@ export default function (app: App) {
 					updateData.maxCharges = user.maxCharges + (5 * (product.amount || 1));
 					break;
 				case "paint":
-					updateData.currentCharges = Math.min(
+					const currentCharges = calculateChargeRecharge(
+						user.currentCharges,
 						user.maxCharges,
-						user.currentCharges + (30 * (product.amount || 1))
+						user.chargesLastUpdatedAt || new Date(),
+						user.chargesCooldownMs
 					);
+					updateData.currentCharges = currentCharges + (30 * (product.amount || 1));
+					updateData.chargesLastUpdatedAt = new Date();
 					break;
 				case "color":
 					if (product.variant && product.variant >= 32 && product.variant <= 63) {
