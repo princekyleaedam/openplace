@@ -14,6 +14,10 @@ Openplace (styled lowercase) is a free unofficial open source backend for [wplac
 
 - [Guideline for macOS Installation](SETUP_MACOS.md)
 
+### Docker
+
+- [Guideline for Docker Installation](SETUP_DOCKER.md)
+
 
 ### Server accessibility
 You will be required to configure an SSL certificate if you plan to use this in production. However, if you are only using this with you and your friends, you can simply navigate to `https://{IP}:8080` NOTE: openplace is only hosted over HTTPS. you will run into HTTP error 400 if you attempt to load the website over HTTP.
