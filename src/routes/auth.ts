@@ -34,12 +34,14 @@ export default function (app: App) {
 				}
 			} else {
 				const passwordHash = await bcrypt.hash(password, 10);
+				const firstUser = (await prisma.user.count()) === 0;
 
 				user = await prisma.user.create({
 					data: {
 						name: username,
 						passwordHash,
 						country: "US", // TODO
+						role: firstUser ? "admin" : "user",
 						droplets: 1000,
 						currentCharges: 20,
 						maxCharges: 20,
