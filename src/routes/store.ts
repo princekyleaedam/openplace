@@ -48,36 +48,36 @@ export default function (app: App) {
 			};
 
 			switch (item.type) {
-				case "charges":
-					updateData.maxCharges = user.maxCharges + (5 * (product.amount || 1));
-					break;
-				case "paint": {
-					const currentCharges = calculateChargeRecharge(
-						user.currentCharges,
-						user.maxCharges,
-						user.chargesLastUpdatedAt || new Date(),
-						user.chargesCooldownMs
-					);
-					updateData.currentCharges = currentCharges + (30 * (product.amount || 1));
-					updateData.chargesLastUpdatedAt = new Date();
-					break;
+			case "charges":
+				updateData.maxCharges = user.maxCharges + (5 * (product.amount || 1));
+				break;
+			case "paint": {
+				const currentCharges = calculateChargeRecharge(
+					user.currentCharges,
+					user.maxCharges,
+					user.chargesLastUpdatedAt || new Date(),
+					user.chargesCooldownMs
+				);
+				updateData.currentCharges = currentCharges + (30 * (product.amount || 1));
+				updateData.chargesLastUpdatedAt = new Date();
+				break;
+			}
+			case "color":
+				if (product.variant && product.variant >= 32 && product.variant <= 63) {
+					const mask = 1 << (product.variant - 32);
+					updateData.extraColorsBitmap = user.extraColorsBitmap | mask;
 				}
-				case "color":
-					if (product.variant && product.variant >= 32 && product.variant <= 63) {
-						const mask = 1 << (product.variant - 32);
-						updateData.extraColorsBitmap = user.extraColorsBitmap | mask;
-					}
-					break;
-				case "flag":
-					if (product.variant && product.variant >= 1 && product.variant <= 251) {
-						const flagsBitmap = user.flagsBitmap
-							? WplaceBitMap.fromBase64(Buffer.from(user.flagsBitmap)
-								.toString("base64"))
-							: new WplaceBitMap();
-						flagsBitmap.set(product.variant, true);
-						updateData.flagsBitmap = Buffer.from(flagsBitmap.toBase64(), "base64");
-					}
-					break;
+				break;
+			case "flag":
+				if (product.variant && product.variant >= 1 && product.variant <= 251) {
+					const flagsBitmap = user.flagsBitmap
+						? WplaceBitMap.fromBase64(Buffer.from(user.flagsBitmap)
+							.toString("base64"))
+						: new WplaceBitMap();
+					flagsBitmap.set(product.variant, true);
+					updateData.flagsBitmap = Buffer.from(flagsBitmap.toBase64(), "base64");
+				}
+				break;
 			}
 
 			await prisma.user.update({
