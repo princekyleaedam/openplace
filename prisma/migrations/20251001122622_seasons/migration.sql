@@ -1,5 +1,0 @@
--- AlterTable
-ALTER TABLE `Pixel` ADD COLUMN `season` INTEGER NOT NULL DEFAULT 0;
-
--- AlterTable
-ALTER TABLE `Tile` ADD COLUMN `season` INTEGER NOT NULL DEFAULT 0;
