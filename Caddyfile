@@ -1,4 +1,4 @@
-https://*:8080 {
+https://localhost:8080 {
 	root * ./frontend
 
 	try_files {path} {path}/index.html
