@@ -1,4 +1,4 @@
-https://home.fritz.box {
+https://127.0.0.1 {
 	tls internal
 	root * ./frontend
 
