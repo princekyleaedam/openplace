@@ -3,6 +3,7 @@ import { createCanvas } from "@napi-rs/canvas";
 import { checkColorUnlocked, COLOR_PALETTE } from "../utils/colors.js";
 import { calculateChargeRecharge } from "../utils/charges.js";
 import { getRegionForCoordinates } from "../config/regions.js";
+import { LEVEL_BASE_PIXEL, LEVEL_EXPONENT } from "../config/user.js";
 
 export interface PaintPixelsInput {
 	tileX: number;
@@ -32,7 +33,7 @@ export interface PixelInfoResult {
 }
 
 function calculateLevel(pixelsPainted: number): number {
-	return Math.floor(Math.sqrt(pixelsPainted / 100)) + 1;
+	return Math.pow(pixelsPainted / LEVEL_BASE_PIXEL, LEVEL_EXPONENT) + 1;
 }
 
 export class PixelService {
