@@ -68,11 +68,6 @@ export default function (app: App) {
 
 			const imageBuffer = await pixelService.getTileImage(tileX, tileY);
 
-			if (imageBuffer.length === 0) {
-				return res.status(HTTP_STATUS.NOT_FOUND)
-					.end();
-			}
-
 			res.setHeader("Content-Type", "image/png");
 			res.setHeader("Cache-Control", "public, max-age=300");
 			return res.send(imageBuffer);

@@ -148,7 +148,7 @@ export class PixelService {
 		});
 
 		if (!tile) {
-			return Buffer.alloc(0);
+			return Buffer.from([]);
 		}
 
 		return tile.imageData
