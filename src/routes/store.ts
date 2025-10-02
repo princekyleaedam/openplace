@@ -51,7 +51,7 @@ export default function (app: App) {
 				case "charges":
 					updateData.maxCharges = user.maxCharges + (5 * (product.amount || 1));
 					break;
-				case "paint":
+				case "paint": {
 					const currentCharges = calculateChargeRecharge(
 						user.currentCharges,
 						user.maxCharges,
@@ -61,6 +61,7 @@ export default function (app: App) {
 					updateData.currentCharges = currentCharges + (30 * (product.amount || 1));
 					updateData.chargesLastUpdatedAt = new Date();
 					break;
+				}
 				case "color":
 					if (product.variant && product.variant >= 32 && product.variant <= 63) {
 						const mask = 1 << (product.variant - 32);

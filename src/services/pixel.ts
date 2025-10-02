@@ -333,7 +333,7 @@ export class PixelService {
 		const newLevel = calculateLevel(newPixelsPainted);
 
 		// Level up rewards
-		const isLevelUp = Math.floor(user.level) != Math.floor(newLevel);
+		const isLevelUp = Math.floor(user.level) !== Math.floor(newLevel);
 		const newDroplets = isLevelUp ? (user.droplets + LEVEL_UP_DROPLETS_REWARD) : user.droplets;
 		const newMaxCharges = isLevelUp ? (user.maxCharges + LEVEL_UP_MAX_CHARGES_REWARD) : user.maxCharges;
 
