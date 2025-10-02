@@ -1,2 +1,2 @@
-call StopNSSMDaemons.cmd
-call StartNSSMDaemons.cmd
+call StopNSSMDaemons_AS_ADMIN.cmd
+call StartNSSMDaemons_AD_ADMIN.cmd
