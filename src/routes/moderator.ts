@@ -3,6 +3,7 @@ import { prisma } from "../config/database.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { AuthenticatedRequest, UserRole } from "../types/index.js";
 import { Ticket, User } from "@prisma/client";
+import fs from "fs/promises";
 
 const moderatorMiddleware = async (req: AuthenticatedRequest, res: Response, next?: NextFunction) => {
 	try {
@@ -258,5 +259,12 @@ export default function (app: App) {
 			return res.status(500)
 				.json({ error: "Internal Server Error", status: 500 });
 		}
+	});
+
+	app.get("/moderation", async (_req, res) => {
+		const html = await fs.readFile("./frontend/moderation.html", "utf8");
+		return res
+			.setHeader("Content-Type", "text/html")
+			.send(html);
 	});
 }

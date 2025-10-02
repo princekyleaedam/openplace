@@ -3,6 +3,7 @@ import { prisma } from "../config/database.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { AuthenticatedRequest, UserRole } from "../types/index.js";
 import { Prisma, Ticket } from "@prisma/client";
+import fs from "fs/promises";
 
 const REPORT_REASONS = [
 	{ key: "doxxing", label: "Doxxing" },
@@ -535,5 +536,12 @@ export default function (app: App) {
 			return res.status(500)
 				.json({ error: "Internal Server Error", status: 500 });
 		}
+	});
+
+	app.get("/admin", async (_req, res) => {
+		const html = await fs.readFile("./frontend/admin.html", "utf8");
+		return res
+			.setHeader("Content-Type", "text/html")
+			.send(html);
 	});
 }
