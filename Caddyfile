@@ -11,7 +11,7 @@ https://*:8080 {
 
 		@not_file_exists not file
 		handle @not_file_exists {
-			reverse_proxy localhost:3000
+			reverse_proxy {$BACKEND_HOST:localhost}:{$BACKEND_PORT:3000}
 		}
 	}
 }
