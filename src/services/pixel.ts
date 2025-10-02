@@ -3,7 +3,7 @@ import { createCanvas } from "@napi-rs/canvas";
 import { checkColorUnlocked, COLOR_PALETTE } from "../utils/colors.js";
 import { calculateChargeRecharge } from "../utils/charges.js";
 import { getRegionForCoordinates } from "../config/regions.js";
-import { LEVEL_BASE_PIXEL, LEVEL_EXPONENT } from "../config/user.js";
+import { LEVEL_BASE_PIXEL, LEVEL_EXPONENT } from "../config/pixel.js";
 
 export interface PaintPixelsInput {
 	tileX: number;
