@@ -3,6 +3,7 @@ import { createCanvas } from "@napi-rs/canvas";
 import { checkColorUnlocked, COLOR_PALETTE } from "../utils/colors.js";
 import { calculateChargeRecharge } from "../utils/charges.js";
 import { getRegionForCoordinates } from "../config/regions.js";
+import { LEVEL_BASE_PIXEL, LEVEL_EXPONENT, LEVEL_UP_DROPLETS_REWARD, LEVEL_UP_MAX_CHARGES_REWARD } from "../config/pixel.js";
 
 export interface PaintPixelsInput {
 	tileX: number;
@@ -32,7 +33,7 @@ export interface PixelInfoResult {
 }
 
 function calculateLevel(pixelsPainted: number): number {
-	return Math.floor(Math.sqrt(pixelsPainted / 100)) + 1;
+	return Math.pow(pixelsPainted / LEVEL_BASE_PIXEL, LEVEL_EXPONENT) + 1;
 }
 
 export class PixelService {
@@ -189,8 +190,6 @@ export class PixelService {
 			throw new Error("attempted to paint more pixels than there was charges.");
 		}
 
-		user.currentCharges = currentCharges;
-
 		for (const colorId of colors) {
 			if (!checkColorUnlocked(colorId, user.extraColorsBitmap)) {
 				throw new Error("attempted to paint with a colour that was not purchased.");
@@ -278,9 +277,14 @@ export class PixelService {
 			await this.prisma.$executeRawUnsafe(bulkQuery);
 		}
 
-		const newCharges = Math.max(0, user.currentCharges - totalChargeCost);
+		const newCharges = Math.max(0, currentCharges - totalChargeCost);
 		const newPixelsPainted = user.pixelsPainted + painted;
 		const newLevel = calculateLevel(newPixelsPainted);
+
+		// Level up rewards
+		const isLevelUp = Math.floor(user.level) != Math.floor(newLevel);
+		const newDroplets = isLevelUp ? (user.droplets + LEVEL_UP_DROPLETS_REWARD) : user.droplets;
+		const newMaxCharges = isLevelUp ? (user.maxCharges + LEVEL_UP_MAX_CHARGES_REWARD) : user.maxCharges;
 
 		await this.prisma.user.update({
 			where: { id: userId },
@@ -288,6 +292,8 @@ export class PixelService {
 				currentCharges: newCharges,
 				pixelsPainted: newPixelsPainted,
 				level: newLevel,
+				droplets: newDroplets,
+				maxCharges: newMaxCharges,
 				chargesLastUpdatedAt: new Date()
 			}
 		});

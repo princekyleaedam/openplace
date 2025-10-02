@@ -4,7 +4,7 @@ export function calculateChargeRecharge(currentCharges: number, maxCharges: numb
 	}
 
 	const timeSinceLastUpdate = Date.now() - lastUpdate.getTime();
-	const chargesGenerated = Math.floor(timeSinceLastUpdate / cooldownMs);
+	const chargesGenerated = timeSinceLastUpdate / cooldownMs;
 
 	return Math.min(maxCharges, currentCharges + chargesGenerated);
 }
