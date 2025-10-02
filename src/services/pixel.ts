@@ -190,8 +190,6 @@ export class PixelService {
 			throw new Error("attempted to paint more pixels than there was charges.");
 		}
 
-		user.currentCharges = currentCharges;
-
 		for (const colorId of colors) {
 			if (!checkColorUnlocked(colorId, user.extraColorsBitmap)) {
 				throw new Error("attempted to paint with a colour that was not purchased.");
@@ -279,7 +277,7 @@ export class PixelService {
 			await this.prisma.$executeRawUnsafe(bulkQuery);
 		}
 
-		const newCharges = Math.max(0, user.currentCharges - totalChargeCost);
+		const newCharges = Math.max(0, currentCharges - totalChargeCost);
 		const newPixelsPainted = user.pixelsPainted + painted;
 		const newLevel = calculateLevel(newPixelsPainted);
 
