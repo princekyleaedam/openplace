@@ -267,4 +267,10 @@ export default function (app: App) {
 			.setHeader("Content-Type", "text/html")
 			.send(html);
 	});
+
+	app.get("/moderator/:season/pixel/:tileX/:tileY", async (req: any, res: any) => {
+		// Temporary redirect to the non-moderator route
+		const redirectUrl = req.originalUrl.replace(/^\/moderator/, "");
+		return res.redirect(redirectUrl);
+	});
 }
