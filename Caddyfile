@@ -1,4 +1,4 @@
-https://127.0.0.1 {
+http://localhost:8000, https://localhost:8080 {
 	tls internal
 	root * ./frontend
 

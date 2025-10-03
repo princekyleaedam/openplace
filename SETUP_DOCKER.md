@@ -54,8 +54,6 @@ This will start:
 Once all services are running, you can access OpenPlace at:
 
 ```
-https://localhost:443
+http://localhost
+https://localhost
 ```
-
-> [!WARNING]
-> ⚠️ **Important:** OpenPlace only works over HTTPS. If you try HTTP, you'll get **400 Bad Request**.
