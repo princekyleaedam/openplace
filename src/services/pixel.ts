@@ -316,16 +316,20 @@ export class PixelService {
 				paintedAt: now
 			}));
 
-			await this.prisma.$executeRaw`
-				INSERT INTO Pixel (season, tileX, tileY, x, y, colorId, paintedBy, paintedAt)
-				VALUES ${Prisma.join(values.map(v =>
+			// Upsert 1000 pixels at a time for performance, and to avoid the limit of prepared statement placeholders
+			for (let i = 0; i < values.length; i += 1000) {
+				const batch = values.slice(i, i + 1000);
+				await this.prisma.$executeRaw`
+					INSERT INTO Pixel (season, tileX, tileY, x, y, colorId, paintedBy, paintedAt)
+					VALUES ${Prisma.join(batch.map(v =>
 		Prisma.sql`(${v.season}, ${v.tileX}, ${v.tileY}, ${v.x}, ${v.y}, ${v.colorId}, ${v.paintedBy}, ${v.paintedAt})`
 	))}
-				ON DUPLICATE KEY UPDATE
-					colorId = VALUES(colorId),
-					paintedBy = VALUES(paintedBy),
-					paintedAt = VALUES(paintedAt)
-			`;
+					ON DUPLICATE KEY UPDATE
+						colorId = VALUES(colorId),
+						paintedBy = VALUES(paintedBy),
+						paintedAt = VALUES(paintedAt)
+				`;
+			}
 		}
 
 		const newCharges = Math.max(0, currentCharges - totalChargeCost);
