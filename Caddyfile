@@ -1,0 +1,18 @@
+http://localhost:8000, https://localhost:8080 {
+	tls internal
+	root * ./frontend
+
+	try_files {path} {path}/index.html
+
+	handle {
+		@file_exists file
+		handle @file_exists {
+			file_server
+		}
+
+		@not_file_exists not file
+		handle @not_file_exists {
+			reverse_proxy {$BACKEND_HOST:localhost}:{$BACKEND_PORT:3000}
+		}
+	}
+}

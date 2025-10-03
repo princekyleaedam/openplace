@@ -6,4 +6,3 @@
 *.log
 dist/
 node_modules/
-Caddyfile
