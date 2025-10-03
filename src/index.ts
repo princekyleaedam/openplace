@@ -14,6 +14,7 @@ import pixel from "./routes/pixel.js";
 import store from "./routes/store.js";
 import { addPrismaToRequest } from "./config/database.js";
 import fs from "fs/promises";
+import { json } from "milliparsec";
 import sirv from "sirv";
 
 dotenv.config();
@@ -32,20 +33,7 @@ const app = new App({
 
 app.use(cors());
 app.use(cookieParser());
-app.use((req, _res, next) => {
-	let body = "";
-	req.on("data", chunk => {
-		body += chunk.toString();
-	});
-	req.on("end", () => {
-		try {
-			req.body = body ? JSON.parse(body) : {};
-		} catch {
-			req.body = {};
-		}
-		return next?.();
-	});
-});
+app.use(json());
 
 // Logging
 app.use((req, res, next) => {
