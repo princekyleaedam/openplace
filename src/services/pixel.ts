@@ -40,9 +40,9 @@ export class PixelService {
 	public readonly emptyTile: Buffer;
 
 	constructor(private prisma: PrismaClient) {
-		const canvas = createCanvas(1, 1);
+		const canvas = createCanvas(1000, 1000);
 		const ctx = canvas.getContext("2d");
-		ctx.clearRect(0, 0, 1, 1);
+		ctx.clearRect(0, 0, 1000, 1000);
 		this.emptyTile = canvas.toBuffer("image/png");
 	}
 
