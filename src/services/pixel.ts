@@ -3,7 +3,7 @@ import { createCanvas } from "@napi-rs/canvas";
 import { checkColorUnlocked, COLOR_PALETTE } from "../utils/colors.js";
 import { calculateChargeRecharge } from "../utils/charges.js";
 import { getRegionForCoordinates } from "../config/regions.js";
-import { LEVEL_BASE_PIXEL, LEVEL_EXPONENT, LEVEL_UP_DROPLETS_REWARD, LEVEL_UP_MAX_CHARGES_REWARD } from "../config/pixel.js";
+import { LEVEL_BASE_PIXEL, LEVEL_EXPONENT, LEVEL_UP_DROPLETS_REWARD, LEVEL_UP_MAX_CHARGES_REWARD, PAINTED_DROPLETS_REWARD } from "../config/pixel.js";
 
 export interface PaintPixelsInput {
 	tileX: number;
@@ -343,9 +343,18 @@ export class PixelService {
 		const newPixelsPainted = user.pixelsPainted + painted;
 		const newLevel = calculateLevel(newPixelsPainted);
 
-		// Level up rewards
-		const newDroplets = Math.floor(newLevel) !== Math.floor(user.level) ? (user.droplets + LEVEL_UP_DROPLETS_REWARD) : user.droplets;
-		const newMaxCharges = user.maxCharges + LEVEL_UP_MAX_CHARGES_REWARD * (Math.floor(newLevel) - Math.floor(user.level));
+		// Rewards calculations
+		const levelUpRewards = {
+			droplets: Math.floor(newLevel) !== Math.floor(user.level) ? LEVEL_UP_DROPLETS_REWARD : 0,
+			maxCharges: LEVEL_UP_MAX_CHARGES_REWARD * (Math.floor(newLevel) - Math.floor(user.level)),
+		};
+
+		const paintedRewards = {
+			droplets: painted * PAINTED_DROPLETS_REWARD,
+		};
+
+		const newDroplets = user.droplets + levelUpRewards.droplets + paintedRewards.droplets;
+		const newMaxCharges = user.maxCharges + levelUpRewards.maxCharges;
 
 		await this.prisma.user.update({
 			where: { id: userId },
