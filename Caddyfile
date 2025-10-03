@@ -1,4 +1,5 @@
-https://localhost:8080 {
+https://127.0.0.1 {
+	tls internal
 	root * ./frontend
 
 	try_files {path} {path}/index.html

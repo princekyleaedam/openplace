@@ -1,2 +1,5 @@
-call StopNSSMDaemons.cmd
-call StartNSSMDaemons.cmd
+net stop Caddy
+net stop FrontendApp
+net start Caddy
+net start FrontendApp
+PAUSE
