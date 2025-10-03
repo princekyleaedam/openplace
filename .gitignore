@@ -6,5 +6,4 @@
 *.log
 dist/
 node_modules/
-ecosystem.config.cjs
 Caddyfile

@@ -42,6 +42,7 @@ cd openplace
 
 ```powershell
 npm install
+npm install -g pm2
 ```
 
 ---
@@ -101,26 +102,11 @@ caddy run --config .\Caddyfile
 npm run exec
 ```
 
-## 7.C Run both in background
+## 7.C Run Caddy in background and node in forground
 
-Install Daemons:
 ```
-installNSSMDaemons_AS_ADMIN.cmd
-```
-
-Start Daemons:
-```
-StartNSSMDaemons_AS_ADMIN.cmd
-```
-
-Stop Daemons:
-```
-StopNSSMDaemons_AS_ADMIN.cmd
-```
-
-Restart Daemons:
-```
-RestartNSSMDaemons_AS_ADMIN.cmd
+pm2 start ecosystem.config.cjs
+pm2 save
 ```
 
 

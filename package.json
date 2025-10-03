@@ -4,6 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"exec": "concurrently \"caddy run --config ./Caddyfile\" \"npm run dev\"",
 		"dev": "tsx watch src",
 		"build": "tsc",
 		"start": "node dist",
@@ -40,6 +41,7 @@
 		"@types/supertest": "^6.0.3",
 		"@typescript-eslint/eslint-plugin": "^5.62.0",
 		"@typescript-eslint/parser": "^5.62.0",
+		"concurrently": "^9.2.1",
 		"eslint": "^8.57.1",
 		"eslint-config-chariz": "^1.6.0",
 		"eslint-plugin-jsx-a11y": "^6.10.2",
