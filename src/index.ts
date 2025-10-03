@@ -14,15 +14,19 @@ import pixel from "./routes/pixel.js";
 import store from "./routes/store.js";
 import { addPrismaToRequest } from "./config/database.js";
 import fs from "fs/promises";
+import sirv from "sirv";
 
 dotenv.config();
 
+const isDev = process.env["NODE_ENV"] !== "production";
+
+const noMatchPage = await fs.readFile("./frontend/404.html", "utf8");
+
 const app = new App({
 	noMatchHandler: async (_req, res) => {
-		const html = await fs.readFile("./frontend/404.html", "utf8");
 		return res.status(404)
-			.setHeader("Content-Type", "text/html")
-			.send(html);
+			.set("Content-Type", "text/html")
+			.send(noMatchPage);
 	}
 });
 
@@ -77,6 +81,10 @@ me(app);
 moderator(app);
 pixel(app);
 store(app);
+
+app.use(sirv("./frontend", {
+	dev: isDev
+}));
 
 const PORT = Number(process.env["PORT"]) || 3000;
 
