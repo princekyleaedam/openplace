@@ -37,7 +37,14 @@ function calculateLevel(pixelsPainted: number): number {
 }
 
 export class PixelService {
-	constructor(private prisma: PrismaClient) {}
+	public readonly emptyTile: Buffer;
+
+	constructor(private prisma: PrismaClient) {
+		const canvas = createCanvas(1, 1);
+		const ctx = canvas.getContext("2d");
+		ctx.clearRect(0, 0, 1, 1);
+		this.emptyTile = canvas.toBuffer("image/png");
+	}
 
 	async getRandomTile(): Promise<RandomTileResult> {
 		const recentThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -148,7 +155,7 @@ export class PixelService {
 		});
 
 		if (!tile) {
-			return Buffer.from([]);
+			return this.emptyTile;
 		}
 
 		return tile.imageData
