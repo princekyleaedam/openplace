@@ -34,7 +34,7 @@ const app = new App({
 app.use(cors());
 app.use(cookieParser());
 app.use(json({
-	payloadLimit: 4096 * 1024 // 4 MB
+	payloadLimit: 10 * 1024 * 1024 // 10 MB
 }));
 
 // Logging
