@@ -11,7 +11,13 @@ assignees: ''
 **What is the location of the API call?*
 /
 
-**(Optional) Please provide a sample JSON response so we know what is needed in the callback**
+**(Optional) If any, please provide any JSON request payloads, responses, etc.**
+Request payload
 ```
-Placeholder
+None provided.
+```
+
+Response
+```
+None provided.
 ```
