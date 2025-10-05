@@ -11,6 +11,7 @@ import leaderboard from "./routes/leaderboard.js";
 import me from "./routes/me.js";
 import moderator from "./routes/moderator.js";
 import pixel from "./routes/pixel.js";
+import reportUser from "./routes/report-user.js";
 import store from "./routes/store.js";
 import { addPrismaToRequest } from "./config/database.js";
 import fs from "fs/promises";
@@ -33,9 +34,19 @@ const app = new App({
 
 app.use(cors());
 app.use(cookieParser());
-app.use(json({
-	payloadLimit: 10 * 1024 * 1024 // 10 MB
-}));
+
+const jsonMiddleware = json({
+	payloadLimit: 50 * 1024 * 1024 // 50 MB
+});
+
+app.use((req, res, next) => {
+	// Hack: /report-user uses multipart, not json
+	if (req.path === "/report-user") {
+		return next?.();
+	}
+
+	return jsonMiddleware(req, res, next);
+});
 
 // Logging
 app.use((req, res, next) => {
@@ -70,14 +81,15 @@ leaderboard(app);
 me(app);
 moderator(app);
 pixel(app);
+reportUser(app);
 store(app);
 
 app.use(sirv("./frontend", {
 	dev: isDev
 }));
 
-const PORT = Number(process.env["PORT"]) || 3000;
+const port = Number(process.env["BACKEND_PORT"]) || 3000;
 
-app.listen(PORT, () => {
-	console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+	console.log(`Server running on port ${port}`);
 });

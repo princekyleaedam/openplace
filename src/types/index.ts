@@ -35,10 +35,11 @@ export enum UserRole {
 }
 
 export enum BanReason {
+	InappropriateContent = "inappropriate-content",
+	HateSpeech = "hate-speech",
 	Doxxing = "doxxing",
 	Bot = "bot",
-	HateSpeech = "hate-speech",
+	Griefing = "griefing",
 	MultiAccounting = "multi-accounting",
-	InappropriateContent = "inappropriate-content",
 	Other = "other"
 }

@@ -145,7 +145,7 @@ model Ticket {
 	zoom           Float
 	reason         String
 	notes          String
-	image          String
+	image          Bytes?
 	resolved       Boolean  @default(false)
 	severe         Boolean  @default(false)
 	createdAt      DateTime @default(now())

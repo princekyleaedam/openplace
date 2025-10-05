@@ -30,13 +30,25 @@ export default function (app: App) {
 					resolved: false
 				},
 				select: {
+					id: true,
+					latitude: true,
+					longitude: true,
+					zoom: true,
+					reason: true,
+					notes: true,
+					image: true,
+					resolved: true,
+					severe: true,
+					createdAt: true,
 					user: {
 						select: {
 							id: true,
 							name: true,
 							discord: true,
 							country: true,
-							banned: true
+							banned: true,
+							role: true,
+							picture: true
 						}
 					},
 					reportedUser: {
@@ -45,73 +57,81 @@ export default function (app: App) {
 							name: true,
 							discord: true,
 							country: true,
-							banned: true
+							banned: true,
+							role: true,
+							picture: true
 						}
 					}
 				}
 			});
 
-			// Get all reported users
-			const reportedUserIds = tickets.map(ticket => ticket.reportedUserId);
-			const reportedUsers = await prisma.user.findMany({
-				where: { id: { in: reportedUserIds } },
-				select: {}
-			});
-
-			const userMap = new Map(reportedUsers.map(user => [user.id, user]));
-
-			// Group tickets by reported user
-			const ticketsByUser = new Map<number, Ticket[]>();
-			const authors = new Map<number, User | null>();
-			await Promise.all(tickets.map(async ticket => {
-				const userId = ticket.userId;
-				if (!authors.has(userId)) {
-					authors.set(userId, await prisma.user.findFirst({
-						where: { id: userId }
-					}));
-				}
-
-				const reportedUserID = ticket.reportedUserId;
-				if (!ticketsByUser.has(reportedUserID)) {
-					ticketsByUser.set(reportedUserID, []);
-				}
-				ticketsByUser.get(reportedUserID)!.push(ticket);
-			}));
-
-			const formattedTickets = [...ticketsByUser.entries()].map(([userId, userTickets]) => {
-				const author = authors.get(userTickets[0]?.userId || 0);
-				const reportedUser = userMap.get(userId);
+			const formattedTickets = tickets.map(ticket => {
+				const reportedUser = ticket.reportedUser;
+				const author = ticket.user;
 				return {
-					id: userId,
+					id: ticket.id,
 					author: author
 						? {
-								id: author.id,
+								userId: author.id,
 								name: author.name,
-								discord: author.discord || "",
+								discord: author.discord,
 								country: author.country,
-								banned: author.banned
+								banned: author.banned,
+								role: author.role,
+								reportedCount: 0,
+								pixelsPainted: 0,
 							}
 						: null,
 					reportedUser: reportedUser
 						? {
+								userId: reportedUser.id,
 								id: reportedUser.id,
 								name: reportedUser.name,
-								discord: reportedUser.discord || "",
+								discord: reportedUser.discord,
 								country: reportedUser.country,
-								banned: reportedUser.banned
+								banned: reportedUser.banned,
+								role: reportedUser.role,
+								picture: reportedUser.picture,
+								reportedCount: 0,
+								timeoutCount: 0,
+								pixelsPainted: 0,
+								lastTimeoutReason: null,
 							}
 						: null,
-					createdAt: userTickets[0]?.createdAt,
-					reports: userTickets.map(ticket => ({
-						id: ticket.id,
-						latitude: ticket.latitude,
-						longitude: ticket.longitude,
-						zoom: ticket.zoom,
-						reason: ticket.reason,
-						notes: ticket.notes,
-						image: ticket.image,
-						createdAt: ticket.createdAt
-					}))
+					createdAt: ticket.createdAt,
+					reports: [
+						{
+							id: ticket.id,
+							reportedLatitude: ticket.latitude,
+							reportedLongitude: ticket.longitude,
+							zoom: ticket.zoom,
+							reason: ticket.reason,
+							notes: ticket.notes,
+							image: ticket.image ? Buffer.from(ticket.image).toString("base64") : "",
+							createdAt: ticket.createdAt,
+							userId: reportedUser.id,
+							reportedByName: author.name,
+							reportedByPicture: author.picture,
+							reportedBy: author
+								? {
+										userId: author.id,
+										id: author.id,
+										name: author.name,
+										discord: author.discord,
+										country: author.country,
+										banned: author.banned,
+										role: author.role
+									}
+								: null,
+							reportedCount: 0,
+							timeoutCount: 0,
+							lastTimeoutReason: null,
+							sameIpAccounts: 0,
+							pixelsPainted: 0,
+							allianceId: 0,
+							allianceName: "fdgdg",
+						}
+					]
 				};
 			});
 
