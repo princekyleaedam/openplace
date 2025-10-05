@@ -88,9 +88,9 @@ model FavoriteLocation {
 
 model Tile {
 	id        Int    @id @default(autoincrement())
-	season    Int    @default(0)
-	x         Int
-	y         Int
+	season    Int    @db.UnsignedSmallInt @default(0)
+	x         Int    @db.UnsignedSmallInt
+	y         Int    @db.UnsignedSmallInt
 	imageData Bytes?
 	pixels    Pixel[]
 
@@ -99,12 +99,12 @@ model Tile {
 
 model Pixel {
 	id        Int      @id @default(autoincrement())
-	season    Int      @default(0)
-	tileX     Int
-	tileY     Int
-	x         Int
-	y         Int
-	colorId   Int
+	season    Int      @db.UnsignedSmallInt @default(0)
+	tileX     Int      @db.UnsignedSmallInt
+	tileY     Int      @db.UnsignedSmallInt
+	x         Int      @db.UnsignedSmallInt
+	y         Int      @db.UnsignedSmallInt
+	colorId   Int      @db.UnsignedSmallInt
 	paintedBy Int
 	user      User     @relation(fields: [paintedBy], references: [id])
 	tile      Tile     @relation(fields: [season, tileX, tileY], references: [season, x, y])
