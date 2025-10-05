@@ -47,64 +47,28 @@ export class PixelService {
 	}
 
 	async getRandomTile(): Promise<RandomTileResult> {
-		const recentThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-		let recentPixelCount = await this.prisma.pixel.count({
-			where: {
-				paintedAt: {
-					gte: recentThreshold
-				}
-			}
+		const result = await this.prisma.pixel.aggregate({
+  			_max: { id: true }
 		});
 
-		let firstRecentPixel = await this.prisma.pixel.findFirst({
-			select: {
-				id: true
-			},
-			where: {
-				paintedAt: {
-					gte: recentThreshold
-				}
-			},
-			orderBy: { paintedAt: "desc" }
-		});
-
-		if (recentPixelCount === 0 || !firstRecentPixel) {
-			recentPixelCount = await this.prisma.pixel.count();
-
-			firstRecentPixel = await this.prisma.pixel.findFirst({
-				select: {
-					id: true
-				},
-				orderBy: { paintedAt: "desc" }
-			});
-		}
-
-		const id = (firstRecentPixel?.id || 1) + Math.floor(Math.random() * recentPixelCount);
-
-		const randomPixel = await this.prisma.pixel.findFirst({
-			select: {
-				x: true,
-				y: true,
-				tileX: true,
-				tileY: true
-			},
-			where: {
-				id: { gte: id }
-			},
-			orderBy: { id: "asc" }
-		});
-
-		if (!randomPixel) {
+		const maxId = result._max.id;
+		if (!maxId) {
+			console.log("Table is empty");
 			return {
 				pixel: { x: 500, y: 500 },
 				tile: { x: 1024, y: 1024 }
 			};
 		}
 
+		let randomRow = null;
+		while (!randomRow) {
+			const randomId = Math.floor(Math.random() * maxId) + 1;
+			randomRow = await this.prisma.pixel.findUnique({ where: { id: randomId } });
+		}
+
 		return {
-			pixel: { x: randomPixel.x, y: randomPixel.y },
-			tile: { x: randomPixel.tileX, y: randomPixel.tileY }
+			pixel: { x: randomRow.x, y: randomRow.y },
+			tile: { x: randomRow.tileX, y: randomRow.tileY }
 		};
 	}
 
@@ -346,11 +310,11 @@ export class PixelService {
 		// Rewards calculations
 		const levelUpRewards = {
 			droplets: Math.floor(newLevel) !== Math.floor(user.level) ? LEVEL_UP_DROPLETS_REWARD : 0,
-			maxCharges: LEVEL_UP_MAX_CHARGES_REWARD * (Math.floor(newLevel) - Math.floor(user.level)),
+			maxCharges: LEVEL_UP_MAX_CHARGES_REWARD * (Math.floor(newLevel) - Math.floor(user.level))
 		};
 
 		const paintedRewards = {
-			droplets: painted * PAINTED_DROPLETS_REWARD,
+			droplets: painted * PAINTED_DROPLETS_REWARD
 		};
 
 		const newDroplets = user.droplets + levelUpRewards.droplets + paintedRewards.droplets;
