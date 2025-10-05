@@ -8,9 +8,10 @@ assignees: ''
 
 ---
 
-**What is the location of the API call?*
+**What is the location of the API call?**
+```
 /
-
+```
 **(Optional) If any, please provide any JSON request payloads, responses, etc.**
 Request payload
 ```
