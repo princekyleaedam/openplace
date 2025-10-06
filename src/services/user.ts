@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, User } from "@prisma/client";
 import { calculateChargeRecharge } from "../utils/charges.js";
 import { englishDataset, englishRecommendedTransformers, RegExpMatcher } from "obscenity";
 
@@ -114,10 +114,16 @@ export class UserService {
 			throw new Error("The name has more than 16 characters");
 		}
 
-		const updateData: any = {};
-		if (name !== undefined) updateData.name = name;
-		if (showLastPixel !== undefined) updateData.showLastPixel = showLastPixel;
-		if (discord !== undefined) updateData.discord = discord;
+		const updateData: Partial<User> = {};
+		if (name) {
+			updateData.name = name;
+		}
+		if (showLastPixel) {
+			updateData.showLastPixel = showLastPixel;
+		}
+		if (discord) {
+			updateData.discord = discord;
+		}
 
 		await this.prisma.user.update({
 			where: { id: userId },

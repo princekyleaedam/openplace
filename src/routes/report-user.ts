@@ -36,7 +36,8 @@ async function makeTicket(req: AuthenticatedRequest, res: Response): Promise<Tic
 		return;
 	}
 
-	if (!Object.values(BanReason).includes(reason)) {
+	if (!Object.values(BanReason)
+		.includes(reason)) {
 		res.status(400)
 			.json({ error: "Invalid ban reason", status: 400 });
 		return;

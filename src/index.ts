@@ -13,7 +13,6 @@ import moderator from "./routes/moderator.js";
 import pixel from "./routes/pixel.js";
 import reportUser from "./routes/report-user.js";
 import store from "./routes/store.js";
-import { addPrismaToRequest } from "./config/database.js";
 import fs from "fs/promises";
 import { json } from "milliparsec";
 import sirv from "sirv";
@@ -43,7 +42,7 @@ const jsonMiddleware = json({
 	payloadLimit: 50 * 1024 * 1024 // 50 MB
 });
 
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
 	req.ip = req.get("x-forwarded-for") as string ?? req.ip;
 	next?.();
 });
@@ -78,8 +77,6 @@ app.use((req, res, next) => {
 
 	return next?.();
 });
-
-app.use(addPrismaToRequest);
 
 admin(app);
 alliance(app);

@@ -34,6 +34,8 @@ export const adminMiddleware = async (req: AuthenticatedRequest, res: Response, 
 
 const userService = new UserService(prisma);
 
+// TODO: Split this up further. Just ignoring so I can actually read this file without zigzags for now
+// eslint-disable-next-line max-lines-per-function
 export default function (app: App) {
 	app.get("/admin/users", authMiddleware, adminMiddleware, async (req, res) => {
 		try {
@@ -159,7 +161,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/admin/users/tickets", authMiddleware, adminMiddleware, async (req, res, next) => {
+	app.get("/admin/users/tickets", authMiddleware, adminMiddleware, async (req, res) => {
 		try {
 			const id = Number.parseInt(req.query["id"] as string ?? "") || 0;
 			if (Number.isNaN(id) || id <= 0) {
@@ -209,7 +211,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/admin/users/set-user-droplets", authMiddleware, adminMiddleware, async (req, res, next) => {
+	app.post("/admin/users/set-user-droplets", authMiddleware, adminMiddleware, async (req, res) => {
 		try {
 			const userId = Number.parseInt(req.body["userId"] as string ?? "") || 0;
 			const droplets = Number.parseInt(req.body["droplets"] as string ?? "") || 0;
@@ -464,24 +466,18 @@ export default function (app: App) {
 			const isFull = req.path.endsWith("/full");
 			const alliance = await prisma.alliance.findUnique({
 				where: { id },
-				select: isFull
-					? {
-							id: true,
-							name: true,
-							description: true,
-							hqLatitude: true,
-							hqLongitude: true,
-							pixelsPainted: true,
-							members: true,
-							bannedUsers: true,
-							createdAt: true,
-							updatedAt: true
-						}
-					: {
-							id: true,
-							name: true,
-							pixelsPainted: true
-						}
+				select: {
+					id: true,
+					name: true,
+					description: isFull,
+					hqLatitude: isFull,
+					hqLongitude: isFull,
+					pixelsPainted: true,
+					members: isFull,
+					bannedUsers: isFull,
+					createdAt: isFull,
+					updatedAt: isFull
+				}
 			});
 			if (!alliance) {
 				return res.status(404)

@@ -23,7 +23,7 @@ const moderatorMiddleware = async (req: AuthenticatedRequest, res: Response, nex
 };
 
 export default function (app: App) {
-	app.get("/moderator/tickets", authMiddleware, moderatorMiddleware, async (req: any, res: any) => {
+	app.get("/moderator/tickets", authMiddleware, moderatorMiddleware, async (_req: any, res: any) => {
 		try {
 			const tickets = await prisma.ticket.findMany({
 				where: {
@@ -79,7 +79,7 @@ export default function (app: App) {
 								banned: author.banned,
 								role: author.role,
 								reportedCount: 0,
-								pixelsPainted: 0,
+								pixelsPainted: 0
 							}
 						: null,
 					reportedUser: reportedUser
@@ -95,7 +95,7 @@ export default function (app: App) {
 								reportedCount: 0,
 								timeoutCount: 0,
 								pixelsPainted: 0,
-								lastTimeoutReason: null,
+								lastTimeoutReason: null
 							}
 						: null,
 					createdAt: ticket.createdAt,
@@ -107,7 +107,10 @@ export default function (app: App) {
 							zoom: ticket.zoom,
 							reason: ticket.reason,
 							notes: ticket.notes,
-							image: ticket.image ? Buffer.from(ticket.image).toString("base64") : "",
+							image: ticket.image
+								? Buffer.from(ticket.image)
+									.toString("base64")
+								: "",
 							createdAt: ticket.createdAt,
 							userId: reportedUser.id,
 							reportedByName: author.name,
@@ -129,7 +132,7 @@ export default function (app: App) {
 							sameIpAccounts: 0,
 							pixelsPainted: 0,
 							allianceId: 0,
-							allianceName: "fdgdg",
+							allianceName: "fdgdg"
 						}
 					]
 				};
@@ -226,7 +229,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/moderator/open-tickets-count", authMiddleware, moderatorMiddleware, async (req: any, res: any) => {
+	app.get("/moderator/open-tickets-count", authMiddleware, moderatorMiddleware, async (_req: any, res: any) => {
 		try {
 			const count = await prisma.ticket.count({
 				where: { resolution: null }
@@ -240,7 +243,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/moderator/severe-open-tickets-count", authMiddleware, moderatorMiddleware, async (req: any, res: any) => {
+	app.post("/moderator/severe-open-tickets-count", authMiddleware, moderatorMiddleware, async (_req: any, res: any) => {
 		try {
 			const count = await prisma.ticket.count({
 				where: {
@@ -257,7 +260,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/moderator/assign-new-tickets", authMiddleware, moderatorMiddleware, async (req: any, res: any) => {
+	app.post("/moderator/assign-new-tickets", authMiddleware, moderatorMiddleware, async (_req: any, res: any) => {
 		try {
 			// TODO
 			res.json({
@@ -270,7 +273,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/moderator/count-my-tickets", authMiddleware, moderatorMiddleware, async (req: any, res: any) => {
+	app.get("/moderator/count-my-tickets", authMiddleware, moderatorMiddleware, async (_req: any, res: any) => {
 		try {
 			// TODO
 			res.json(0);
