@@ -40,6 +40,7 @@ model User {
 	favoriteLocations      FavoriteLocation[]
 	createdTickets         Ticket[] @relation("TicketUser")
 	reportedTickets        Ticket[] @relation("TicketReportedUser")
+	moderatedTickets       Ticket[] @relation("TicketModeratorUser")
 	createdNotes           UserNote[] @relation("UserNoteUser")
 	reportedNotes          UserNote[] @relation("UserNoteReportedUser")
 	createdAt              DateTime @default(now())
@@ -140,13 +141,15 @@ model Ticket {
 	user           User     @relation("TicketUser", fields: [userId], references: [id])
 	reportedUserId Int
 	reportedUser   User     @relation("TicketReportedUser", fields: [reportedUserId], references: [id])
+	moderatorUserId Int?
+	moderatorUser  User?    @relation("TicketModeratorUser", fields: [moderatorUserId], references: [id])
 	latitude       Float
 	longitude      Float
 	zoom           Float
 	reason         String
 	notes          String
 	image          Bytes?
-	resolved       Boolean  @default(false)
+	resolution     String?
 	severe         Boolean  @default(false)
 	createdAt      DateTime @default(now())
 	updatedAt      DateTime @updatedAt

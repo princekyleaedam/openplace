@@ -120,4 +120,27 @@ export class UserService {
 			}
 		});
 	}
+
+	async ban(userId: number, state: boolean) {
+		await this.prisma.user.update({
+			where: { id: userId },
+			data: { banned: state }
+		});
+	}
+
+	async timeout(userId: number, state: boolean) {
+		const timeoutUntil = new Date();
+
+		if (state) {
+			// 30 day timeout
+			timeoutUntil.setDate(timeoutUntil.getDate() + 30);
+		}
+
+		await this.prisma.user.update({
+			where: { id: userId },
+			data: {
+				timeoutUntil
+			}
+		});
+	}
 }

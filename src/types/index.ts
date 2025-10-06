@@ -43,3 +43,9 @@ export enum BanReason {
 	MultiAccounting = "multi-accounting",
 	Other = "other"
 }
+
+export enum TicketResolution {
+	Ignore = "ignore",
+	Timeout = "timeout",
+	Ban = "ban"
+}

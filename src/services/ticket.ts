@@ -1,5 +1,6 @@
-import { PrismaClient } from "@prisma/client";
-import { BanReason } from "../types";
+import { PrismaClient, Ticket } from "@prisma/client";
+import { BanReason, TicketResolution } from "../types";
+import { UserService } from "./user";
 
 interface ReportUserInput {
 	reportingUserId: number;
@@ -13,10 +14,14 @@ interface ReportUserInput {
 }
 
 export class TicketService {
-	constructor(private prisma: PrismaClient) {}
+	private readonly userService: UserService;
 
-	async reportUser(input: ReportUserInput) {
-		await this.prisma.ticket.create({
+	constructor(private prisma: PrismaClient) {
+		this.userService = new UserService(this.prisma);
+	}
+
+	async reportUser(input: ReportUserInput): Promise<Ticket> {
+		return await this.prisma.ticket.create({
 			data: {
 				userId: input.reportingUserId,
 				reportedUserId: input.reportedUserId,
@@ -28,5 +33,28 @@ export class TicketService {
 				image: await input.image.bytes()
 			}
 		});
+	}
+
+	async resolve(ticketId: string, moderatorUser: number, resolution: TicketResolution) {
+		const ticket = await this.prisma.ticket.update({
+			where: { id: ticketId },
+			data: {
+				resolution,
+				moderatorUserId: moderatorUser
+			}
+		});
+
+		switch (resolution) {
+		case TicketResolution.Ignore:
+			break;
+
+		case TicketResolution.Timeout:
+			await this.userService.timeout(ticket.reportedUserId, true);
+			break;
+
+		case TicketResolution.Ban:
+			await this.userService.ban(ticket.reportedUserId, true);
+			break;
+		}
 	}
 }

@@ -2,7 +2,7 @@ import { App, NextFunction, Response } from "@tinyhttp/app";
 import { prisma } from "../config/database.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { AuthenticatedRequest, UserRole } from "../types/index.js";
-import { Ticket, User } from "@prisma/client";
+import { User } from "@prisma/client";
 import fs from "fs/promises";
 
 const moderatorMiddleware = async (req: AuthenticatedRequest, res: Response, next?: NextFunction) => {
@@ -27,7 +27,7 @@ export default function (app: App) {
 		try {
 			const tickets = await prisma.ticket.findMany({
 				where: {
-					resolved: false
+					resolution: null
 				},
 				select: {
 					id: true,
@@ -37,7 +37,7 @@ export default function (app: App) {
 					reason: true,
 					notes: true,
 					image: true,
-					resolved: true,
+					resolution: true,
 					severe: true,
 					createdAt: true,
 					user: {
@@ -229,7 +229,7 @@ export default function (app: App) {
 	app.get("/moderator/open-tickets-count", authMiddleware, moderatorMiddleware, async (req: any, res: any) => {
 		try {
 			const count = await prisma.ticket.count({
-				where: { resolved: false }
+				where: { resolution: null }
 			});
 			return res.status(200)
 				.json({ tickets: count });
@@ -245,7 +245,7 @@ export default function (app: App) {
 			const count = await prisma.ticket.count({
 				where: {
 					severe: true,
-					resolved: false
+					resolution: null
 				}
 			});
 			return res.status(200)
@@ -281,7 +281,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/moderation", async (_req, res) => {
+	app.get("/moderation", authMiddleware, moderatorMiddleware, async (_req, res) => {
 		const html = await fs.readFile("./frontend/moderation.html", "utf8");
 		return res
 			.setHeader("Content-Type", "text/html")

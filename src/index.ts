@@ -40,8 +40,8 @@ const jsonMiddleware = json({
 });
 
 app.use((req, res, next) => {
-	// Hack: /report-user uses multipart, not json
-	if (req.path === "/report-user") {
+	// Hack for paths that use multipart body
+	if (req.path === "/report-user" || req.path === "/moderator/timeout-user" || req.path === "/admin/ban-user") {
 		return next?.();
 	}
 

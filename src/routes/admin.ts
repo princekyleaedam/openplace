@@ -4,6 +4,7 @@ import { authMiddleware } from "../middleware/auth.js";
 import { AuthenticatedRequest, UserRole } from "../types/index.js";
 import { Prisma, Ticket } from "@prisma/client";
 import fs from "fs/promises";
+import { UserService } from "../services/user.js";
 
 const REPORT_REASONS = [
 	{ key: "doxxing", label: "Doxxing" },
@@ -14,7 +15,7 @@ const REPORT_REASONS = [
 	{ key: "griefing", label: "Griefing" }
 ];
 
-const adminMiddleware = async (req: AuthenticatedRequest, res: Response, next?: NextFunction) => {
+export const adminMiddleware = async (req: AuthenticatedRequest, res: Response, next?: NextFunction) => {
 	try {
 		const user = await prisma.user.findUnique({
 			where: { id: req.user!.id }
@@ -30,6 +31,8 @@ const adminMiddleware = async (req: AuthenticatedRequest, res: Response, next?: 
 			.json({ error: "Internal Server Error", status: 500 });
 	}
 };
+
+const userService = new UserService(prisma);
 
 export default function (app: App) {
 	app.get("/admin/users", authMiddleware, adminMiddleware, async (req, res) => {
@@ -239,6 +242,8 @@ export default function (app: App) {
 		}
 	});
 
+
+
 	app.get(["/admin/tickets", "/admin/closed-tickets"], authMiddleware, adminMiddleware, async (req: any, res: any) => {
 		try {
 			const user = await prisma.user.findUnique({
@@ -251,7 +256,7 @@ export default function (app: App) {
 
 			const resolved = req.path === "/admin/closed-tickets";
 			const tickets = await prisma.ticket.findMany({
-				where: { resolved },
+				where: { resolution: resolved ? { not: null } : null },
 				orderBy: { createdAt: "desc" }
 			});
 
@@ -327,7 +332,7 @@ export default function (app: App) {
 			}
 
 			const count = await prisma.ticket.count({
-				where: { resolved: false }
+				where: { resolution: null }
 			});
 			return res.status(200)
 				.json({ tickets: count });
@@ -351,7 +356,7 @@ export default function (app: App) {
 			const count = await prisma.ticket.count({
 				where: {
 					severe: true,
-					resolved: false
+					resolution: null
 				}
 			});
 			return res.status(200)
@@ -389,13 +394,14 @@ export default function (app: App) {
 			const results = await prisma.ticket.groupBy({
 				by: ["reason"],
 				where: {
-					resolved: false
+					resolution: null
 				},
 				_count: {
 					reason: true
 				}
 			});
 
+			// TODO: Fix to use - -> _
 			const reasons = new Map<string, number>(REPORT_REASONS.map(item => [item.key, 0]));
 			for (const item of results) {
 				reasons.set(item.reason, item._count.reason);
@@ -421,7 +427,7 @@ export default function (app: App) {
 			const results = await prisma.ticket.groupBy({
 				by: ["reason"],
 				where: {
-					resolved: false
+					resolution: null
 				},
 				_count: {
 					reason: true
@@ -538,7 +544,43 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/admin", async (_req, res) => {
+	app.post("/admin/remove-ban", authMiddleware, adminMiddleware, async (req: AuthenticatedRequest, res) => {
+		try {
+			const userId = Number.parseInt(req.body["userId"] as string ?? "") || 0;
+			if (Number.isNaN(userId) || userId <= 0) {
+				return res.status(400)
+					.json({ error: "Bad Request", status: 400 });
+			}
+
+			await userService.ban(userId, false);
+			return res.status(200)
+				.json({});
+		} catch (error) {
+			console.error("Error removing ban:", error);
+			return res.status(500)
+				.json({ error: "Internal Server Error", status: 500 });
+		}
+	});
+
+	app.post("/moderator/remove-timeout", authMiddleware, adminMiddleware, async (req: AuthenticatedRequest, res) => {
+		try {
+			const userId = Number.parseInt(req.body["userId"] as string ?? "") || 0;
+			if (Number.isNaN(userId) || userId <= 0) {
+				return res.status(400)
+					.json({ error: "Bad Request", status: 400 });
+			}
+
+			await userService.timeout(userId, false);
+			return res.status(200)
+				.json({});
+		} catch (error) {
+			console.error("Error removing timeout:", error);
+			return res.status(500)
+				.json({ error: "Internal Server Error", status: 500 });
+		}
+	});
+
+	app.get("/admin", authMiddleware, adminMiddleware, async (_req, res) => {
 		const html = await fs.readFile("./frontend/admin.html", "utf8");
 		return res
 			.setHeader("Content-Type", "text/html")
