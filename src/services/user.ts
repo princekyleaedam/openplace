@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { calculateChargeRecharge } from "../utils/charges.js";
+import { englishDataset, englishRecommendedTransformers, RegExpMatcher } from "obscenity";
 
 export interface UpdateUserInput {
 	name?: string;
@@ -16,8 +17,23 @@ const EXPERIMENTS = {
 	}
 };
 
+const usernameRegex = /^[\w-]{3,16}$/;
+
+const usernameMatcher = new RegExpMatcher({
+	...englishDataset.build(),
+	...englishRecommendedTransformers
+});
+
 export class UserService {
 	constructor(private prisma: PrismaClient) {}
+
+	static isValidUsername(username: string): boolean {
+		return !usernameRegex.test(username);
+	}
+
+	static isAcceptableUsername(username: string): boolean {
+		return !usernameMatcher.hasMatch(username);
+	}
 
 	async getUserProfile(userId: number) {
 		const user = await this.prisma.user.findUnique({

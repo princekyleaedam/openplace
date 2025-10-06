@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { UserService } from "./user";
 
 export interface CreateAllianceInput {
 	name: string;
@@ -75,6 +76,14 @@ export class AllianceService {
 			throw new Error("Alliance name taken");
 		}
 
+		if (!UserService.isValidUsername(name)) {
+			throw new Error("Alliance name must be between 3 and 16 characters and cannot contain special characters.");
+		}
+
+		if (!UserService.isAcceptableUsername(name)) {
+			throw new Error("Invalid alliance name");
+		}
+
 		const alliance = await this.prisma.alliance.create({
 			data: {
 				name,
@@ -103,6 +112,10 @@ export class AllianceService {
 
 		if (!user || !user.allianceId || user.allianceRole !== "admin") {
 			throw new Error("Forbidden");
+		}
+
+		if (!UserService.isAcceptableUsername(description)) {
+			throw new Error("Invalid alliance description");
 		}
 
 		await this.prisma.alliance.update({

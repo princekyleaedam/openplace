@@ -5,6 +5,9 @@ import { prisma } from "../config/database.js";
 import { authMiddleware } from "../middleware/auth.js";
 import jwt from "jsonwebtoken";
 import fs from "fs/promises";
+import { UserService } from "../services/user.js";
+
+const userService = new UserService(prisma);
 
 export default function (app: App) {
 	app.get("/login", async (_req, res) => {
@@ -33,6 +36,16 @@ export default function (app: App) {
 						.json({ error: "Invalid username or password" });
 				}
 			} else {
+				if (!UserService.isValidUsername(username)) {
+					return res.status(400)
+						.json({ error: "Username must be between 3 and 16 characters and cannot contain special characters." });
+				}
+
+				if (!UserService.isAcceptableUsername(username)) {
+					return res.status(401)
+						.json({ error: "Invalid username or password" });
+				}
+
 				const passwordHash = await bcrypt.hash(password, 10);
 				const firstUser = (await prisma.user.count()) === 0;
 
