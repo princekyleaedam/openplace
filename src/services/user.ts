@@ -17,7 +17,7 @@ const EXPERIMENTS = {
 	}
 };
 
-const usernameRegex = /^[\w-]{3,16}$/;
+const usernameRegex = /^[\w-]{3,16}$/i;
 
 const usernameMatcher = new RegExpMatcher({
 	...englishDataset.build(),
@@ -28,7 +28,7 @@ export class UserService {
 	constructor(private prisma: PrismaClient) {}
 
 	static isValidUsername(username: string): boolean {
-		return !usernameRegex.test(username);
+		return usernameRegex.test(username);
 	}
 
 	static isAcceptableUsername(username: string): boolean {

@@ -25,6 +25,11 @@ export default function (app: App) {
 					.json({ error: "Username and password required" });
 			}
 
+			if (!UserService.isAcceptableUsername(username)) {
+				return res.status(401)
+					.json({ error: "Invalid username or password" });
+			}
+
 			let user = await prisma.user.findFirst({
 				where: { name: username }
 			});
@@ -35,15 +40,12 @@ export default function (app: App) {
 					return res.status(401)
 						.json({ error: "Invalid username or password" });
 				}
+
+				await userService.setLastIP(user.id, req.ip);
 			} else {
 				if (!UserService.isValidUsername(username)) {
 					return res.status(400)
 						.json({ error: "Username must be between 3 and 16 characters and cannot contain special characters." });
-				}
-
-				if (!UserService.isAcceptableUsername(username)) {
-					return res.status(401)
-						.json({ error: "Invalid username or password" });
 				}
 
 				const passwordHash = await bcrypt.hash(password, 10);

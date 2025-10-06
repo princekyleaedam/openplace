@@ -25,6 +25,10 @@ const isDev = process.env["NODE_ENV"] !== "production";
 const noMatchPage = await fs.readFile("./frontend/404.html", "utf8");
 
 const app = new App({
+	settings: {
+		networkExtensions: true
+	},
+
 	noMatchHandler: async (_req, res) => {
 		return res.status(404)
 			.set("Content-Type", "text/html")
@@ -40,6 +44,11 @@ const jsonMiddleware = json({
 });
 
 app.use((req, res, next) => {
+	req.ip = req.get("x-forwarded-for") as string ?? req.ip;
+	next?.();
+});
+
+app.use((req, res, next) => {
 	// Hack for paths that use multipart body
 	if (req.path === "/report-user" || req.path === "/moderator/timeout-user" || req.path === "/admin/ban-user") {
 		return next?.();
@@ -52,19 +61,18 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
 	const inspectOptions = { colors: true, compact: true, breakLength: Number.POSITIVE_INFINITY };
 	const startTime = Date.now();
-	const requestId = req.get("x-forwarded-for");
 
-	console.log(`[${requestId}] [${new Date()
+	console.log(`[${req.ip}] [${new Date()
 		.toISOString()}] ${req.method} ${req.url}`);
-	console.log(`[${requestId}] Headers:`, inspect(req.headers, inspectOptions));
+	console.log(`[${req.ip}] Headers:`, inspect(req.headers, inspectOptions));
 	if (req.body && Object.keys(req.body).length > 0) {
-		console.log(`[${requestId}] Body:`, inspect(req.body, inspectOptions));
+		console.log(`[${req.ip}] Body:`, inspect(req.body, inspectOptions));
 	}
 
 	const originalJson = res.json;
 	res.json = function (data) {
 		const duration = Date.now() - startTime;
-		console.log(`[${requestId}] Response JSON (${res.statusCode}) [${duration}ms]:`, inspect(data, inspectOptions));
+		console.log(`[${req.ip}] Response JSON (${res.statusCode}) [${duration}ms]:`, inspect(data, inspectOptions));
 		return originalJson.call(this, data);
 	};
 

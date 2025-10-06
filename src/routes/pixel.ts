@@ -74,7 +74,6 @@ export default function (app: App) {
 			res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 			res.setHeader("Pragma", "no-cache");
 			res.setHeader("Expires", "0");
-			await userService.setLastIP(req.user!.id, req.ip);
 			return res.send(imageBuffer);
 		} catch (error) {
 			console.error("Error generating tile image:", error);
@@ -97,6 +96,7 @@ export default function (app: App) {
 			}
 
 			const result = await pixelService.paintPixels(req.user!.id, { tileX, tileY, colors, coords });
+			await userService.setLastIP(req.user!.id, req.ip);
 			return res.json(result);
 		} catch (error) {
 			return handleServiceError(error as Error, res);
