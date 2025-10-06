@@ -121,6 +121,13 @@ export class UserService {
 		});
 	}
 
+	async setLastIP(userId: number, ip: string) {
+		await this.prisma.user.update({
+			where: { id: userId },
+			data: { lastIP: ip }
+		});
+	}
+
 	async ban(userId: number, state: boolean) {
 		await this.prisma.user.update({
 			where: { id: userId },

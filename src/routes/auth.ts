@@ -40,6 +40,8 @@ export default function (app: App) {
 					data: {
 						name: username,
 						passwordHash,
+						registrationIP: req.ip,
+						lastIP: req.ip,
 						country: "US", // TODO
 						role: firstUser ? "admin" : "user",
 						droplets: 1000,

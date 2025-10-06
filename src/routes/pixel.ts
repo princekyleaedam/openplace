@@ -6,8 +6,10 @@ import { validateSeason, validateTileCoordinates } from "../validators/common.js
 import { validatePaintPixels, validatePixelInfo } from "../validators/pixel.js";
 import { createErrorResponse, HTTP_STATUS } from "../utils/response.js";
 import { prisma } from "../config/database.js";
+import { UserService } from "../services/user.js";
 
 const pixelService = new PixelService(prisma);
+const userService = new UserService(prisma);
 
 export default function (app: App) {
 	app.get("/:season/tile/random", async (req: any, res: any) => {
@@ -69,9 +71,10 @@ export default function (app: App) {
 			const imageBuffer = await pixelService.getTileImage(tileX, tileY);
 
 			res.setHeader("Content-Type", "image/png");
-			res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate")
-			res.setHeader("Pragma", "no-cache")
-			res.setHeader("Expires", "0")
+			res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+			res.setHeader("Pragma", "no-cache");
+			res.setHeader("Expires", "0");
+			await userService.setLastIP(req.user!.id, req.ip);
 			return res.send(imageBuffer);
 		} catch (error) {
 			console.error("Error generating tile image:", error);
