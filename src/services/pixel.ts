@@ -1,8 +1,8 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Alliance, Pixel, Prisma, PrismaClient, User } from "@prisma/client";
 import { createCanvas } from "@napi-rs/canvas";
 import { checkColorUnlocked, COLOR_PALETTE } from "../utils/colors.js";
 import { calculateChargeRecharge } from "../utils/charges.js";
-import { getRegionForCoordinates } from "../config/regions.js";
+import { getRegionForCoordinates, Region } from "../config/regions.js";
 import { LEVEL_BASE_PIXEL, LEVEL_EXPONENT, LEVEL_UP_DROPLETS_REWARD, LEVEL_UP_MAX_CHARGES_REWARD, PAINTED_DROPLETS_REWARD } from "../config/pixel.js";
 
 export interface PaintPixelsInput {
@@ -21,16 +21,29 @@ export interface RandomTileResult {
 	tile: { x: number; y: number };
 }
 
+export type PixelInfoParams = {
+	season: number;
+	tileX: number;
+	tileY: number;
+} & ({
+	x0: number;
+	y0: number;
+	x1: number;
+	y1: number;
+} | {
+	x: number;
+	y: number;
+});
+
 export interface PixelInfoResult {
-	paintedBy: {
+	paintedBy?: {
 		id: number;
-		name: string;
-		allianceId: number;
-		allianceName: string;
-		equippedFlag: number;
-	};
-	// TODO: no any!
-	region: any;
+		name?: string;
+		allianceId?: number;
+		allianceName?: string;
+		equippedFlag?: number;
+	}[];
+	region: Region;
 }
 
 function calculateLevel(pixelsPainted: number): number {
@@ -49,7 +62,7 @@ export class PixelService {
 
 	async getRandomTile(): Promise<RandomTileResult> {
 		const result = await this.prisma.pixel.aggregate({
-  			_max: { id: true }
+			_max: { id: true }
 		});
 
 		const maxId = result._max.id;
@@ -73,39 +86,94 @@ export class PixelService {
 		};
 	}
 
-	async getPixelInfo(tileX: number, tileY: number, x: number, y: number, season: number = 0): Promise<PixelInfoResult> {
-		let paintedBy = {
-			id: 0,
-			name: "",
-			allianceId: 0,
-			allianceName: "",
-			equippedFlag: 0
-		};
+	async getPixelInfo(params: PixelInfoParams): Promise<PixelInfoResult> {
+		const { season, tileX, tileY } = params;
+		const paintedBy: PixelInfoResult["paintedBy"] = [];
+		let x = 0;
+		let y = 0;
 
-		const pixel = await this.prisma.pixel.findUnique({
-			where: {
-				season_tileX_tileY_x_y: { season, tileX, tileY, x, y }
-			},
-			include: {
-				user: {
-					include: { alliance: true }
+		if ("x" in params) {
+			x = params.x;
+			y = params.y;
+
+			const pixel = await this.prisma.pixel.findUnique({
+				where: {
+					season_tileX_tileY_x_y: { season, tileX, tileY, x, y }
+				},
+				include: {
+					user: {
+						include: { alliance: true }
+					}
+				}
+			});
+
+			if (pixel) {
+				paintedBy.push({
+					id: pixel.user.id,
+					name: pixel.user.name,
+					allianceId: pixel.user.allianceId || 0,
+					allianceName: pixel.user.alliance?.name || "",
+					equippedFlag: pixel.user.equippedFlag
+				});
+			} else {
+				paintedBy.push({
+					id: 0
+				});
+			}
+		} else {
+			const { x0, y0, x1, y1 } = params;
+			x = x0;
+			y = y0;
+
+			const items: { season: number; tileX: number; tileY: number; x: number; y: number; }[] = [];
+			for (let y = y0; y <= y1; y++) {
+				for (let x = x0; x <= x1; x++) {
+					items.push({ season, tileX, tileY, x, y });
 				}
 			}
-		});
 
-		if (pixel && pixel.season === season) {
-			paintedBy = {
-				id: pixel.user.id,
-				name: pixel.user.name,
-				allianceId: pixel.user.allianceId || 0,
-				allianceName: pixel.user.alliance?.name || "",
-				equippedFlag: pixel.user.equippedFlag
-			};
+			const pixels = [];
+			for (let i = 0; i < items.length; i += 1000) {
+				const slice = items.slice(i, i + 1000);
+				pixels.push(...await this.prisma.pixel.findMany({
+					where: {
+						OR: slice
+					},
+					take: slice.length,
+					include: {
+						user: {
+							include: { alliance: true }
+						}
+					}
+				}));
+			}
+
+			const pixelMap = new Map(pixels.map(item => [`${item.x},${item.y}`, item]));
+
+			for (let y = y0; y <= y1; y++) {
+				for (let x = x0; x <= x1; x++) {
+					const pixel = pixelMap.get(`${x},${y}`);
+					if (pixel) {
+						paintedBy.push({
+							id: pixel.user.id,
+							name: pixel.user.name,
+							allianceId: pixel.user.allianceId || 0,
+							allianceName: pixel.user.alliance?.name || "",
+							equippedFlag: pixel.user.equippedFlag
+						});
+					} else {
+						paintedBy.push({
+							id: 0
+						});
+					}
+				}
+			}
 		}
 
-		const region = getRegionForCoordinates(tileX, tileY, x, y);
-
-		return { paintedBy, region };
+		return {
+			region: getRegionForCoordinates(tileX, tileY, x, y),
+			paintedBy
+		};
 	}
 
 	async getTileImage(tileX: number, tileY: number, season: number = 0): Promise<Buffer> {
@@ -121,6 +189,10 @@ export class PixelService {
 
 		if (!tile) {
 			return this.emptyTile;
+		}
+
+		if (tile.imageData) {
+			return Buffer.from(tile.imageData);
 		}
 
 		return tile.imageData

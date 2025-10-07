@@ -4,6 +4,9 @@ import { authMiddleware } from "../middleware/auth.js";
 import { AuthenticatedRequest, UserRole } from "../types/index.js";
 import { User } from "@prisma/client";
 import fs from "fs/promises";
+import { validatePixelInfo } from "../validators/pixel.js";
+import { createErrorResponse, HTTP_STATUS } from "../utils/response.js";
+import { PixelService } from "../services/pixel.js";
 
 const moderatorMiddleware = async (req: AuthenticatedRequest, res: Response, next?: NextFunction) => {
 	try {
@@ -22,6 +25,10 @@ const moderatorMiddleware = async (req: AuthenticatedRequest, res: Response, nex
 	}
 };
 
+const pixelService = new PixelService(prisma);
+
+// TODO: Split this up further. Just ignoring so I can actually read this file without zigzags for now
+// eslint-disable-next-line max-lines-per-function
 export default function (app: App) {
 	app.get("/moderator/tickets", authMiddleware, moderatorMiddleware, async (_req, res) => {
 		try {
@@ -145,6 +152,42 @@ export default function (app: App) {
 				.json({ tickets: formattedTickets, status: 200 });
 		} catch (error) {
 			console.error("Error fetching moderator tickets:", error);
+			return res.status(500)
+				.json({ error: "Internal Server Error", status: 500 });
+		}
+	});
+
+	app.get("/moderator/users", authMiddleware, moderatorMiddleware, async (req, res) => {
+		try {
+			const idsStr = req.query["ids"] as string;
+			const ids = idsStr.split(",")
+				.map(item => Number.parseInt(item))
+				.filter(item => !Number.isNaN(item) && item > 0);
+
+			const users = await prisma.user.findMany({
+				where: { id: { in: ids } },
+				select: {
+					id: true,
+					name: true,
+					discord: true,
+					country: true,
+					banned: true,
+					role: true,
+					picture: true
+				}
+			});
+
+			return res.json({
+				users: users.map(user => ({
+					userId: user.id,
+					id: user.id,
+					name: user.name,
+					banned: user.banned,
+					picture: user.picture
+				}))
+			});
+		} catch (error) {
+			console.error("Error fetching users:", error);
 			return res.status(500)
 				.json({ error: "Internal Server Error", status: 500 });
 		}
@@ -298,5 +341,39 @@ export default function (app: App) {
 		// Temporary redirect to the non-moderator route
 		const redirectUrl = req.originalUrl.replace(/^\/moderator/, "");
 		return res.redirect(redirectUrl);
+	});
+
+	app.get("/moderator/pixel-area/:season/:tileX/:tileY", authMiddleware, moderatorMiddleware, async (req, res) => {
+		try {
+			const x0 = Number.parseInt(req.query["x0"] as string);
+			const y0 = Number.parseInt(req.query["y0"] as string);
+			const x1 = Number.parseInt(req.query["x1"] as string);
+			const y1 = Number.parseInt(req.query["y1"] as string);
+			const season = req.params["season"] as string;
+			const tileX = Number.parseInt(req.params["tileX"] as string);
+			const tileY = Number.parseInt(req.params["tileY"] as string);
+
+			if (y1 < y0 || x1 < x0) {
+				return res.status(HTTP_STATUS.BAD_REQUEST)
+					.json(createErrorResponse("Bad Request", HTTP_STATUS.BAD_REQUEST));
+			}
+
+			const validationError = validatePixelInfo({ season, tileX, tileY, x: x0, y: y0 }) ?? validatePixelInfo({ season, tileX, tileY, x: x1, y: y1 });
+			if (validationError) {
+				return res.status(HTTP_STATUS.BAD_REQUEST)
+					.json(createErrorResponse(validationError, HTTP_STATUS.BAD_REQUEST));
+			}
+
+			const result = await pixelService.getPixelInfo({ season: 0, tileX, tileY, x0, y0, x1, y1 });
+			const paintedBy = result.paintedBy ?? [];
+			return res.json({
+				region: result.region,
+				paintedBy: paintedBy.length === 0 ? null : paintedBy.map(item => item.id)
+			});
+		} catch (error) {
+			console.error("Error getting pixel info:", error);
+			return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+				.json(createErrorResponse("Internal Server Error", HTTP_STATUS.INTERNAL_SERVER_ERROR));
+		}
 	});
 }

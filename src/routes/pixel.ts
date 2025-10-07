@@ -46,8 +46,11 @@ export default function (app: App) {
 					.json(createErrorResponse(validationError, HTTP_STATUS.BAD_REQUEST));
 			}
 
-			const result = await pixelService.getPixelInfo(tileX, tileY, x, y);
-			return res.json(result);
+			const result = await pixelService.getPixelInfo({ season: 0, tileX, tileY, x, y });
+			return res.json({
+				region: result.region,
+				paintedBy: result.paintedBy?.[0]
+			});
 		} catch (error) {
 			console.error("Error getting pixel info:", error);
 			return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
