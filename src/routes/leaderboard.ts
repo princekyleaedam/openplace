@@ -80,26 +80,27 @@ export default function (app: App) {
 			const now = new Date();
 
 			switch (mode) {
-			case "today": {
-				const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-				dateFilter = { paintedAt: { gte: startOfDay } };
-				break;
-			}
-			case "week": {
-				const startOfWeek = new Date(now);
-				startOfWeek.setDate(now.getDate() - 7);
-				dateFilter = { paintedAt: { gte: startOfWeek } };
-				break;
-			}
-			case "month": {
-				const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-				dateFilter = { paintedAt: { gte: startOfMonth } };
-				break;
-			}
+				case "today": {
+					const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+					dateFilter = { paintedAt: { gte: startOfDay } };
+					break;
+				}
+				case "week": {
+					const startOfWeek = new Date(now);
+					startOfWeek.setDate(now.getDate() - 7);
+					dateFilter = { paintedAt: { gte: startOfWeek } };
+					break;
+				}
+				case "month": {
+					const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+					dateFilter = { paintedAt: { gte: startOfMonth } };
+					break;
+				}
 			}
 
 			if (mode === "all-time") {
 				const players = await prisma.user.findMany({
+					where: { role: "user" },
 					orderBy: { pixelsPainted: "desc" },
 					take: 50,
 					select: {
@@ -140,7 +141,10 @@ export default function (app: App) {
 
 				const userIds = pixelCounts.map(p => p.paintedBy);
 				const users = await prisma.user.findMany({
-					where: { id: { in: userIds } },
+					where: {
+						id: { in: userIds },
+						role: "user"
+					},
 					select: {
 						id: true,
 						name: true,
@@ -191,22 +195,22 @@ export default function (app: App) {
 			const now = new Date();
 
 			switch (mode) {
-			case "today": {
-				const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-				dateFilter = { paintedAt: { gte: startOfDay } };
-				break;
-			}
-			case "week": {
-				const startOfWeek = new Date(now);
-				startOfWeek.setDate(now.getDate() - 7);
-				dateFilter = { paintedAt: { gte: startOfWeek } };
-				break;
-			}
-			case "month": {
-				const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-				dateFilter = { paintedAt: { gte: startOfMonth } };
-				break;
-			}
+				case "today": {
+					const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+					dateFilter = { paintedAt: { gte: startOfDay } };
+					break;
+				}
+				case "week": {
+					const startOfWeek = new Date(now);
+					startOfWeek.setDate(now.getDate() - 7);
+					dateFilter = { paintedAt: { gte: startOfWeek } };
+					break;
+				}
+				case "month": {
+					const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+					dateFilter = { paintedAt: { gte: startOfMonth } };
+					break;
+				}
 			}
 
 			if (mode === "all-time") {
@@ -292,6 +296,7 @@ export default function (app: App) {
 			}
 
 			const players = await prisma.user.findMany({
+				where: { role: "user" },
 				orderBy: { pixelsPainted: "desc" },
 				take: 50,
 				select: {
