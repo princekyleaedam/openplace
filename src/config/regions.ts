@@ -14,9 +14,9 @@ export function getRegionForCoordinates(tileX: number, tileY: number, x: number,
 	return {
 		id: 114_594,
 		cityId: 4263,
-		name: "Cupertino",
+		name: "openplace",
 		number: 2,
-		countryId: 235,
-		flagId: 235
+		countryId: 13,
+		flagId: 13
 	};
 }
