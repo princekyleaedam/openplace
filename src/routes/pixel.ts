@@ -74,13 +74,25 @@ export default function (app: App) {
 					.json(createErrorResponse("Bad Request", HTTP_STATUS.BAD_REQUEST));
 			}
 
-			const imageBuffer = await pixelService.getTileImage(tileX, tileY);
+			const { buffer, updatedAt } = await pixelService.getTileImage(tileX, tileY);
+
+			if (updatedAt) {
+				const lastModified = updatedAt.toUTCString();
+				res.setHeader("Last-Modified", lastModified);
+
+				const ifModifiedSince = req.get("if-modified-since") as string;
+				if (ifModifiedSince) {
+					const ifModifiedSinceDate = new Date(ifModifiedSince);
+					if (Math.floor(updatedAt.getTime() / 1000) <= Math.floor(ifModifiedSinceDate.getTime() / 1000)) {
+						return res.status(304)
+							.send("");
+					}
+				}
+			}
 
 			res.setHeader("Content-Type", "image/png");
-			res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-			res.setHeader("Pragma", "no-cache");
-			res.setHeader("Expires", "0");
-			return res.send(imageBuffer);
+			res.setHeader("Cache-Control", "public, max-age=10, must-revalidate");
+			return res.send(buffer);
 		} catch (error) {
 			console.error("Error generating tile image:", error);
 			return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR)

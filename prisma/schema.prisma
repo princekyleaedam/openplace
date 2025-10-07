@@ -96,6 +96,8 @@ model Tile {
 	y         Int    @db.UnsignedSmallInt
 	imageData Bytes?
 	pixels    Pixel[]
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
 
 	@@unique([season, x, y])
 }

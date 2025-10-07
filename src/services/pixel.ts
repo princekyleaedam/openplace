@@ -176,7 +176,7 @@ export class PixelService {
 		};
 	}
 
-	async getTileImage(tileX: number, tileY: number, season: number = 0): Promise<Buffer> {
+	async getTileImage(tileX: number, tileY: number, season: number = 0): Promise<{ buffer: Buffer; updatedAt: Date }> {
 		const tile = await this.prisma.tile.findUnique({
 			where: {
 				season_x_y: {
@@ -188,19 +188,23 @@ export class PixelService {
 		});
 
 		if (!tile) {
-			return this.emptyTile;
+			return {
+				buffer: this.emptyTile,
+				updatedAt: new Date(0)
+			};
 		}
 
 		if (tile.imageData) {
-			return Buffer.from(tile.imageData);
+			return {
+				buffer: Buffer.from(tile.imageData),
+				updatedAt: tile.updatedAt
+			};
 		}
 
-		return tile.imageData
-			? Buffer.from(tile.imageData)
-			: await this.updatePixelTile(tileX, tileY, season);
+		return await this.updatePixelTile(tileX, tileY, season);
 	}
 
-	async updatePixelTile(tileX: number, tileY: number, season: number = 0): Promise<Buffer> {
+	async updatePixelTile(tileX: number, tileY: number, season: number = 0): Promise<{ buffer: Buffer; updatedAt: Date }> {
 		const canvas = createCanvas(1000, 1000);
 		const ctx = canvas.getContext("2d");
 
@@ -223,9 +227,9 @@ export class PixelService {
 			}
 		}
 
-		const imageData = canvas.toBuffer("image/png");
+		const buffer = canvas.toBuffer("image/png");
 
-		await this.prisma.tile.upsert({
+		const { updatedAt } = await this.prisma.tile.upsert({
 			where: {
 				season_x_y: {
 					season,
@@ -237,14 +241,14 @@ export class PixelService {
 				season,
 				x: tileX,
 				y: tileY,
-				imageData
+				imageData: buffer
 			},
 			update: {
-				imageData
+				imageData: buffer
 			}
 		});
 
-		return imageData;
+		return { buffer, updatedAt };
 	}
 
 	async paintPixels(userId: number, input: PaintPixelsInput, season: number = 0): Promise<PaintPixelsResult> {
