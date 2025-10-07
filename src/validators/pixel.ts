@@ -4,8 +4,8 @@ export interface PaintPixelsValidationInput {
 	season: string;
 	tileX: number;
 	tileY: number;
-	colors: any;
-	coords: any;
+	colors: number[];
+	coords: number[];
 }
 
 export function validatePaintPixels(input: PaintPixelsValidationInput): string | null {

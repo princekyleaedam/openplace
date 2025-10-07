@@ -5,11 +5,12 @@ import { UserService } from "../services/user.js";
 import { validateUpdateUser } from "../validators/user.js";
 import { createErrorResponse, HTTP_STATUS } from "../utils/response.js";
 import { prisma } from "../config/database.js";
+import { AuthenticatedRequest } from "../types/index.js";
 
 const userService = new UserService(prisma);
 
 export default function (app: App) {
-	app.get("/me", authMiddleware, async (req: any, res: any) => {
+	app.get("/me", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			const result = await userService.getUserProfile(req.user!.id);
 			return res.json(result);
@@ -18,7 +19,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/me/update", authMiddleware, async (req: any, res: any) => {
+	app.post("/me/update", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			const { name, showLastPixel, discord } = req.body;
 
@@ -35,7 +36,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/me/profile-pictures", authMiddleware, async (req: any, res: any) => {
+	app.get("/me/profile-pictures", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			const result = await userService.getProfilePictures(req.user!.id);
 			return res.json(result);

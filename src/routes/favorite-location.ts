@@ -1,9 +1,10 @@
 import { App } from "@tinyhttp/app";
 import { prisma } from "../config/database.js";
 import { authMiddleware } from "../middleware/auth.js";
+import { AuthenticatedRequest } from "../types/index.js";
 
 export default function (app: App) {
-	app.post("/favorite-location", authMiddleware, async (req: any, res: any) => {
+	app.post("/favorite-location", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			const { latitude, longitude, name } = req.body;
 
@@ -47,7 +48,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.delete("/favorite-location/delete", authMiddleware, async (req: any, res: any) => {
+	app.delete("/favorite-location/delete", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			const locationId = Number.parseInt(req.body.id);
 

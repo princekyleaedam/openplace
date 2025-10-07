@@ -6,6 +6,7 @@ import { authMiddleware } from "../middleware/auth.js";
 import jwt from "jsonwebtoken";
 import fs from "fs/promises";
 import { UserService } from "../services/user.js";
+import { AuthenticatedRequest } from "../types/index.js";
 
 const userService = new UserService(prisma);
 
@@ -16,7 +17,7 @@ export default function (app: App) {
 		return res.send(loginHtml);
 	});
 
-	app.post("/login", async (req: any, res: any) => {
+	app.post("/login", async (req, res) => {
 		try {
 			const { username, password } = req.body;
 
@@ -41,7 +42,9 @@ export default function (app: App) {
 						.json({ error: "Invalid username or password" });
 				}
 
-				await userService.setLastIP(user.id, req.ip);
+				if (req.ip) {
+					await userService.setLastIP(user.id, req.ip);
+				}
 			} else {
 				if (!UserService.isValidUsername(username)) {
 					return res.status(400)
@@ -55,8 +58,8 @@ export default function (app: App) {
 					data: {
 						name: username,
 						passwordHash,
-						registrationIP: req.ip,
-						lastIP: req.ip,
+						registrationIP: req.ip!,
+						lastIP: req.ip!,
 						country: "US", // TODO
 						role: firstUser ? "admin" : "user",
 						droplets: 1000,
@@ -101,7 +104,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/auth/logout", authMiddleware, async (req: any, res: any) => {
+	app.post("/auth/logout", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			if (req.user?.sessionId) {
 				await prisma.session.delete({

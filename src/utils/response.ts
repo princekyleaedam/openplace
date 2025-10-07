@@ -30,10 +30,3 @@ export const ERROR_MESSAGES = {
 export function createErrorResponse(message: string, status: number) {
 	return { error: message, status };
 }
-
-export function createSuccessResponse(data?: any) {
-	if (data === undefined) {
-		return { success: true };
-	}
-	return data;
-}

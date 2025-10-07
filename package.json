@@ -11,7 +11,7 @@
 		"seed": "tsx src/seed.ts",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"lint": "eslint --ext .js,.ts src/",
+		"lint": "tsc --noEmit && eslint --ext .js,.ts src/",
 		"lint:fix": "pnpm -s lint --fix",
 		"db:push": "prisma db push && prisma generate",
 		"db:generate": "prisma generate",

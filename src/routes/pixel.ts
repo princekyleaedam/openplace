@@ -7,14 +7,16 @@ import { validatePaintPixels, validatePixelInfo } from "../validators/pixel.js";
 import { createErrorResponse, HTTP_STATUS } from "../utils/response.js";
 import { prisma } from "../config/database.js";
 import { UserService } from "../services/user.js";
+import { AuthenticatedRequest } from "../types/index.js";
 
 const pixelService = new PixelService(prisma);
 const userService = new UserService(prisma);
 
 export default function (app: App) {
-	app.get("/:season/tile/random", async (req: any, res: any) => {
+	app.get("/:season/tile/random", async (req, res) => {
 		try {
-			const season = req.params["season"];
+			// TODO: validation
+			const season = req.params["season"] as string;
 			if (!validateSeason(season)) {
 				return res.status(HTTP_STATUS.BAD_REQUEST)
 					.json(createErrorResponse("Bad Request", HTTP_STATUS.BAD_REQUEST));
@@ -29,11 +31,12 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/:season/pixel/:tileX/:tileY", async (req: any, res: any) => {
+	app.get("/:season/pixel/:tileX/:tileY", async (req, res) => {
 		try {
-			const season = req.params["season"];
-			const tileX = Number.parseInt(req.params["tileX"]);
-			const tileY = Number.parseInt(req.params["tileY"]);
+			// TODO: validation
+			const season = req.params["season"] as string;
+			const tileX = Number.parseInt(req.params["tileX"] as string);
+			const tileY = Number.parseInt(req.params["tileY"] as string);
 			const x = Number.parseInt(req.query["x"] as string);
 			const y = Number.parseInt(req.query["y"] as string);
 
@@ -52,11 +55,11 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/files/:season/tiles/:tileX/:tileY.png", async (req: any, res: any) => {
+	app.get("/files/:season/tiles/:tileX/:tileY.png", async (req, res) => {
 		try {
-			const season = req.params["season"];
-			const tileX = Number.parseInt(req.params["tileX"]);
-			const tileY = Number.parseInt(req.params["tileY"]);
+			const season = req.params["season"] as string;
+			const tileX = Number.parseInt(req.params["tileX"] as string);
+			const tileY = Number.parseInt(req.params["tileY"] as string);
 
 			if (!validateSeason(season)) {
 				return res.status(HTTP_STATUS.BAD_REQUEST)
@@ -82,11 +85,11 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/:season/pixel/:tileX/:tileY", authMiddleware, async (req: any, res: any) => {
+	app.post("/:season/pixel/:tileX/:tileY", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
-			const season = req.params["season"];
-			const tileX = Number.parseInt(req.params["tileX"]);
-			const tileY = Number.parseInt(req.params["tileY"]);
+			const season = req.params["season"] as string;
+			const tileX = Number.parseInt(req.params["tileX"] as string);
+			const tileY = Number.parseInt(req.params["tileY"] as string);
 			const { colors, coords } = req.body;
 
 			const validationError = validatePaintPixels({ season, tileX, tileY, colors, coords });
@@ -96,7 +99,10 @@ export default function (app: App) {
 			}
 
 			const result = await pixelService.paintPixels(req.user!.id, { tileX, tileY, colors, coords });
-			await userService.setLastIP(req.user!.id, req.ip);
+			if (req.ip) {
+				await userService.setLastIP(req.user!.id, req.ip);
+			}
+
 			return res.json(result);
 		} catch (error) {
 			return handleServiceError(error as Error, res);

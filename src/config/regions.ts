@@ -8,7 +8,9 @@ export interface Region {
 }
 
 export function getRegionForCoordinates(tileX: number, tileY: number, x: number, y: number): Region {
+	// @ts-expect-error - for now
 	const globalX = tileX * 1000 + x;
+	// @ts-expect-error - for now
 	const globalY = tileY * 1000 + y;
 	// TODO: implement region lookup
 	return {

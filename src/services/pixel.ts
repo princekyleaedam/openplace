@@ -29,6 +29,7 @@ export interface PixelInfoResult {
 		allianceName: string;
 		equippedFlag: number;
 	};
+	// TODO: no any!
 	region: any;
 }
 

@@ -3,6 +3,8 @@ import { WplaceBitMap } from "../utils/bitmap.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { prisma } from "../config/database.js";
 import { calculateChargeRecharge } from "../utils/charges.js";
+import { AuthenticatedRequest } from "../types/index.js";
+import { User } from "@prisma/client";
 
 const STORE_ITEMS = {
 	70: { name: "+5 Max. Charges", price: 500, type: "charges" },
@@ -12,7 +14,7 @@ const STORE_ITEMS = {
 };
 
 export default function (app: App) {
-	app.post("/purchase", authMiddleware, async (req: any, res: any) => {
+	app.post("/purchase", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			const { product } = req.body;
 
@@ -43,7 +45,7 @@ export default function (app: App) {
 					.json({ error: "Forbidden", status: 403 });
 			}
 
-			const updateData: any = {
+			const updateData: Partial<User> = {
 				droplets: user.droplets - totalCost
 			};
 
@@ -51,6 +53,7 @@ export default function (app: App) {
 			case "charges":
 				updateData.maxCharges = user.maxCharges + (5 * (product.amount || 1));
 				break;
+
 			case "paint": {
 				const currentCharges = calculateChargeRecharge(
 					user.currentCharges,
@@ -62,12 +65,14 @@ export default function (app: App) {
 				updateData.chargesLastUpdatedAt = new Date();
 				break;
 			}
+
 			case "color":
 				if (product.variant && product.variant >= 32 && product.variant <= 63) {
 					const mask = 1 << (product.variant - 32);
 					updateData.extraColorsBitmap = user.extraColorsBitmap | mask;
 				}
 				break;
+
 			case "flag":
 				if (product.variant && product.variant >= 1 && product.variant <= 251) {
 					const flagsBitmap = user.flagsBitmap
@@ -93,9 +98,9 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/flag/equip/:id", authMiddleware, async (req: any, res: any) => {
+	app.post("/flag/equip/:id", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
-			const flagId = Number.parseInt(req.params["id"]);
+			const flagId = Number.parseInt(req.params["id"] as string);
 
 			if (Number.isNaN(flagId) || flagId < 1 || flagId > 251) {
 				return res.status(400)

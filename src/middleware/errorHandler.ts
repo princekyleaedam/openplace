@@ -1,6 +1,7 @@
+import { Response } from "@tinyhttp/app";
 import { createErrorResponse, ERROR_MESSAGES, HTTP_STATUS } from "../utils/response.js";
 
-export function handleServiceError(error: Error, res: any) {
+export function handleServiceError(error: Error, res: Response) {
 	console.error("Service error:", error);
 
 	switch (error.message) {

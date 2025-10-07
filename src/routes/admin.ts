@@ -246,10 +246,10 @@ export default function (app: App) {
 
 
 
-	app.get(["/admin/tickets", "/admin/closed-tickets"], authMiddleware, adminMiddleware, async (req: any, res: any) => {
+	app.get(["/admin/tickets", "/admin/closed-tickets"], authMiddleware, adminMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			const user = await prisma.user.findUnique({
-				where: { id: req.user.id }
+				where: { id: req.user!.id }
 			});
 			if (!user || user.role === UserRole.User) {
 				return res.status(403)
@@ -323,10 +323,10 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/admin/open-tickets-count", authMiddleware, adminMiddleware, async (req: any, res: any) => {
+	app.get("/admin/open-tickets-count", authMiddleware, adminMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			const user = await prisma.user.findUnique({
-				where: { id: req.user.id }
+				where: { id: req.user!.id }
 			});
 			if (!user || user.role === UserRole.User) {
 				return res.status(403)
@@ -345,10 +345,10 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/admin/severe-open-tickets-count", authMiddleware, adminMiddleware, async (req: any, res: any) => {
+	app.post("/admin/severe-open-tickets-count", authMiddleware, adminMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			const user = await prisma.user.findUnique({
-				where: { id: req.user.id }
+				where: { id: req.user!.id }
 			});
 			if (!user || user.role === UserRole.User) {
 				return res.status(403)
@@ -370,10 +370,10 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/admin/assign-new-tickets", authMiddleware, adminMiddleware, async (req: any, res: any) => {
+	app.post("/admin/assign-new-tickets", authMiddleware, adminMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			const user = await prisma.user.findUnique({
-				where: { id: req.user.id }
+				where: { id: req.user!.id }
 			});
 			if (!user || user.role === UserRole.User) {
 				return res.status(403)
@@ -381,7 +381,7 @@ export default function (app: App) {
 			}
 
 			// TODO
-			res.json({
+			return res.json({
 				newTicketsIds: []
 			});
 		} catch (error) {
@@ -391,7 +391,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/admin/count-all-tickets", authMiddleware, adminMiddleware, async (_req: any, res: any) => {
+	app.get("/admin/count-all-tickets", authMiddleware, adminMiddleware, async (_req, res) => {
 		try {
 			const results = await prisma.ticket.groupBy({
 				by: ["reason"],
@@ -423,7 +423,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/admin/count-all-reports", authMiddleware, adminMiddleware, async (_req: any, res: any) => {
+	app.get("/admin/count-all-reports", authMiddleware, adminMiddleware, async (_req, res) => {
 		try {
 			// TODO: Might need a separate table?
 			const results = await prisma.ticket.groupBy({
@@ -455,7 +455,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.get(["/admin/alliances/:id", "/admin/alliances/:id/full"], authMiddleware, adminMiddleware, async (req: any, res: any) => {
+	app.get(["/admin/alliances/:id", "/admin/alliances/:id/full"], authMiddleware, adminMiddleware, async (req, res) => {
 		try {
 			const id = Number.parseInt(req.params["id"] as string ?? "");
 			if (Number.isNaN(id) || id <= 0) {
@@ -503,7 +503,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/admin/alliances/search", authMiddleware, adminMiddleware, async (req: any, res: any) => {
+	app.get("/admin/alliances/search", authMiddleware, adminMiddleware, async (req, res) => {
 		try {
 			const query = req.query["q"] as string ?? "";
 			const queryId = Number.parseInt(query) || 0;

@@ -23,7 +23,7 @@ const moderatorMiddleware = async (req: AuthenticatedRequest, res: Response, nex
 };
 
 export default function (app: App) {
-	app.get("/moderator/tickets", authMiddleware, moderatorMiddleware, async (_req: any, res: any) => {
+	app.get("/moderator/tickets", authMiddleware, moderatorMiddleware, async (_req, res) => {
 		try {
 			const tickets = await prisma.ticket.findMany({
 				where: {
@@ -147,9 +147,9 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/moderator/users/tickets", authMiddleware, moderatorMiddleware, async (req: any, res: any) => {
+	app.get("/moderator/users/tickets", authMiddleware, moderatorMiddleware, async (req, res) => {
 		try {
-			const userId = Number.parseInt(req.query.userId as string ?? "") || 0;
+			const userId = Number.parseInt(req.query["userId"] as string ?? "") || 0;
 			if (Number.isNaN(userId) || userId <= 0) {
 				return res.status(400)
 					.json({ error: "Bad Request", status: 400 });
@@ -229,7 +229,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/moderator/open-tickets-count", authMiddleware, moderatorMiddleware, async (_req: any, res: any) => {
+	app.get("/moderator/open-tickets-count", authMiddleware, moderatorMiddleware, async (_req, res) => {
 		try {
 			const count = await prisma.ticket.count({
 				where: { resolution: null }
@@ -243,7 +243,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/moderator/severe-open-tickets-count", authMiddleware, moderatorMiddleware, async (_req: any, res: any) => {
+	app.post("/moderator/severe-open-tickets-count", authMiddleware, moderatorMiddleware, async (_req, res) => {
 		try {
 			const count = await prisma.ticket.count({
 				where: {
@@ -260,10 +260,10 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/moderator/assign-new-tickets", authMiddleware, moderatorMiddleware, async (_req: any, res: any) => {
+	app.post("/moderator/assign-new-tickets", authMiddleware, moderatorMiddleware, async (_req, res) => {
 		try {
 			// TODO
-			res.json({
+			return res.json({
 				newTicketsIds: []
 			});
 		} catch (error) {
@@ -273,10 +273,10 @@ export default function (app: App) {
 		}
 	});
 
-	app.get("/moderator/count-my-tickets", authMiddleware, moderatorMiddleware, async (_req: any, res: any) => {
+	app.get("/moderator/count-my-tickets", authMiddleware, moderatorMiddleware, async (_req, res) => {
 		try {
 			// TODO
-			res.json(0);
+			return res.json(0);
 		} catch (error) {
 			console.error("Error assigning new tickets:", error);
 			return res.status(500)
@@ -291,7 +291,7 @@ export default function (app: App) {
 			.send(html);
 	});
 
-	app.get("/moderator/:season/pixel/:tileX/:tileY", async (req: any, res: any) => {
+	app.get("/moderator/:season/pixel/:tileX/:tileY", async (req, res) => {
 		// Temporary redirect to the non-moderator route
 		const redirectUrl = req.originalUrl.replace(/^\/moderator/, "");
 		return res.redirect(redirectUrl);
