@@ -91,7 +91,11 @@ export default function (app: App) {
 			}
 
 			res.setHeader("Content-Type", "image/png");
-			res.setHeader("Cache-Control", "public, max-age=10, must-revalidate");
+			// TODO: Not working?
+			// res.setHeader("Cache-Control", "public, max-age=10, must-revalidate");
+			res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+			res.setHeader("Pragma", "no-cache");
+			res.setHeader("Expires", "0");
 			return res.send(buffer);
 		} catch (error) {
 			console.error("Error generating tile image:", error);
