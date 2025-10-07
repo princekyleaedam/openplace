@@ -29,6 +29,9 @@ export default function (app: App) {
 				where: {
 					resolution: null
 				},
+				orderBy: {
+					createdAt: "desc"
+				},
 				select: {
 					id: true,
 					latitude: true,
