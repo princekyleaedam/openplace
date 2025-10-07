@@ -24,6 +24,13 @@ async function makeTicket(req: AuthenticatedRequest, res: Response): Promise<Tic
 		return;
 	}
 
+	// negative user ids can correlate to the suspended account user or a system account. so we are going to block those requests.
+	if (reportedUserId < 0) {
+		res.status(400)
+			.json({ error: "You cannot report a user id with a negative integer.", status: 400 });
+		return;
+	}
+
 	if (notes.length < 5) {
 		res.status(400)
 			.json({ error: "Note must be at least 5 characters", status: 400 });

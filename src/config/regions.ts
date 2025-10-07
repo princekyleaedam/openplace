@@ -15,7 +15,7 @@ export function getRegionForCoordinates(tileX: number, tileY: number, x: number,
 		id: 114_594,
 		cityId: 4263,
 		name: "openplace",
-		number: 2,
+		number: 1,
 		countryId: 13,
 		flagId: 13
 	};
