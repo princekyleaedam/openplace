@@ -43,7 +43,7 @@ const jsonMiddleware = json({
 });
 
 app.use((req, _res, next) => {
-	req.ip = req.get("x-forwarded-for") as string ?? req.ip;
+	req.ip = req.get("cf-connecting-ip") as string ?? req.get("x-forwarded-for") as string ?? req.ip;
 	next?.();
 });
 
