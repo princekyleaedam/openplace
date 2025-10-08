@@ -91,9 +91,7 @@ export default function (app: App) {
 			}
 
 			res.setHeader("Content-Type", "image/png");
-			// TODO: Not working?
-			// res.setHeader("Cache-Control", "public, max-age=10, must-revalidate");
-			res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+			res.setHeader("Cache-Control", "private, must-revalidate");
 			res.setHeader("Pragma", "no-cache");
 			res.setHeader("Expires", "0");
 			return res.send(buffer);
