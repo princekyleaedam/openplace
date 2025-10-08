@@ -206,26 +206,35 @@ export class PixelService {
 
 	async updatePixelTile(tileX: number, tileY: number, season: number = 0): Promise<{ buffer: Buffer; updatedAt: Date }> {
 		const canvas = createCanvas(1000, 1000);
-		const ctx = canvas.getContext("2d");
 
+		const ctx = canvas.getContext("2d");
 		ctx.clearRect(0, 0, 1000, 1000);
 
+		const imageData = ctx.createImageData(1000, 1000);
+
 		const pixels = await this.prisma.pixel.findMany({
-			where: { tileX, tileY, season }
+			where: { tileX, tileY, season },
+			select: {
+				x: true,
+				y: true,
+				colorId: true,
+			}
 		});
 
 		for (const pixel of pixels) {
 			const color = COLOR_PALETTE[pixel.colorId];
-			if (color) {
-				if (pixel.colorId === 0) {
-					ctx.clearRect(pixel.x, pixel.y, 1, 1);
-				} else {
-					const [r, g, b] = color.rgb;
-					ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-					ctx.fillRect(pixel.x, pixel.y, 1, 1);
-				}
-			}
+			if (!color) continue;
+			if (pixel.colorId === 0) continue;
+
+			const [r, g, b] = color.rgb;
+			const index = (pixel.y * 1000 + pixel.x) * 4;
+			imageData.data[index + 0] = r;
+			imageData.data[index + 1] = g;
+			imageData.data[index + 2] = b;
+			imageData.data[index + 3] = 255;
 		}
+
+		ctx.putImageData(imageData, 0, 0);
 
 		const buffer = canvas.toBuffer("image/png");
 
@@ -370,8 +379,8 @@ export class PixelService {
 				await this.prisma.$executeRaw`
 					INSERT INTO Pixel (season, tileX, tileY, x, y, colorId, paintedBy, paintedAt)
 					VALUES ${Prisma.join(batch.map(v =>
-		Prisma.sql`(${v.season}, ${v.tileX}, ${v.tileY}, ${v.x}, ${v.y}, ${v.colorId}, ${v.paintedBy}, ${v.paintedAt})`
-	))}
+						Prisma.sql`(${v.season}, ${v.tileX}, ${v.tileY}, ${v.x}, ${v.y}, ${v.colorId}, ${v.paintedBy}, ${v.paintedAt})`
+					))}
 					ON DUPLICATE KEY UPDATE
 						colorId = VALUES(colorId),
 						paintedBy = VALUES(paintedBy),
