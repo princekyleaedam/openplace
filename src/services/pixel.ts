@@ -206,10 +206,7 @@ export class PixelService {
 
 	async updatePixelTile(tileX: number, tileY: number, season: number = 0): Promise<{ buffer: Buffer; updatedAt: Date }> {
 		const canvas = createCanvas(1000, 1000);
-
 		const ctx = canvas.getContext("2d");
-		ctx.clearRect(0, 0, 1000, 1000);
-
 		const imageData = ctx.createImageData(1000, 1000);
 
 		const pixels = await this.prisma.pixel.findMany({
@@ -233,11 +230,9 @@ export class PixelService {
 			imageData.data[index + 2] = b;
 			imageData.data[index + 3] = 255;
 		}
-
 		ctx.putImageData(imageData, 0, 0);
 
 		const buffer = canvas.toBuffer("image/png");
-
 		const { updatedAt } = await this.prisma.tile.upsert({
 			where: {
 				season_x_y: {
@@ -276,15 +271,20 @@ export class PixelService {
 		const image = await loadImage(tile?.imageData ?? this.emptyTile);
 		ctx.drawImage(image, 0, 0);
 
+		const imageData = ctx.getImageData(0, 0, 1000, 1000);
 		for (const pixel of pixels) {
 			const color = COLOR_PALETTE[pixel.colorId];
 			if (!color) continue;
 
 			const [r, g, b] = color.rgb;
 			const a = pixel.colorId === 0 ? 0 : 255;
-			ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
-			ctx.fillRect(pixel.x, pixel.y, 1, 1);
+			const index = (pixel.y * 1000 + pixel.x) * 4;
+			imageData.data[index + 0] = r;
+			imageData.data[index + 1] = g;
+			imageData.data[index + 2] = b;
+			imageData.data[index + 3] = a;
 		}
+		ctx.putImageData(imageData, 0, 0);
 
 		const buffer = canvas.toBuffer("image/png");
 		await this.prisma.tile.upsert({
