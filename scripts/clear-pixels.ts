@@ -104,13 +104,20 @@ try {
 	const bottomRightTile = parseCoordinates(tileAnswers.bottomRightTile)!;
 	const bottomRightPixel = parseCoordinates(tileAnswers.bottomRightPixel)!;
 
-	if (topLeftTile.x > bottomRightTile.x || topLeftTile.y > bottomRightTile.y) {
-		throw new Error("Invalid tile range");
+	if (topLeftTile.x > bottomRightTile.x) {
+		throw new Error("Invalid tile range (top-left tile x is greater than bottom-right tile x)");
 	}
 
-	if (topLeftTile.x === bottomRightTile.x && topLeftTile.y === bottomRightTile.y &&
-		(topLeftPixel.x > bottomRightPixel.x || topLeftPixel.y > bottomRightPixel.y)) {
-		throw new Error("Invalid tile range");
+	if (topLeftTile.y > bottomRightTile.y) {
+		throw new Error("Invalid tile range (top-left tile y is greater than bottom-right tile y)");
+	}
+
+	if (topLeftTile.x === bottomRightTile.x && topLeftPixel.x > bottomRightPixel.x) {
+		throw new Error("Invalid pixel range (top-left x is greater than bottom-right x)");
+	}
+
+	if (topLeftTile.y === bottomRightTile.y && topLeftPixel.y > bottomRightPixel.y) {
+		throw new Error("Invalid pixel range (top-left y is greater than bottom-right y)");
 	}
 
 	const season = 0;
