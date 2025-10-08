@@ -116,6 +116,7 @@ model Pixel {
 	paintedAt DateTime @default(now())
 
 	@@unique([season, tileX, tileY, x, y])
+	@@index([season, tileX, tileY])
 }
 
 model Region {
