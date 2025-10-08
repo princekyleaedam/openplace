@@ -59,13 +59,18 @@ export default function (app: App) {
 				const passwordHash = await bcrypt.hash(password, 10);
 				const firstUser = (await prisma.user.count()) === 0;
 
+				let country = req.get("cf-ipcountry") as string;
+				if (!(/^[A-Z]{2}$/).test(country)) {
+					country = "US";
+				}
+
 				user = await prisma.user.create({
 					data: {
 						name: username,
 						passwordHash,
 						registrationIP: req.ip!,
 						lastIP: req.ip!,
-						country: "US", // TODO
+						country,
 						role: firstUser ? "admin" : "user",
 						droplets: 1000,
 						currentCharges: 20,
