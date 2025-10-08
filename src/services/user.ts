@@ -1,6 +1,7 @@
 import { PrismaClient, User } from "@prisma/client";
 import { calculateChargeRecharge } from "../utils/charges.js";
 import { englishDataset, englishRecommendedTransformers, RegExpMatcher } from "obscenity";
+import { BanReason } from "../types/index.js";
 
 export interface UpdateUserInput {
 	name?: string;
@@ -151,10 +152,13 @@ export class UserService {
 		});
 	}
 
-	async ban(userId: number, state: boolean) {
+	async ban(userId: number, state: boolean, reason: BanReason | null) {
 		await this.prisma.user.update({
 			where: { id: userId },
-			data: { banned: state }
+			data: {
+				banned: state,
+				suspensionReason: state ? reason : null
+			}
 		});
 	}
 

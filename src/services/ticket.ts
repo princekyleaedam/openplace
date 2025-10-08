@@ -53,7 +53,7 @@ export class TicketService {
 			break;
 
 		case TicketResolution.Ban:
-			await this.userService.ban(ticket.reportedUserId, true);
+			await this.userService.ban(ticket.reportedUserId, true, ticket.reason as BanReason);
 			break;
 		}
 	}
