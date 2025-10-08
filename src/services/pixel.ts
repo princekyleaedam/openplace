@@ -256,54 +256,52 @@ export class PixelService {
 	}
 
 	async drawPixelsToTile(pixels: { x: number; y: number; colorId: number }[], tileX: number, tileY: number, season: number = 0): Promise<void> {
-		const canvas = createCanvas(1000, 1000);
-		const ctx = canvas.getContext("2d");
+		await this.prisma.$transaction(async (tx) => {
+			const canvas = createCanvas(1000, 1000);
+			const ctx = canvas.getContext("2d");
 
-		const tile = await this.prisma.tile.findUnique({
-			where: {
-				season_x_y: {
+			const tiles = await tx.$queryRaw<{ season: number; x: number; y: number; imageData: Buffer }[]>(
+				Prisma.sql`SELECT season, x, y, imageData FROM Tile WHERE season = ${season} AND x = ${tileX} AND y = ${tileY} LIMIT 1 FOR UPDATE`
+			);
+			const tile = tiles[0];
+
+			const image = await loadImage(tile?.imageData ?? this.emptyTile);
+			ctx.drawImage(image, 0, 0);
+
+			const imageData = ctx.getImageData(0, 0, 1000, 1000);
+			for (const pixel of pixels) {
+				const color = COLOR_PALETTE[pixel.colorId];
+				if (!color) continue;
+
+				const [r, g, b] = color.rgb;
+				const a = pixel.colorId === 0 ? 0 : 255;
+				const index = (pixel.y * 1000 + pixel.x) * 4;
+				imageData.data[index + 0] = r;
+				imageData.data[index + 1] = g;
+				imageData.data[index + 2] = b;
+				imageData.data[index + 3] = a;
+			}
+			ctx.putImageData(imageData, 0, 0);
+
+			const buffer = canvas.toBuffer("image/png");
+			await tx.tile.upsert({
+				where: {
+					season_x_y: {
+						season,
+						x: tileX,
+						y: tileY
+					}
+				},
+				create: {
 					season,
 					x: tileX,
-					y: tileY
+					y: tileY,
+					imageData: buffer
+				},
+				update: {
+					imageData: buffer
 				}
-			}
-		});
-		const image = await loadImage(tile?.imageData ?? this.emptyTile);
-		ctx.drawImage(image, 0, 0);
-
-		const imageData = ctx.getImageData(0, 0, 1000, 1000);
-		for (const pixel of pixels) {
-			const color = COLOR_PALETTE[pixel.colorId];
-			if (!color) continue;
-
-			const [r, g, b] = color.rgb;
-			const a = pixel.colorId === 0 ? 0 : 255;
-			const index = (pixel.y * 1000 + pixel.x) * 4;
-			imageData.data[index + 0] = r;
-			imageData.data[index + 1] = g;
-			imageData.data[index + 2] = b;
-			imageData.data[index + 3] = a;
-		}
-		ctx.putImageData(imageData, 0, 0);
-
-		const buffer = canvas.toBuffer("image/png");
-		await this.prisma.tile.upsert({
-			where: {
-				season_x_y: {
-					season,
-					x: tileX,
-					y: tileY
-				}
-			},
-			create: {
-				season,
-				x: tileX,
-				y: tileY,
-				imageData: buffer
-			},
-			update: {
-				imageData: buffer
-			}
+			});
 		});
 	}
 
@@ -400,11 +398,8 @@ export class PixelService {
 			console.log(`Applied 10% flag discount to ${discountedPixels} pixels in ${validPixels[0].region.name}`);
 		}
 
-		await this.prisma.tile.upsert({
-			where: { season_x_y: { season, x: tileX, y: tileY } },
-			create: { season, x: tileX, y: tileY },
-			update: {}
-		});
+		// Use insert ignore to avoid race condition when multiple users paint the same tile at the same time
+		await this.prisma.$executeRaw(Prisma.sql`INSERT IGNORE INTO Tile (season, x, y) VALUES (${season}, ${tileX}, ${tileY})`);
 
 		const now = new Date();
 
