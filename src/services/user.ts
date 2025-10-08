@@ -8,12 +8,15 @@ export interface UpdateUserInput {
 	discord?: string;
 }
 
-const EXPERIMENTS = {
-	"2025-09_pawtect": {
-		variant: "disabled"
-	},
-	"2025-09_discord_linking": {
-		enabled: false
+const config = {
+	maxFavoriteLocations: 15,
+	experiments: {
+		"2025-09_pawtect": {
+			variant: "disabled"
+		},
+		"2025-09_discord_linking": {
+			enabled: false
+		}
 	}
 };
 
@@ -66,17 +69,18 @@ export class UserService {
 			user.currentCharges = updatedCharges;
 		}
 
-		const flagsBitmap = user.flagsBitmap
-			? Buffer.from(user.flagsBitmap)
-				.toString("base64")
-			: "AA==";
+		const flagsBitmap = Buffer.from(user.flagsBitmap ?? [0])
+			.toString("base64");
 
 		return {
+			...config,
 			id: user.id,
 			name: user.name,
-			discord: user.discord || "",
+			discord: user.discord ?? "",
 			country: user.country,
 			banned: user.banned,
+			suspensionReason: user.suspensionReason,
+			timeoutUntil: user.timeoutUntil.toISOString(),
 			charges: {
 				cooldownMs: user.chargesCooldownMs,
 				count: user.currentCharges,
@@ -95,15 +99,12 @@ export class UserService {
 			role: user.role,
 			isCustomer: user.isCustomer,
 			level: user.level,
-			maxFavoriteLocations: user.maxFavoriteLocations,
 			needsPhoneVerification: user.needsPhoneVerification,
-			picture: user.picture || "",
+			picture: user.picture ?? "",
 			pixelsPainted: user.pixelsPainted,
 			showLastPixel: user.showLastPixel,
-			timeoutUntil: user.timeoutUntil.toISOString(),
 			allianceId: user.allianceId,
-			allianceRole: user.allianceRole,
-			experiments: EXPERIMENTS
+			allianceRole: user.allianceRole
 		};
 	}
 
