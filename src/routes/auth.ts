@@ -42,6 +42,11 @@ export default function (app: App) {
 						.json({ error: "Invalid username or password" });
 				}
 
+				if (user.banned) {
+					return res.status(403)
+						.json({ error: "You have been banned." });
+				}
+
 				if (req.ip) {
 					await userService.setLastIP(user.id, req.ip);
 				}

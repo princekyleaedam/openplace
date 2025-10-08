@@ -58,11 +58,80 @@
 		margin-top: 10px;
 		text-align: center;
 	}
+	.agreement {
+		font-size: 12px;
+		color: #777;
+		text-align: center;
+		margin-top: 20px;
+	}
+	@media (prefers-color-scheme: dark) {
+		body {
+			font-family: sans-serif;
+			max-width: 400px;
+			margin: 100px auto;
+			padding: 20px;
+			background-color: #0b0b0b;
+		}
+		.login-form {
+			background: rgb(36, 36, 36);
+			padding: 30px;
+			border-radius: 10%;
+			box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+		}
+		h1 {
+			text-align: center;
+			margin-bottom: 30px;
+			color: #ffffff;
+		}
+		.form-group {
+			margin-bottom: 20px;
+		}
+		label {
+			display: block;
+			margin-bottom: 5px;
+			font-weight: bold;
+			color: #555;
+		}
+		input[type="text"], input[type="password"] {
+			width: 100%;
+			padding: 10px;
+			border: 1px solid #3e3e3e;
+			border-radius: 12px;
+			font-size: 16px;
+			box-sizing: border-box;
+			background: none;
+			color: white;
+		}
+		button {
+			width: 100%;
+			padding: 12px;
+			background-color: #006aff;
+			color: white;
+			border: none;
+			border-radius: 10px;
+			font-size: 16px;
+			cursor: pointer;
+		}
+		button:hover {
+			background-color: #0056b3;
+		}
+		.error {
+			color: rgb(255, 31, 31);
+			margin-top: 10px;
+			text-align: center;
+		}
+		.agreement {
+			font-size: 12px;
+			color: #777;
+			text-align: center;
+			margin-top: 20px;
+		}
+	}
 	</style>
 </head>
 <body>
 	<div class="login-form">
-		<h1>Welcome back!</h1>
+		<h1>Welcome!</h1>
 		<form id="loginForm">
 			<div class="form-group">
 				<input type="text" id="username" name="username" placeholder="Username" required>
@@ -72,6 +141,7 @@
 			</div>
 			<button type="submit">Login</button>
 			<div id="error" class="error"></div>
+			<p class="agreement">By signing in, you agree to the rules set by the owner of this instance.</p>
 		</form>
 	</div>
 
@@ -100,7 +170,18 @@
 				errorDiv.textContent = data.error || "Login failed";
 			}
 		} catch (error) {
-			errorDiv.textContent = "Network error occurred";
+		switch (response.status) {
+				case 429:
+					errorDiv.textContent = "Try again in a minute, rate limit exceeded";
+					break;
+				case 403:
+					errorDiv.textContent = "You have been banned.";
+        break;
+    	default:
+        	errorDiv.textContent = "Network error occurred";
+        break;
+		}
+
 		}
 	});
 	</script>
