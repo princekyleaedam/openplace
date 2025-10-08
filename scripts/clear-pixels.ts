@@ -335,7 +335,7 @@ try {
 		}
 	]);
 
-	if (!banAnswer.shouldBan) {
+	if (banAnswer.shouldBan) {
 		const userChoices = sortedStats.map(stat => ({
 			name: `User ${stat.userId} (${stat.userName}) - ${stat.count} pixel(s)`,
 			value: stat.userId
