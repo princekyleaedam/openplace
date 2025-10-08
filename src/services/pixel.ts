@@ -1,5 +1,5 @@
 import { Alliance, Pixel, Prisma, PrismaClient, User } from "@prisma/client";
-import { createCanvas } from "@napi-rs/canvas";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { checkColorUnlocked, COLOR_PALETTE } from "../utils/colors.js";
 import { calculateChargeRecharge } from "../utils/charges.js";
 import { getRegionForCoordinates, Region } from "../config/regions.js";
@@ -260,6 +260,53 @@ export class PixelService {
 		return { buffer, updatedAt };
 	}
 
+	async drawPixelsToTile(pixels: { x: number; y: number; colorId: number }[], tileX: number, tileY: number, season: number = 0): Promise<void> {
+		const canvas = createCanvas(1000, 1000);
+		const ctx = canvas.getContext("2d");
+
+		const tile = await this.prisma.tile.findUnique({
+			where: {
+				season_x_y: {
+					season,
+					x: tileX,
+					y: tileY
+				}
+			}
+		});
+		const image = await loadImage(tile?.imageData ?? this.emptyTile);
+		ctx.drawImage(image, 0, 0);
+
+		for (const pixel of pixels) {
+			const color = COLOR_PALETTE[pixel.colorId];
+			if (!color) continue;
+
+			const [r, g, b] = color.rgb;
+			const a = pixel.colorId === 0 ? 0 : 255;
+			ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
+			ctx.fillRect(pixel.x, pixel.y, 1, 1);
+		}
+
+		const buffer = canvas.toBuffer("image/png");
+		await this.prisma.tile.upsert({
+			where: {
+				season_x_y: {
+					season,
+					x: tileX,
+					y: tileY
+				}
+			},
+			create: {
+				season,
+				x: tileX,
+				y: tileY,
+				imageData: buffer
+			},
+			update: {
+				imageData: buffer
+			}
+		});
+	}
+
 	async paintPixels(userId: number, input: PaintPixelsInput, season: number = 0): Promise<PaintPixelsResult> {
 		const { tileX, tileY, colors, coords } = input;
 
@@ -427,7 +474,8 @@ export class PixelService {
 			});
 		}
 
-		await this.updatePixelTile(tileX, tileY, season);
+		// await this.updatePixelTile(tileX, tileY, season);
+		await this.drawPixelsToTile(validPixels, tileX, tileY, season);
 
 		return { painted };
 	}
