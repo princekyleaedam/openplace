@@ -9,6 +9,7 @@ import { BanReason, TicketResolution } from "../src/types/index.js";
 const prisma = new PrismaClient();
 const pixelService = new PixelService(prisma);
 const ticketService = new TicketService(prisma);
+const adminUserId = -1; // System Account
 
 interface PixelStat {
 	userId: number;
@@ -252,6 +253,15 @@ try {
 		}
 	});
 
+	for (const userId of sortedStats.map(stat => stat.userId)) {
+		await prisma.userNote.create({
+			data: {
+				userId: adminUserId,
+				reportedUserId: userId,
+				content: `${userStats.get(userId)?.count || 0} pixels were removed by the clear-pixels script.`
+			}
+		});
+	}
 	console.log(`Deleted ${deleteResult.count} pixel(s).`);
 
 	if (deleteResult.count !== pixels.length) {
@@ -382,22 +392,7 @@ try {
 				}
 			]);
 
-			const adminAnswer = await inquirer.prompt([
-				{
-					type: "input",
-					name: "adminId",
-					message: "Enter your admin user ID:",
-					validate: (input: string) => {
-						const id = Number.parseInt(input);
-						if (Number.isNaN(id) || id <= 0) {
-							return "Invaild user";
-						}
-						return true;
-					}
-				}
-			]);
-
-			const adminUserId = Number.parseInt(adminAnswer.adminId);
+			
 
 			console.log("Banning users...");
 			for (const userId of selectedUsers.users) {
@@ -428,7 +423,7 @@ try {
 					data: {
 						userId: adminUserId,
 						reportedUserId: userId,
-						content: `Banned via clear-pixels script: ${notesAnswer.notes} (Reason: ${banReasonAnswer.reason})`
+						content: `Banned: ${notesAnswer.notes}`
 					}
 				});
 
