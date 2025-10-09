@@ -23,7 +23,7 @@ export class AllianceService {
 	constructor(private prisma: PrismaClient) {}
 
 	static isValidAllianceName(name: string): boolean {
-		return name.length > 0 && name.length <= 13;
+		return name.length > 0 && name.length <= 16;
 	}
 
 	async getUserAlliance(userId: number) {
