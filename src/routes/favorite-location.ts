@@ -48,7 +48,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.delete("/favorite-location/delete", authMiddleware, async (req: AuthenticatedRequest, res) => {
+	app.post("/favorite-location/delete", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			const locationId = Number.parseInt(req.body.id);
 
