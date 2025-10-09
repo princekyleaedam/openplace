@@ -112,6 +112,15 @@ export default function (app: App) {
 		}
 	});
 
+	app.post("/alliance/leave", authMiddleware, async (req: AuthenticatedRequest, res) => {
+		try {
+			const result = await allianceService.leaveAlliance(req.user!.id);
+			return res.json(result);
+		} catch (error) {
+			return handleServiceError(error as Error, res);
+		}
+	});
+
 	app.post("/alliance/give-admin", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			const { promotedUserId } = req.body;

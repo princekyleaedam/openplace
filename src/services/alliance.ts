@@ -206,6 +206,53 @@ export class AllianceService {
 		return { success: "true" };
 	}
 
+	async leaveAlliance(userId: number) {
+		const user = await this.prisma.user.findUnique({
+			where: { id: userId }
+		});
+
+		if (!user || !user.allianceId) {
+			throw new Error("Forbidden");
+		}
+
+		if (user.allianceRole === "admin") {
+			// Check if this is the last admin
+			const adminCount = await this.prisma.user.count({
+				where: {
+					allianceId: user.allianceId,
+					allianceRole: "admin"
+				}
+			});
+
+			if (adminCount <= 1) {
+				// Hand admin to another member if possible
+				const newAdmin = await this.prisma.user.findFirst({
+					where: {
+						allianceId: user.allianceId,
+						allianceRole: "member"
+					}
+				});
+
+				if (newAdmin) {
+					await this.prisma.user.update({
+						where: { id: newAdmin.id },
+						data: { allianceRole: "admin" }
+					});
+				}
+			}
+		}
+
+		await this.prisma.user.update({
+			where: { id: userId },
+			data: {
+				allianceId: null,
+				allianceRole: "member"
+			}
+		});
+
+		return { success: true };
+	}
+
 	async updateHeadquarters(userId: number, input: UpdateAllianceHQInput) {
 		const { latitude, longitude } = input;
 
