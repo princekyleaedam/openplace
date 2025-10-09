@@ -1,8 +1,15 @@
 import { Response } from "@tinyhttp/app";
 import { createErrorResponse, ERROR_MESSAGES, HTTP_STATUS } from "../utils/response.js";
+import { ValidationError } from "../utils/error.js";
 
+// TODO: I don’t like this function
 export function handleServiceError(error: Error, res: Response) {
 	console.error("Service error:", error);
+
+	if (error instanceof ValidationError) {
+		return res.status(HTTP_STATUS.BAD_REQUEST)
+			.json(createErrorResponse(error.message, HTTP_STATUS.BAD_REQUEST));
+	}
 
 	switch (error.message) {
 	case "Bad Request":

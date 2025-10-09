@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { UserService } from "./user";
+import { ValidationError } from "../utils/error";
 
 export interface CreateAllianceInput {
 	name: string;
@@ -57,7 +58,7 @@ export class AllianceService {
 		const { name } = input;
 
 		if (!name || typeof name !== "string") {
-			throw new Error("Alliance name is required");
+			throw new ValidationError("empty_name");
 		}
 
 		const user = await this.prisma.user.findUnique({
@@ -65,7 +66,7 @@ export class AllianceService {
 		});
 
 		if (user?.allianceId) {
-			throw new Error("Already in alliance");
+			throw new ValidationError("Already in alliance");
 		}
 
 		const existingAlliance = await this.prisma.alliance.findUnique({
@@ -73,15 +74,15 @@ export class AllianceService {
 		});
 
 		if (existingAlliance) {
-			throw new Error("Alliance name taken");
+			throw new ValidationError("name_taken");
 		}
 
 		if (!UserService.isValidUsername(name)) {
-			throw new Error("Alliance name must be between 3 and 16 characters and cannot contain special characters.");
+			throw new ValidationError("max_characters");
 		}
 
 		if (!UserService.isAcceptableUsername(name)) {
-			throw new Error("Invalid alliance name");
+			throw new ValidationError("max_characters");
 		}
 
 		const alliance = await this.prisma.alliance.create({
@@ -115,7 +116,7 @@ export class AllianceService {
 		}
 
 		if (!UserService.isAcceptableUsername(description)) {
-			throw new Error("Invalid alliance description");
+			throw new ValidationError("Invalid alliance description");
 		}
 
 		await this.prisma.alliance.update({
@@ -158,7 +159,7 @@ export class AllianceService {
 		}
 
 		if (!inviteId) {
-			throw new Error("Invalid invite");
+			throw new ValidationError("Invalid invite");
 		}
 
 		const inviteRecord = await this.prisma.allianceInvite.findUnique({
@@ -174,7 +175,7 @@ export class AllianceService {
 		}
 
 		if (user.allianceId) {
-			throw new Error("Already Reported");
+			throw new ValidationError("Already Reported");
 		}
 
 		const bannedUser = await this.prisma.bannedUser.findUnique({
