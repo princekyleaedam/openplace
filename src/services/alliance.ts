@@ -22,6 +22,10 @@ const PAGINATION_CONSTANTS = {
 export class AllianceService {
 	constructor(private prisma: PrismaClient) {}
 
+	static isValidAllianceName(name: string): boolean {
+		return name.length > 0 && name.length <= 13;
+	}
+
 	async getUserAlliance(userId: number) {
 		const user = await this.prisma.user.findUnique({
 			where: { id: userId },
@@ -77,7 +81,7 @@ export class AllianceService {
 			throw new ValidationError("name_taken");
 		}
 
-		if (!UserService.isValidUsername(name)) {
+		if (!AllianceService.isValidAllianceName(name)) {
 			throw new ValidationError("max_characters");
 		}
 
