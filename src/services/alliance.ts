@@ -424,13 +424,13 @@ export class AllianceService {
 				showLastPixel: true
 			}
 		});
-		
+
 		const lastPixels = new Map<number, { lat: number; lon: number }>();
 		await Promise.all(members.map(async (m) => {
 			if (!m.showLastPixel) return;
 			const last = await this.prisma.pixel.findFirst({
 				where: { paintedBy: m.id },
-				orderBy: { paintedAt: "desc" }, { id: "desc"},
+				orderBy: [{ paintedAt: "desc" }, { id: "desc"}],
 				select: { tileX: true, tileY: true, x: true, y: true }
 			});
 			if (last) {
@@ -438,7 +438,7 @@ export class AllianceService {
 				lastPixels.set(m.id, { lat, lon });
 			}
 		}));
-		
+
 		return members.map(member => ({
 			userId: member.id,
 			name: member.name,
