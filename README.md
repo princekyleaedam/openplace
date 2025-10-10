@@ -24,3 +24,9 @@ You will be required to configure an SSL certificate if you plan to use this in 
 
 ### Updating your database
 In the event that the database schematic changes, you simply need to run `npm run db:push` to update your database schema.
+
+## License
+Licensed under the Apache License, version 2.0. Refer to [LICENSE.md](https://github.com/openplaceteam/openplace/blob/main/LICENSE.md).
+
+### Acknowledgements
+Region data is from [GeoNames Gazetteer](https://download.geonames.org/export/dump/), and is licensed under a [Creative Commons Attribution 4.0 License](https://creativecommons.org/licenses/by/4.0/). The Data is provided “as is” without warranty or any representation of accuracy, timeliness or completeness.
