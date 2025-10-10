@@ -21,6 +21,19 @@ export class TicketService {
 	}
 
 	async reportUser(input: ReportUserInput): Promise<Ticket> {
+		let imageBuffer: Buffer | undefined;
+		const anyImage: any = input.image as any;
+		if (anyImage) {
+			if (typeof anyImage.bytes === "function") {
+				imageBuffer = await anyImage.bytes();
+			} else if (typeof anyImage.arrayBuffer === "function") {
+				const ab = await anyImage.arrayBuffer();
+				imageBuffer = Buffer.from(ab);
+			} else if (anyImage.buffer instanceof Buffer) {
+				imageBuffer = anyImage.buffer as Buffer;
+			}
+		}
+
 		return await this.prisma.ticket.create({
 			data: {
 				userId: input.reportingUserId,
@@ -30,7 +43,7 @@ export class TicketService {
 				zoom: input.zoom,
 				reason: input.reason,
 				notes: input.notes,
-				image: await input.image.bytes()
+				image: imageBuffer || null
 			}
 		});
 	}
