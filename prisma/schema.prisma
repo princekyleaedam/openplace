@@ -112,12 +112,16 @@ model Pixel {
 	y         Int      @db.UnsignedSmallInt
 	colorId   Int      @db.UnsignedSmallInt
 	paintedBy Int
+	regionCityId Int?
+	regionCountryId Int?
 	user      User     @relation(fields: [paintedBy], references: [id])
 	tile      Tile     @relation(fields: [season, tileX, tileY], references: [season, x, y])
 	paintedAt DateTime @default(now())
 
 	@@unique([season, tileX, tileY, x, y])
 	@@index([season, tileX, tileY])
+	@@index([regionCityId])
+	@@index([regionCountryId])
 }
 
 model Region {
@@ -126,6 +130,8 @@ model Region {
 	name      String
 	number    Int
 	countryId Int
+	lat       Float
+	lon       Float
 }
 
 model ProfilePicture {
