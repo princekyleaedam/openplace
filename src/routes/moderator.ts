@@ -1,12 +1,13 @@
 import { App, NextFunction, Response } from "@tinyhttp/app";
 import { prisma } from "../config/database.js";
 import { authMiddleware } from "../middleware/auth.js";
-import { AuthenticatedRequest, UserRole } from "../types/index.js";
+import { AuthenticatedRequest, TicketResolution, UserRole } from "../types/index.js";
 import { User } from "@prisma/client";
 import fs from "fs/promises";
 import { validatePixelInfo } from "../validators/pixel.js";
 import { createErrorResponse, HTTP_STATUS } from "../utils/response.js";
 import { PixelService } from "../services/pixel.js";
+import { TicketService } from "../services/ticket.js";
 
 const moderatorMiddleware = async (req: AuthenticatedRequest, res: Response, next?: NextFunction) => {
 	try {
@@ -26,6 +27,7 @@ const moderatorMiddleware = async (req: AuthenticatedRequest, res: Response, nex
 };
 
 const pixelService = new PixelService(prisma);
+const ticketService = new TicketService(prisma);
 
 // TODO: Split this up further. Just ignoring so I can actually read this file without zigzags for now
 // eslint-disable-next-line max-lines-per-function
@@ -69,15 +71,28 @@ export default function (app: App) {
 							country: true,
 							banned: true,
 							role: true,
-							picture: true
+							picture: true,
+							lastIP: true,
+							registrationIP: true
 						}
 					}
 				}
-			});
+		});
 
-			const formattedTickets = tickets.map(ticket => {
-				const reportedUser = ticket.reportedUser;
-				const author = ticket.user;
+		const formattedTickets = await Promise.all(tickets.map(async (ticket) => {
+			const reportedUser = ticket.reportedUser;
+			const author = ticket.user;
+
+			const reportedCount = await prisma.ticket.count({ where: { reportedUserId: reportedUser.id } });
+			const timeoutCount = await prisma.ticket.count({ where: { reportedUserId: reportedUser.id, resolution: "Timeout" } });
+			const pixelsPainted = await prisma.pixel.count({ where: { user: { id: reportedUser.id } } });
+			
+			let sameIpAccounts = 0;
+			if (reportedUser.lastIP) {
+				sameIpAccounts = await prisma.user.count({ where: { lastIP: reportedUser.lastIP, id: { not: reportedUser.id } } });
+			} else if (reportedUser.registrationIP) {
+				sameIpAccounts = await prisma.user.count({ where: { registrationIP: reportedUser.registrationIP, id: { not: reportedUser.id } } });
+			}
 				return {
 					id: ticket.id,
 					author: author
@@ -88,8 +103,8 @@ export default function (app: App) {
 								country: author.country,
 								banned: author.banned,
 								role: author.role,
-								reportedCount: 0,
-								pixelsPainted: 0
+								reportedCount: await prisma.ticket.count({ where: { userId: author.id } }),
+								pixelsPainted: await prisma.pixel.count({ where: { user: { id: author.id } } })
 							}
 						: null,
 					reportedUser: reportedUser
@@ -102,9 +117,9 @@ export default function (app: App) {
 								banned: reportedUser.banned,
 								role: reportedUser.role,
 								picture: reportedUser.picture,
-								reportedCount: 0,
-								timeoutCount: 0,
-								pixelsPainted: 0,
+								reportedCount,
+								timeoutCount,
+								pixelsPainted,
 								lastTimeoutReason: null
 							}
 						: null,
@@ -117,7 +132,7 @@ export default function (app: App) {
 							zoom: ticket.zoom,
 							reason: ticket.reason,
 							notes: ticket.notes,
-							image: ticket.image
+							image: ticket.image 
 								? Buffer.from(ticket.image)
 									.toString("base64")
 								: "",
@@ -136,17 +151,17 @@ export default function (app: App) {
 										role: author.role
 									}
 								: null,
-							reportedCount: 0,
-							timeoutCount: 0,
+							reportedCount,
+							timeoutCount,
 							lastTimeoutReason: null,
-							sameIpAccounts: 0,
-							pixelsPainted: 0,
+							sameIpAccounts,
+							pixelsPainted,
 							allianceId: 0,
 							allianceName: "fdgdg"
 						}
 					]
 				};
-			});
+		}));
 
 			return res.status(200)
 				.json({ tickets: formattedTickets, status: 200 });
@@ -260,7 +275,10 @@ export default function (app: App) {
 						zoom: ticket.zoom,
 						reason: ticket.reason,
 						notes: ticket.notes,
-						image: ticket.image,
+						image: ticket.image
+							? Buffer.from(ticket.image)
+								.toString("base64")
+							: "",
 						createdAt: ticket.createdAt
 					}))
 				};
@@ -314,6 +332,46 @@ export default function (app: App) {
 			});
 		} catch (error) {
 			console.error("Error assigning new tickets:", error);
+			return res.status(500)
+				.json({ error: "Internal Server Error", status: 500 });
+		}
+	});
+
+	app.post("/moderator/set-ticket-status", authMiddleware, moderatorMiddleware, async (req: AuthenticatedRequest, res) => {
+		try {
+			const { ticketId, status, assignedReason } = req.body ?? {};
+			if (typeof ticketId !== "string" || ticketId.length === 0) {
+				return res.status(HTTP_STATUS.BAD_REQUEST)
+					.json(createErrorResponse("Bad Request", HTTP_STATUS.BAD_REQUEST));
+			}
+
+			let resolution: TicketResolution | null = null;
+			switch (status) {
+				case "ignore":
+					resolution = TicketResolution.Ignore;
+					break;
+				case "timeout":
+					resolution = TicketResolution.Timeout;
+					break;
+				case "ban":
+					resolution = TicketResolution.Ban;
+					break;
+			}
+
+			if (!resolution) {
+				return res.status(HTTP_STATUS.BAD_REQUEST)
+					.json(createErrorResponse("Invalid status", HTTP_STATUS.BAD_REQUEST));
+			}
+
+			if (assignedReason && resolution === TicketResolution.Ban) {
+				await prisma.ticket.update({ where: { id: ticketId }, data: { reason: assignedReason } });
+			}
+
+			await ticketService.resolve(ticketId, req.user!.id, resolution);
+			return res.status(200)
+				.json({});
+		} catch (error) {
+			console.error("Error setting ticket status:", error);
 			return res.status(500)
 				.json({ error: "Internal Server Error", status: 500 });
 		}

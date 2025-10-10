@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { UserService } from "./user";
 import { ValidationError } from "../utils/error";
+import { toLatLng } from "../config/regions";
 
 export interface CreateAllianceInput {
 	name: string;
@@ -423,7 +424,21 @@ export class AllianceService {
 				showLastPixel: true
 			}
 		});
-
+		
+		const lastPixels = new Map<number, { lat: number; lon: number }>();
+		await Promise.all(members.map(async (m) => {
+			if (!m.showLastPixel) return;
+			const last = await this.prisma.pixel.findFirst({
+				where: { paintedBy: m.id },
+				orderBy: { paintedAt: "desc" }, { id: "desc"},
+				select: { tileX: true, tileY: true, x: true, y: true }
+			});
+			if (last) {
+				const { lat, lon } = toLatLng(last.tileX, last.tileY, last.x, last.y);
+				lastPixels.set(m.id, { lat, lon });
+			}
+		}));
+		
 		return members.map(member => ({
 			userId: member.id,
 			name: member.name,
