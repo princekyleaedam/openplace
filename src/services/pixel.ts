@@ -171,7 +171,7 @@ export class PixelService {
 		}
 
 		return {
-			region: getRegionForCoordinates(tileX, tileY, x, y),
+			region: await getRegionForCoordinates(tileX, tileY, x, y),
 			paintedBy
 		};
 	}
@@ -367,13 +367,13 @@ export class PixelService {
 			if (regionCache.has(coordKey)) {
 				region = regionCache.get(coordKey);
 			} else {
-				region = getRegionForCoordinates(tileX, tileY, x, y);
+				region = await getRegionForCoordinates(tileX, tileY, x, y);
 				regionCache.set(coordKey, region);
 			}
 
-			validPixels.push({
-				x, y, colorId, region
-			});
+            validPixels.push({
+                x, y, colorId, region
+            });
 		}
 
 		const painted = validPixels.length;
@@ -404,7 +404,7 @@ export class PixelService {
 		const now = new Date();
 
 		if (validPixels.length > 0) {
-			const values = validPixels.map(pixel => ({
+            const values = validPixels.map(pixel => ({
 				season,
 				tileX,
 				tileY,
@@ -412,21 +412,25 @@ export class PixelService {
 				y: pixel.y,
 				colorId: pixel.colorId,
 				paintedBy: userId,
-				paintedAt: now
+                paintedAt: now,
+                regionCityId: pixel.region.cityId,
+                regionCountryId: pixel.region.countryId
 			}));
 
 			// Upsert 1000 pixels at a time for performance, and to avoid the limit of prepared statement placeholders
 			for (let i = 0; i < values.length; i += 1000) {
 				const batch = values.slice(i, i + 1000);
-				await this.prisma.$executeRaw`
-					INSERT INTO Pixel (season, tileX, tileY, x, y, colorId, paintedBy, paintedAt)
-					VALUES ${Prisma.join(batch.map(v =>
-						Prisma.sql`(${v.season}, ${v.tileX}, ${v.tileY}, ${v.x}, ${v.y}, ${v.colorId}, ${v.paintedBy}, ${v.paintedAt})`
-					))}
+                await this.prisma.$executeRaw`
+                    INSERT INTO Pixel (season, tileX, tileY, x, y, colorId, paintedBy, paintedAt, regionCityId, regionCountryId)
+                    VALUES ${Prisma.join(batch.map(v =>
+                        Prisma.sql`(${v.season}, ${v.tileX}, ${v.tileY}, ${v.x}, ${v.y}, ${v.colorId}, ${v.paintedBy}, ${v.paintedAt}, ${v.regionCityId}, ${v.regionCountryId})`
+                    ))}
 					ON DUPLICATE KEY UPDATE
 						colorId = VALUES(colorId),
 						paintedBy = VALUES(paintedBy),
-						paintedAt = VALUES(paintedAt)
+                        paintedAt = VALUES(paintedAt),
+                        regionCityId = VALUES(regionCityId),
+                        regionCountryId = VALUES(regionCountryId)
 				`;
 			}
 		}
