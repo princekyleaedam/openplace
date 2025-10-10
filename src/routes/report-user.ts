@@ -31,9 +31,15 @@ async function makeTicket(req: AuthenticatedRequest, res: Response): Promise<Tic
 		return;
 	}
 
-	if (notes.length < 5) {
+	if (!notes || notes.length < 5) {
 		res.status(400)
 			.json({ error: "Note must be at least 5 characters", status: 400 });
+		return;
+	}
+
+	if (!image) {
+		res.status(400)
+			.json({ error: "Image is required", status: 400 });
 		return;
 	}
 
