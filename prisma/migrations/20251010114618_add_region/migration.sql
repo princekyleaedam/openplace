@@ -6,11 +6,11 @@
 
 */
 -- AlterTable
-ALTER TABLE `pixel` ADD COLUMN `regionCityId` INTEGER NULL,
+ALTER TABLE `Pixel` ADD COLUMN `regionCityId` INTEGER NULL,
     ADD COLUMN `regionCountryId` INTEGER NULL;
 
 -- AlterTable
-ALTER TABLE `region` ADD COLUMN `lat` DOUBLE NOT NULL,
+ALTER TABLE `Region` ADD COLUMN `lat` DOUBLE NOT NULL,
     ADD COLUMN `lon` DOUBLE NOT NULL;
 
 -- CreateIndex
