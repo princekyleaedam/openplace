@@ -58,8 +58,29 @@ export default function (app: App) {
 				})
 				: null;
 
+			const reportedTimes = await prisma.ticket.count({
+				where: { reportedUserId: id }
+			});
+
+			const timeoutsCount = await prisma.ticket.count({
+				where: { reportedUserId: id, resolution: "timeout" }
+			});
+
+			const sameIPOr: any[] = [];
+			if (user.lastIP) sameIPOr.push({ lastIP: user.lastIP });
+			if (user.registrationIP) sameIPOr.push({ registrationIP: user.registrationIP });
+			const sameIPAccounts = sameIPOr.length > 0
+				? await prisma.user.count({
+					where: {
+						id: { not: id },
+						OR: sameIPOr
+					}
+				})
+				: 0;
+
 			return res.status(200)
 				.json({
+					userId: user.id,
 					id: user.id,
 					name: user.name,
 					droplets: user.droplets,
@@ -68,11 +89,11 @@ export default function (app: App) {
 					timeout_until: user.timeoutUntil,
 
 					// TODO
-					ban_reason: null,
-					reported_times: 0,
-					timeouts_count: 0,
+					ban_reason: user.suspensionReason ?? null,
+					reported_times: reportedTimes,
+					timeouts_count: timeoutsCount,
 
-					same_ip_accounts: 0,
+					same_ip_accounts: sameIPAccounts,
 					alliance_id: user.allianceId,
 					alliance_name: alliance?.name,
 					pixels_painted: user.pixelsPainted,
@@ -175,10 +196,39 @@ export default function (app: App) {
 				return res.status(404)
 					.json({ error: "User not found", status: 404 });
 			}
+			
+			//TODO: Rewrite this to use the new ticket service
+			const [
+				globalClosedTotal,
+				globalIgnored,
+				globalTimeouts,
+				globalBans,
+				reportedClosedTotal,
+				reportedIgnored,
+				reportedTimeouts,
+				reportedBans
+			] = await Promise.all([
+				prisma.ticket.count({ where: { resolution: { not: null } } }),
+				prisma.ticket.count({ where: { resolution: "ignore" } }),
+				prisma.ticket.count({ where: { resolution: "timeout" } }),
+				prisma.ticket.count({ where: { resolution: "ban" } }),
+				prisma.ticket.count({ where: { reportedUserId: id, resolution: { not: null } } }),
+				prisma.ticket.count({ where: { reportedUserId: id, resolution: "ignore" } }),
+				prisma.ticket.count({ where: { reportedUserId: id, resolution: "timeout" } }),
+				prisma.ticket.count({ where: { reportedUserId: id, resolution: "ban" } })
+			]);
 
-			// TODO
 			return res.status(200)
-				.json({});
+				.json({
+					closedTotal: globalClosedTotal,
+					ignored: globalIgnored,
+					timeouts: globalTimeouts,
+					bans: globalBans,
+					rclosedTotal: reportedClosedTotal,
+					rignored: reportedIgnored,
+					rtimeouts: reportedTimeouts,
+					rbans: reportedBans
+				});
 		} catch (error) {
 			console.error("Error fetching tickets:", error);
 			return res.status(500)
@@ -308,7 +358,7 @@ export default function (app: App) {
 						zoom: ticket.zoom,
 						reason: ticket.reason,
 						notes: ticket.notes,
-						image: ticket.image,
+						image: ticket.image ? Buffer.from(ticket.image).toString("base64") : "",
 						createdAt: ticket.createdAt
 					}))
 				};
@@ -548,7 +598,7 @@ export default function (app: App) {
 					.json({ error: "Bad Request", status: 400 });
 			}
 
-			await userService.ban(userId, false);
+			await userService.ban(userId, false, null);
 			return res.status(200)
 				.json({});
 		} catch (error) {
@@ -559,6 +609,24 @@ export default function (app: App) {
 	});
 
 	app.post("/moderator/remove-timeout", authMiddleware, adminMiddleware, async (req: AuthenticatedRequest, res) => {
+		try {
+			const userId = Number.parseInt(req.body["userId"] as string ?? "") || 0;
+			if (Number.isNaN(userId) || userId <= 0) {
+				return res.status(400)
+					.json({ error: "Bad Request", status: 400 });
+			}
+
+			await userService.timeout(userId, false);
+			return res.status(200)
+				.json({});
+		} catch (error) {
+			console.error("Error removing timeout:", error);
+			return res.status(500)
+				.json({ error: "Internal Server Error", status: 500 });
+		}
+	});
+
+	app.post("/admin/remove-timeout", authMiddleware, adminMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			const userId = Number.parseInt(req.body["userId"] as string ?? "") || 0;
 			if (Number.isNaN(userId) || userId <= 0) {
