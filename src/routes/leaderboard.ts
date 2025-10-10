@@ -13,32 +13,68 @@ export default function (app: App) {
 					.json({ error: "Invalid mode", status: 400 });
 			}
 
-			const regions = await prisma.region.findMany({
-				where: {
-					countryId: Number.parseInt(country || "0")
-				},
-				orderBy: { name: "asc" }
-			});
+			// Time filter
+			let dateFilter: Record<string, unknown> = {};
+			const now = new Date();
+			switch (mode) {
+			case "today": {
+				const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+				dateFilter = { paintedAt: { gte: startOfDay } };
+				break;
+			}
+			case "week": {
+				const startOfWeek = new Date(now);
+				startOfWeek.setDate(now.getDate() - 7);
+				dateFilter = { paintedAt: { gte: startOfWeek } };
+				break;
+			}
+			case "month": {
+				const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+				dateFilter = { paintedAt: { gte: startOfMonth } };
+				break;
+			}
+			}
 
-			// TODO
-			const regionsWithStats = await Promise.all(
-				regions.map(async (region) => {
+			const countryId = Number.parseInt(country || "0");
+			const limitParam = Number.parseInt(String(req.query["limit"] || "50"));
+			const limit = Number.isNaN(limitParam) ? 50 : Math.max(1, Math.min(limitParam, 50)); //
+
+			const pixelWhere = countryId > 0 ? { ...(dateFilter as any), regionCountryId: countryId } : (dateFilter as any);
+			const counts = await (prisma as any).pixel.groupBy({
+				by: ["regionCityId"],
+				_count: { id: true },
+				where: pixelWhere
+			});
+			const ranked = (counts as any[])
+				.filter(c => c.regionCityId != null && ((c._count?.id as number) || 0) > 0)
+				.map(c => ({ cityId: c.regionCityId as number, pixelsPainted: (c._count?.id as number) || 0 }))
+				.sort((a, b) => b.pixelsPainted - a.pixelsPainted)
+				.slice(0, limit);
+
+			const cityIds = ranked.map(r => r.cityId);
+			const regions = await prisma.region.findMany({ where: { cityId: { in: cityIds } } });
+			const regionByCityId = new Map(regions.map(r => [r.cityId, r]));
+			const response = ranked
+				.map(r => {
+					const region = regionByCityId.get(r.cityId);
+					if (!region) return null;
+					const lat = Number((region as any).lat);
+					const lon = Number((region as any).lon);
+					if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
 					return {
 						id: region.id,
 						name: region.name,
 						cityId: region.cityId,
 						number: region.number,
 						countryId: region.countryId,
-						pixelsPainted: 1234,
-						lastLatitude: 0,
-						lastLongitude: 0
+						pixelsPainted: r.pixelsPainted,
+						lastLatitude: lat,
+						lastLongitude: lon
 					};
 				})
-			);
+				.filter(Boolean);
 
-			regionsWithStats.sort((a, b) => b.pixelsPainted - a.pixelsPainted);
-
-			return res.json(regionsWithStats);
+			return res.json(response);
 		} catch (error) {
 			console.error("Error fetching region leaderboard:", error);
 			return res.status(500)
@@ -54,12 +90,49 @@ export default function (app: App) {
 				return res.status(400)
 					.json({ error: "Invalid mode", status: 400 });
 			}
-			// TODO: calculate country pixel data
-			const mockCountries = [
-				{ id: 235, pixelsPainted: 1234 }
-			];
 
-			return res.json(mockCountries);
+			let dateFilter: Record<string, unknown> = {};
+			const now = new Date();
+			switch (mode) {
+			case "today": {
+				const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+				dateFilter = { paintedAt: { gte: startOfDay } };
+				break;
+			}
+			case "week": {
+				const startOfWeek = new Date(now);
+				startOfWeek.setDate(now.getDate() - 7);
+				dateFilter = { paintedAt: { gte: startOfWeek } };
+				break;
+			}
+			case "month": {
+				const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+				dateFilter = { paintedAt: { gte: startOfMonth } };
+				break;
+			}
+			}
+
+			let counts: any[];
+			if (mode === "all-time") {
+				counts = await (prisma as any).pixel.groupBy({
+					by: ["regionCountryId"],
+					_count: { id: true }
+				});
+			} else {
+				counts = await (prisma as any).pixel.groupBy({
+					by: ["regionCountryId"],
+					_count: { id: true },
+					where: dateFilter
+				});
+			}
+
+			const response = (counts as any[])
+				.filter(c => c.regionCountryId != null)
+				.map(c => ({ id: c.regionCountryId as number, pixelsPainted: (c._count?.id as number) || 0 }))
+				.sort((a, b) => b.pixelsPainted - a.pixelsPainted)
+				.slice(0, 250);
+
+			return res.json(response);
 		} catch (error) {
 			console.error("Error fetching country leaderboard:", error);
 			return res.status(500)
@@ -287,42 +360,75 @@ export default function (app: App) {
 
 	app.get("/leaderboard/region/players/:city/:mode", async (req, res) => {
 		try {
-			// TODO: city not being used
-			const { city: _city, mode } = req.params;
-
-			if (!mode || !validModes.has(mode)) {
+			const { city, mode } = req.params;
+			const paramId = Number.parseInt(city || "0");
+			if (!mode || !validModes.has(mode) || Number.isNaN(paramId) || paramId <= 0) {
 				return res.status(400)
-					.json({ error: "Invalid mode", status: 400 });
+					.json({ error: "Invalid params", status: 400 });
 			}
 
-			const players = await prisma.user.findMany({
-				where: { role: "user" },
-				orderBy: { pixelsPainted: "desc" },
-				take: 50,
+			let dateFilter: Record<string, unknown> = {};
+			const now = new Date();
+			switch (mode) {
+			case "today": {
+				const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+				dateFilter = { paintedAt: { gte: startOfDay } };
+				break;
+			}
+			case "week": {
+				const startOfWeek = new Date(now);
+				startOfWeek.setDate(now.getDate() - 7);
+				dateFilter = { paintedAt: { gte: startOfWeek } };
+				break;
+			}
+			case "month": {
+				const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+				dateFilter = { paintedAt: { gte: startOfMonth } };
+				break;
+			}
+			}
+
+			let regionCityId = paramId;
+			const regionById = await prisma.region.findUnique({ where: { id: paramId } });
+			if (regionById) {
+				regionCityId = regionById.cityId;
+			}
+
+			const pixelCounts = await (prisma as any).pixel.groupBy({
+				by: ["paintedBy"],
+				_count: { id: true },
+				where: { ...(dateFilter as any), regionCityId },
+				orderBy: { _count: { id: "desc" } },
+				take: 50
+			});
+
+			const userIds = (pixelCounts as any[]).map(p => p.paintedBy as number);
+			const users = await prisma.user.findMany({
+				where: { id: { in: userIds }, role: "user" },
 				select: {
 					id: true,
 					name: true,
 					allianceId: true,
 					equippedFlag: true,
-					pixelsPainted: true,
 					picture: true,
 					discord: true,
-					alliance: {
-						select: { name: true }
-					}
+					alliance: { select: { name: true } }
 				}
 			});
-
-			const response = players.map(player => ({
-				id: player.id,
-				name: player.name,
-				allianceId: player.allianceId || 0,
-				allianceName: player.alliance?.name || "",
-				pixelsPainted: player.pixelsPainted,
-				equippedFlag: player.equippedFlag,
-				picture: player.picture || undefined,
-				discord: player.discord || ""
-			}));
+			const userMap = new Map(users.map(u => [u.id, u]));
+			const response = (pixelCounts as any[]).map(p => {
+				const user = userMap.get(p.paintedBy as number);
+				return {
+					id: user?.id || (p.paintedBy as number),
+					name: user?.name || "Unknown",
+					allianceId: user?.allianceId || 0,
+					allianceName: user?.alliance?.name || "",
+					equippedFlag: user?.equippedFlag || 0,
+					pixelsPainted: (p._count?.id as number) || 0,
+					picture: user?.picture || undefined,
+					discord: user?.discord || ""
+				};
+			});
 
 			return res.json(response);
 		} catch (error) {
