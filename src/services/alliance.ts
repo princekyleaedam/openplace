@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { UserService } from "./user";
 import { ValidationError } from "../utils/error";
-import { toLatLng } from "../config/regions";
+import { RegionService } from "./region";
 
 export interface CreateAllianceInput {
 	name: string;
@@ -425,29 +425,33 @@ export class AllianceService {
 			}
 		});
 
-		const lastPixels = new Map<number, { lat: number; lon: number }>();
+		const lastPixels = new Map<number, { latitude: number; longitude: number }>();
 		await Promise.all(members.map(async (m) => {
-			if (!m.showLastPixel) return;
+			if (!m.showLastPixel) {
+				return;
+			}
+
 			const last = await this.prisma.pixel.findFirst({
 				where: { paintedBy: m.id },
-				orderBy: [{ paintedAt: "desc" }, { id: "desc"}],
+				orderBy: [{ paintedAt: "desc" }, { id: "desc" }],
 				select: { tileX: true, tileY: true, x: true, y: true }
 			});
 			if (last) {
-				const { lat, lon } = toLatLng(last.tileX, last.tileY, last.x, last.y);
-				lastPixels.set(m.id, { lat, lon });
+				const coords = RegionService.pixelsToCoordinates([last.tileX, last.tileY], [last.x, last.y]);
+				lastPixels.set(m.id, coords);
 			}
 		}));
 
-		return members.map(member => ({
-			userId: member.id,
-			name: member.name,
-			equippedFlag: member.equippedFlag,
-			pixelsPainted: member.pixelsPainted,
-			...(member.showLastPixel && lastPixels.get(member.id) && {
-				lastLatitude: lastPixels.get(member.id)!.lat,
-				lastLongitude: lastPixels.get(member.id)!.lon
-			})
-		}));
+		return members.map(member => {
+			const memberLastPixels = member.showLastPixel ? lastPixels.get(member.id) : undefined;
+			return {
+				userId: member.id,
+				name: member.name,
+				equippedFlag: member.equippedFlag,
+				pixelsPainted: member.pixelsPainted,
+				lastLatitude: memberLastPixels?.latitude,
+				lastLongitude: memberLastPixels?.longitude
+			};
+		});
 	}
 }

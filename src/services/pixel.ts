@@ -1,8 +1,8 @@
-import { Alliance, Pixel, Prisma, PrismaClient, User } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { checkColorUnlocked, COLOR_PALETTE } from "../utils/colors.js";
 import { calculateChargeRecharge } from "../utils/charges.js";
-import { getRegionForCoordinates, Region } from "../config/regions.js";
+import { Region, RegionService } from "./region.js";
 import { LEVEL_BASE_PIXEL, LEVEL_EXPONENT, LEVEL_UP_DROPLETS_REWARD, LEVEL_UP_MAX_CHARGES_REWARD, PAINTED_DROPLETS_REWARD } from "../config/pixel.js";
 
 export interface PaintPixelsInput {
@@ -52,8 +52,11 @@ function calculateLevel(pixelsPainted: number): number {
 
 export class PixelService {
 	public readonly emptyTile: Buffer;
+	private readonly regionService: RegionService;
 
 	constructor(private prisma: PrismaClient) {
+		this.regionService = new RegionService(prisma);
+
 		const canvas = createCanvas(1000, 1000);
 		const ctx = canvas.getContext("2d");
 		ctx.clearRect(0, 0, 1000, 1000);
@@ -171,7 +174,7 @@ export class PixelService {
 		}
 
 		return {
-			region: await getRegionForCoordinates([tileX, tileY], [x, y]),
+			region: await this.regionService.getRegionForCoordinates([tileX, tileY], [x, y]),
 			paintedBy
 		};
 	}
@@ -350,7 +353,7 @@ export class PixelService {
 			pairedCoords.push({ x: coords[i], y: coords[i + 1] });
 		}
 
-		const regionCache = new Map();
+		const regionCache = new Map<string, Region>();
 		const validPixels = [];
 
 		for (const [i, colorId] of colors.entries()) {
@@ -367,7 +370,7 @@ export class PixelService {
 			if (regionCache.has(coordKey)) {
 				region = regionCache.get(coordKey);
 			} else {
-				region = await getRegionForCoordinates([tileX, tileY], [x, y]);
+				region = await this.regionService.getRegionForCoordinates([tileX, tileY], [x, y]);
 				regionCache.set(coordKey, region);
 			}
 
@@ -386,16 +389,12 @@ export class PixelService {
 		let discountedPixels = 0;
 
 		for (const pixel of validPixels) {
-			if (userEquippedFlag && userEquippedFlag === pixel.region.flagId) {
+			if (userEquippedFlag && pixel.region && userEquippedFlag === pixel.region.flagId) {
 				totalChargeCost += 0.9;
 				discountedPixels++;
 			} else {
 				totalChargeCost += 1;
 			}
-		}
-
-		if (discountedPixels > 0 && validPixels[0]) {
-			console.log(`Applied 10% flag discount to ${discountedPixels} pixels in ${validPixels[0].region.name}`);
 		}
 
 		// Use insert ignore to avoid race condition when multiple users paint the same tile at the same time
@@ -413,8 +412,8 @@ export class PixelService {
 				colorId: pixel.colorId,
 				paintedBy: userId,
 				paintedAt: now,
-				regionCityId: pixel.region.cityId,
-				regionCountryId: pixel.region.countryId
+				regionCityId: pixel.region?.cityId,
+				regionCountryId: pixel.region?.countryId
 			}));
 
 			// Upsert 1000 pixels at a time for performance, and to avoid the limit of prepared statement placeholders

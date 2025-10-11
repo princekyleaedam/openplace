@@ -25,7 +25,7 @@ function parseCoordinates(input: string): { x: number; y: number } | null {
 		return null;
 	}
 
-	const [x, y] = [Number.parseInt(parts[0]), Number.parseInt(parts[1])];
+	const [x, y] = [Number.parseInt(parts[0]!), Number.parseInt(parts[1]!)];
 	if (Number.isNaN(x) || Number.isNaN(y)) {
 		return null;
 	}
@@ -330,15 +330,13 @@ try {
 	}
 
 	console.log("Redrawing tiles...");
-	const affectedTiles = new Set<string>();
+	const affectedTiles = new Set<[number, number]>();
 	for (const query of tileQueries) {
-		affectedTiles.add(`${query.tileX},${query.tileY}`);
+		affectedTiles.add([query.tileX, query.tileY]);
 	}
 
 	let tileCount = 0;
-	for (const tileKey of affectedTiles) {
-		const [tileX, tileY] = tileKey.split(",")
-			.map(Number);
+	for (const [tileX, tileY] of affectedTiles) {
 		await pixelService.updatePixelTile(tileX, tileY, season);
 		tileCount++;
 	}
