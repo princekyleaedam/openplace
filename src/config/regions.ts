@@ -9,23 +9,29 @@ export interface Region {
 	flagId: number;
 }
 
-export function toLatLng(tileX: number, tileY: number, pixelX: number, pixelY: number, opts: { tileSize?: number; canonicalZ?: number } = {}): { latitude: number; longitude: number } {
-	const TILE_SIZE = opts.tileSize ?? 1000;
-	const CANONICAL_Z = opts.canonicalZ ?? 11;
-	const WORLD_PIXELS = TILE_SIZE * Math.pow(2, CANONICAL_Z);
-	const globalX = tileX * TILE_SIZE + pixelX + 0.5;
-	const globalY = tileY * TILE_SIZE + pixelY + 0.5;
-	const xNorm = globalX / WORLD_PIXELS;
-	const yNorm = globalY / WORLD_PIXELS;
-	const longitude = xNorm * 360 - 180;
-	const latitude = Math.atan(Math.sinh(Math.PI * (1 - 2 * yNorm))) * 180 / Math.PI;
+export function toLatLng(tile: [number, number], pixel: [number, number], opts: { tileSize?: number; canonicalZ?: number } = {}): { latitude: number; longitude: number } {
+	const [tileX, tileY] = tile;
+	const [pixelX, pixelY] = pixel;
+
+	const tileSize = opts.tileSize ?? 1000;
+	const canonicalZ = opts.canonicalZ ?? 11;
+	const worldPixels = tileSize * Math.pow(2, canonicalZ);
+
+	const [globalX, globalY] = [tileX * tileSize + pixelX + 0.5, tileY * tileSize + pixelY + 0.5];
+	const [normX, normY] = [globalX / worldPixels, globalY / worldPixels];
+
+	const longitude = normX * 360 - 180;
+	const latitude = Math.atan(Math.sinh(Math.PI * (1 - 2 * normY))) * 180 / Math.PI;
+
 	return { latitude, longitude };
 }
 
-export async function getRegionForCoordinates(tileX: number, tileY: number, x: number, y: number): Promise<Region> {
-	const { latitude, longitude } = toLatLng(tileX, tileY, x, y);
-	let delta = 0.25; // hmm
-	for (let attempt = 0; attempt < 5; attempt++) {
+export async function getRegionForCoordinates(tile: [number, number], pixel: [number, number]): Promise<Region> {
+	// Find the closest region for this pixel
+	const { latitude, longitude } = toLatLng(tile, pixel);
+
+	let delta = 0.1;
+	for (let attempt = 0; attempt < 7; attempt++) {
 		const regions = await prisma.region.findMany({
 			where: {
 				latitude: { gte: latitude - delta, lte: latitude + delta },
@@ -33,6 +39,7 @@ export async function getRegionForCoordinates(tileX: number, tileY: number, x: n
 			},
 			take: 250
 		});
+
 		if (regions.length > 0) {
 			let best = regions[0]!;
 			let bestD = Number.POSITIVE_INFINITY;
@@ -45,6 +52,7 @@ export async function getRegionForCoordinates(tileX: number, tileY: number, x: n
 					best = region;
 				}
 			}
+
 			return {
 				id: best.id,
 				cityId: best.cityId,
@@ -54,6 +62,7 @@ export async function getRegionForCoordinates(tileX: number, tileY: number, x: n
 				flagId: best.countryId
 			};
 		}
+
 		delta *= 2;
 	}
 

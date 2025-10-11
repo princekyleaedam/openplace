@@ -171,7 +171,7 @@ export class PixelService {
 		}
 
 		return {
-			region: await getRegionForCoordinates(tileX, tileY, x, y),
+			region: await getRegionForCoordinates([tileX, tileY], [x, y]),
 			paintedBy
 		};
 	}
@@ -367,7 +367,7 @@ export class PixelService {
 			if (regionCache.has(coordKey)) {
 				region = regionCache.get(coordKey);
 			} else {
-				region = await getRegionForCoordinates(tileX, tileY, x, y);
+				region = await getRegionForCoordinates([tileX, tileY], [x, y]);
 				regionCache.set(coordKey, region);
 			}
 
