@@ -445,8 +445,8 @@ export class AllianceService {
 			equippedFlag: member.equippedFlag,
 			pixelsPainted: member.pixelsPainted,
 			...(member.showLastPixel && {
-				lastLatitude: 22.527_739_206_672_393,
-				lastLongitude: 114.027_626_953_124_97
+				lastLatitude: lastPixels.get(member.id)!.lat,
+				lastLongitude: lastPixels.get(member.id)!.lon
 			})
 		}));
 	}
