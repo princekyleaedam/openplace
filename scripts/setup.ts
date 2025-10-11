@@ -66,7 +66,7 @@ if (!yes) {
 console.log("");
 console.log(chalk.gray("Running database migration:"));
 
-execSync("npm run db:push", {
+execSync("npm run db:deploy", {
 	stdio: "inherit"
 });
 
