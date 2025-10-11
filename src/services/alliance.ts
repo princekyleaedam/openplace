@@ -444,7 +444,7 @@ export class AllianceService {
 			name: member.name,
 			equippedFlag: member.equippedFlag,
 			pixelsPainted: member.pixelsPainted,
-			...(member.showLastPixel && {
+			...(member.showLastPixel && lastPixels.get(member.id) && {
 				lastLatitude: lastPixels.get(member.id)!.lat,
 				lastLongitude: lastPixels.get(member.id)!.lon
 			})
