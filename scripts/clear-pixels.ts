@@ -354,7 +354,7 @@ try {
 
 	if (banAnswer.shouldBan) {
 		const userChoices = sortedStats.map(stat => ({
-			name: `User ${stat.userId} (${stat.userName}) - ${stat.count} pixel(s)`,
+			name: `User ${stat.userName}#${stat.userId} - ${stat.count} pixel(s)`,
 			value: stat.userId
 		}));
 
@@ -392,7 +392,7 @@ try {
 				}
 			]);
 
-			
+
 
 			console.log("Banning users...");
 			for (const userId of selectedUsers.users) {

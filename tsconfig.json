@@ -1,7 +1,7 @@
 {
 	"extends": ["@tsconfig/node24", "@tsconfig/strictest"],
 	"compilerOptions": {
-		"rootDir": "./src",
+		"rootDir": ".",
 		"outDir": "./dist",
 		"target": "ES2022",
 		"module": "ESNext",
@@ -12,6 +12,6 @@
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true
 	},
-	"include": ["src/**/*"],
+	"include": ["src/**/*", "scripts/**/*"],
 	"exclude": ["node_modules", "dist"]
 }
