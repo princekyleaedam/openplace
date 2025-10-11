@@ -117,7 +117,7 @@ if (!yes) {
 					value: null
 				},
 				{
-					name: "Cities with population > 500 (224,000+ entries)",
+					name: "Cities with population > 500 (224,000+ entries, recommended)",
 					value: "cities500"
 				},
 				{
@@ -137,13 +137,6 @@ if (!yes) {
 	]);
 
 	if (regionChoice.region) {
-		console.log(chalk.gray("Dropping existing region data"));
-
-		if (hasRegionData) {
-			await prisma.region.deleteMany({});
-		}
-		await prisma.$executeRaw(Prisma.sql`ALTER TABLE Region AUTO_INCREMENT = 1`);
-
 		const countryCodesToIDs = new Map<string, number>(COUNTRIES.map(item => [item.code, item.id]));
 
 		console.log(chalk.gray("Downloading region data"));
@@ -168,47 +161,55 @@ if (!yes) {
 		const ignoredCountries = new Set<string>();
 
 		const processBatch = async () => {
-			const entries = [];
-			for (const line of batch) {
-				if (line.trim() === "") {
-					continue;
+			await prisma.$transaction(async (tx) => {
+				for (const line of batch) {
+					if (line.trim() === "") {
+						continue;
+					}
+
+					const [id, name, _asciiName, _altName, latitude, longitude, _featureClass, _featureCode, countryCode] = line.split("\t") as string[];
+					if (!id || !name || !latitude || !longitude || !countryCode) {
+						console.warn(chalk.yellow("Skipping invalid line:"), line);
+						continue;
+					}
+
+					// Only warn once about skipping a country
+					if (ignoredCountries.has(countryCode)) {
+						continue;
+					}
+
+					const countryId = countryCodesToIDs.get(countryCode);
+					if (!countryId) {
+						console.warn(chalk.yellow("Skipping unknown country:"), countryCode);
+						ignoredCountries.add(countryCode);
+						continue;
+					}
+
+					const data = {
+						cityId: Number.parseInt(id!, 10),
+						name,
+						number: 1,
+						countryId,
+						latitude: Number.parseFloat(latitude!),
+						longitude: Number.parseFloat(longitude!)
+					};
+
+					await tx.region.upsert({
+						where: {
+							latitude_longitude: {
+								latitude: data.latitude,
+								longitude: data.longitude
+							}
+						},
+						create: data,
+						update: data
+					});
 				}
 
-				const [id, name, _asciiName, _altName, latitude, longitude, _featureClass, _featureCode, countryCode] = line.split("\t") as string[];
-				if (!id || !name || !latitude || !longitude || !countryCode) {
-					console.warn(chalk.yellow("Skipping invalid line:"), line);
-					continue;
-				}
-
-				// Only warn once about skipping a country
-				if (ignoredCountries.has(countryCode)) {
-					continue;
-				}
-
-				const countryId = countryCodesToIDs.get(countryCode);
-				if (!countryId) {
-					console.warn(chalk.yellow("Skipping unknown country:"), countryCode);
-					ignoredCountries.add(countryCode);
-					continue;
-				}
-
-				entries.push({
-					cityId: Number.parseInt(id!, 10),
-					name,
-					number: 1,
-					countryId,
-					latitude: Number.parseFloat(latitude!),
-					longitude: Number.parseFloat(longitude!)
-				});
-			}
-
-			await prisma.region.createMany({
-				data: entries,
-				skipDuplicates: true
+				addedCount += batch.length;
+				batch = [];
+				process.stdout.write(chalk.blue(`\rImported ${addedCount.toLocaleString()} entries`));
 			});
-			addedCount += entries.length;
-			batch = [];
-			process.stdout.write(chalk.blue(`\rInserted ${addedCount.toLocaleString()} entries`));
 		};
 
 		// Process 1000 lines at a time
