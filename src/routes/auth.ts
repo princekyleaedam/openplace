@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import fs from "fs/promises";
 import { UserService } from "../services/user.js";
 import { AuthenticatedRequest } from "../types/index.js";
+import { AuthToken } from "../services/auth.js";
 
 const userService = new UserService(prisma);
 
@@ -91,16 +92,14 @@ export default function (app: App) {
 				}
 			});
 
-			const token = jwt.sign(
-				{
-					userId: user.id,
-					sessionId: session.id,
-					iss: "openplace",
-					exp: Math.floor(session.expiresAt.getTime() / 1000),
-					iat: Math.floor(Date.now() / 1000)
-				},
-				JWT_SECRET!
-			);
+			const authToken: AuthToken = {
+				userId: user.id,
+				sessionId: session.id,
+				iss: "openplace",
+				exp: Math.floor(session.expiresAt.getTime() / 1000),
+				iat: Math.floor(Date.now() / 1000)
+			};
+			const token = jwt.sign(authToken, JWT_SECRET!);
 
 			res.setHeader("Set-Cookie", [
 				`j=${token}; HttpOnly; Path=/; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax`

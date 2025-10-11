@@ -3,6 +3,7 @@ import { JWT_SECRET } from "../config/auth.js";
 import { prisma } from "../config/database.js";
 import { NextFunction, Response } from "@tinyhttp/app";
 import { AuthenticatedRequest } from "../types/index.js";
+import { AuthToken } from "../services/auth.js";
 
 export async function authMiddleware(req: AuthenticatedRequest, res: Response, next?: NextFunction) {
 	try {
@@ -13,7 +14,7 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
 				.json({ error: "Unauthorized", status: 401 });
 		}
 
-		const decoded = jwt.verify(token, JWT_SECRET!) as any;
+		const decoded = jwt.verify(token, JWT_SECRET!) as AuthToken;
 
 		if (!decoded.userId || !decoded.sessionId) {
 			return res.status(401)

@@ -197,7 +197,7 @@ export default function (app: App) {
 					.json({ error: "User not found", status: 404 });
 			}
 			
-			//TODO: Rewrite this to use the new ticket service
+			// TODO: Rewrite this to use the new ticket service
 			const [
 				globalClosedTotal,
 				globalIgnored,
@@ -358,7 +358,10 @@ export default function (app: App) {
 						zoom: ticket.zoom,
 						reason: ticket.reason,
 						notes: ticket.notes,
-						image: ticket.image ? Buffer.from(ticket.image).toString("base64") : "",
+						image: ticket.image
+							? Buffer.from(ticket.image)
+								.toString("base64")
+							: "",
 						createdAt: ticket.createdAt
 					}))
 				};

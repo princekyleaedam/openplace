@@ -3,6 +3,8 @@ import { prisma } from "../config/database.js";
 
 const validModes = new Set(["today", "week", "month", "all-time"]);
 
+// TODO: Split up file
+// eslint-disable-next-line max-lines-per-function
 export default function (app: App) {
 	app.get("/leaderboard/region/:mode/:country", async (req, res) => {
 		try {
@@ -14,7 +16,7 @@ export default function (app: App) {
 			}
 
 			// Time filter
-			let dateFilter: Record<string, unknown> = {};
+			let dateFilter = {};
 			const now = new Date();
 			switch (mode) {
 			case "today": {
@@ -38,14 +40,17 @@ export default function (app: App) {
 			const countryId = Number.parseInt(country || "0");
 			const limitParam = Number.parseInt(String(req.query["limit"] || "50"));
 			const limit = Number.isNaN(limitParam) ? 50 : Math.max(1, Math.min(limitParam, 50)); //
+			const pixelWhere = {
+				...dateFilter,
+				...(countryId > 0 ? { regionCountryId: countryId } : {})
+			};
 
-			const pixelWhere = countryId > 0 ? { ...(dateFilter as any), regionCountryId: countryId } : (dateFilter as any);
-			const counts = await (prisma as any).pixel.groupBy({
+			const counts = await prisma.pixel.groupBy({
 				by: ["regionCityId"],
 				_count: { id: true },
 				where: pixelWhere
 			});
-			const ranked = (counts as any[])
+			const ranked = counts
 				.filter(c => c.regionCityId != null && ((c._count?.id as number) || 0) > 0)
 				.map(c => ({ cityId: c.regionCityId as number, pixelsPainted: (c._count?.id as number) || 0 }))
 				.sort((a, b) => b.pixelsPainted - a.pixelsPainted)
@@ -58,8 +63,8 @@ export default function (app: App) {
 				.map(r => {
 					const region = regionByCityId.get(r.cityId);
 					if (!region) return null;
-					const lat = Number((region as any).lat);
-					const lon = Number((region as any).lon);
+					const lat = Number(region.latitude);
+					const lon = Number(region.longitude);
 					if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
 					return {
 						id: region.id,
@@ -91,7 +96,7 @@ export default function (app: App) {
 					.json({ error: "Invalid mode", status: 400 });
 			}
 
-			let dateFilter: Record<string, unknown> = {};
+			let dateFilter = {};
 			const now = new Date();
 			switch (mode) {
 			case "today": {
@@ -112,21 +117,13 @@ export default function (app: App) {
 			}
 			}
 
-			let counts: any[];
-			if (mode === "all-time") {
-				counts = await (prisma as any).pixel.groupBy({
-					by: ["regionCountryId"],
-					_count: { id: true }
-				});
-			} else {
-				counts = await (prisma as any).pixel.groupBy({
-					by: ["regionCountryId"],
-					_count: { id: true },
-					where: dateFilter
-				});
-			}
+			const counts = await prisma.pixel.groupBy({
+				by: ["regionCountryId"],
+				_count: { id: true },
+				where: mode === "all-time" ? {} : dateFilter
+			});
 
-			const response = (counts as any[])
+			const response = counts
 				.filter(c => c.regionCountryId != null)
 				.map(c => ({ id: c.regionCountryId as number, pixelsPainted: (c._count?.id as number) || 0 }))
 				.sort((a, b) => b.pixelsPainted - a.pixelsPainted)
@@ -153,22 +150,22 @@ export default function (app: App) {
 			const now = new Date();
 
 			switch (mode) {
-				case "today": {
-					const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-					dateFilter = { paintedAt: { gte: startOfDay } };
-					break;
-				}
-				case "week": {
-					const startOfWeek = new Date(now);
-					startOfWeek.setDate(now.getDate() - 7);
-					dateFilter = { paintedAt: { gte: startOfWeek } };
-					break;
-				}
-				case "month": {
-					const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-					dateFilter = { paintedAt: { gte: startOfMonth } };
-					break;
-				}
+			case "today": {
+				const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+				dateFilter = { paintedAt: { gte: startOfDay } };
+				break;
+			}
+			case "week": {
+				const startOfWeek = new Date(now);
+				startOfWeek.setDate(now.getDate() - 7);
+				dateFilter = { paintedAt: { gte: startOfWeek } };
+				break;
+			}
+			case "month": {
+				const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+				dateFilter = { paintedAt: { gte: startOfMonth } };
+				break;
+			}
 			}
 
 			if (mode === "all-time") {
@@ -268,22 +265,22 @@ export default function (app: App) {
 			const now = new Date();
 
 			switch (mode) {
-				case "today": {
-					const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-					dateFilter = { paintedAt: { gte: startOfDay } };
-					break;
-				}
-				case "week": {
-					const startOfWeek = new Date(now);
-					startOfWeek.setDate(now.getDate() - 7);
-					dateFilter = { paintedAt: { gte: startOfWeek } };
-					break;
-				}
-				case "month": {
-					const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-					dateFilter = { paintedAt: { gte: startOfMonth } };
-					break;
-				}
+			case "today": {
+				const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+				dateFilter = { paintedAt: { gte: startOfDay } };
+				break;
+			}
+			case "week": {
+				const startOfWeek = new Date(now);
+				startOfWeek.setDate(now.getDate() - 7);
+				dateFilter = { paintedAt: { gte: startOfWeek } };
+				break;
+			}
+			case "month": {
+				const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+				dateFilter = { paintedAt: { gte: startOfMonth } };
+				break;
+			}
 			}
 
 			if (mode === "all-time") {
@@ -367,7 +364,7 @@ export default function (app: App) {
 					.json({ error: "Invalid params", status: 400 });
 			}
 
-			let dateFilter: Record<string, unknown> = {};
+			let dateFilter = {};
 			const now = new Date();
 			switch (mode) {
 			case "today": {
@@ -394,15 +391,15 @@ export default function (app: App) {
 				regionCityId = regionById.cityId;
 			}
 
-			const pixelCounts = await (prisma as any).pixel.groupBy({
+			const pixelCounts = await prisma.pixel.groupBy({
 				by: ["paintedBy"],
 				_count: { id: true },
-				where: { ...(dateFilter as any), regionCityId },
+				where: { ...dateFilter, regionCityId },
 				orderBy: { _count: { id: "desc" } },
 				take: 50
 			});
 
-			const userIds = (pixelCounts as any[]).map(p => p.paintedBy as number);
+			const userIds = pixelCounts.map(p => p.paintedBy as number);
 			const users = await prisma.user.findMany({
 				where: { id: { in: userIds }, role: "user" },
 				select: {
@@ -416,7 +413,7 @@ export default function (app: App) {
 				}
 			});
 			const userMap = new Map(users.map(u => [u.id, u]));
-			const response = (pixelCounts as any[]).map(p => {
+			const response = pixelCounts.map(p => {
 				const user = userMap.get(p.paintedBy as number);
 				return {
 					id: user?.id || (p.paintedBy as number),

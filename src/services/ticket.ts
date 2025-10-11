@@ -21,6 +21,7 @@ export class TicketService {
 	}
 
 	async reportUser(input: ReportUserInput): Promise<Ticket> {
+		// TODO: Image upload is not working. milliparsec bug?
 		let imageBuffer: Buffer | undefined;
 		const anyImage: any = input.image as any;
 		if (anyImage) {

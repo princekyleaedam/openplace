@@ -77,22 +77,22 @@ export default function (app: App) {
 						}
 					}
 				}
-		});
+			});
 
-		const formattedTickets = await Promise.all(tickets.map(async (ticket) => {
-			const reportedUser = ticket.reportedUser;
-			const author = ticket.user;
+			const formattedTickets = await Promise.all(tickets.map(async (ticket) => {
+				const reportedUser = ticket.reportedUser;
+				const author = ticket.user;
 
-			const reportedCount = await prisma.ticket.count({ where: { reportedUserId: reportedUser.id } });
-			const timeoutCount = await prisma.ticket.count({ where: { reportedUserId: reportedUser.id, resolution: "Timeout" } });
-			const pixelsPainted = await prisma.pixel.count({ where: { user: { id: reportedUser.id } } });
+				const reportedCount = await prisma.ticket.count({ where: { reportedUserId: reportedUser.id } });
+				const timeoutCount = await prisma.ticket.count({ where: { reportedUserId: reportedUser.id, resolution: "Timeout" } });
+				const pixelsPainted = await prisma.pixel.count({ where: { user: { id: reportedUser.id } } });
 			
-			let sameIpAccounts = 0;
-			if (reportedUser.lastIP) {
-				sameIpAccounts = await prisma.user.count({ where: { lastIP: reportedUser.lastIP, id: { not: reportedUser.id } } });
-			} else if (reportedUser.registrationIP) {
-				sameIpAccounts = await prisma.user.count({ where: { registrationIP: reportedUser.registrationIP, id: { not: reportedUser.id } } });
-			}
+				let sameIpAccounts = 0;
+				if (reportedUser.lastIP) {
+					sameIpAccounts = await prisma.user.count({ where: { lastIP: reportedUser.lastIP, id: { not: reportedUser.id } } });
+				} else if (reportedUser.registrationIP) {
+					sameIpAccounts = await prisma.user.count({ where: { registrationIP: reportedUser.registrationIP, id: { not: reportedUser.id } } });
+				}
 				return {
 					id: ticket.id,
 					author: author
@@ -161,7 +161,7 @@ export default function (app: App) {
 						}
 					]
 				};
-		}));
+			}));
 
 			return res.status(200)
 				.json({ tickets: formattedTickets, status: 200 });
@@ -347,15 +347,15 @@ export default function (app: App) {
 
 			let resolution: TicketResolution | null = null;
 			switch (status) {
-				case "ignore":
-					resolution = TicketResolution.Ignore;
-					break;
-				case "timeout":
-					resolution = TicketResolution.Timeout;
-					break;
-				case "ban":
-					resolution = TicketResolution.Ban;
-					break;
+			case "ignore":
+				resolution = TicketResolution.Ignore;
+				break;
+			case "timeout":
+				resolution = TicketResolution.Timeout;
+				break;
+			case "ban":
+				resolution = TicketResolution.Ban;
+				break;
 			}
 
 			if (!resolution) {
