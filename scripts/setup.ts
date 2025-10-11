@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { BlobReader, FileEntry, ZipReader } from "@zip.js/zip.js";
 import { execSync } from "child_process";
 import inquirer from "inquirer";
@@ -138,8 +138,11 @@ if (!yes) {
 
 	if (regionChoice.region) {
 		console.log(chalk.gray("Dropping existing region data"));
-		await prisma.region.deleteMany({});
-		await prisma.$executeRawUnsafe("ALTER TABLE Region AUTO_INCREMENT = 1");
+
+		if (hasRegionData) {
+			await prisma.region.deleteMany({});
+		}
+		await prisma.$executeRaw(Prisma.sql`ALTER TABLE Region AUTO_INCREMENT = 1`);
 
 		const countryCodesToIDs = new Map<string, number>(COUNTRIES.map(item => [item.code, item.id]));
 

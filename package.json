@@ -17,7 +17,7 @@
 		"lint:fix": "eslint --ext .js,.ts src/ --fix",
 		"db:push": "prisma db push && prisma generate",
 		"db:generate": "prisma generate",
-		"db:deploy": "prisma migrate deploy",
+		"db:deploy": "prisma migrate deploy && prisma generate",
 		"db:dev": "prisma migrate dev"
 	},
 	"dependencies": {
