@@ -65,10 +65,6 @@ app.use((req, res, next) => {
 
 	console.log(`[${req.ip}] [${new Date()
 		.toISOString()}] ${req.method} ${req.url}`);
-	console.log(`[${req.ip}] Headers:`, inspect(req.headers, inspectOptions));
-	if (req.body && Object.keys(req.body).length > 0) {
-		console.log(`[${req.ip}] Body:`, inspect(req.body, inspectOptions));
-	}
 
 	const originalJson = res.json;
 	res.json = function (data) {
