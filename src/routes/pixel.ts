@@ -104,11 +104,20 @@ export default function (app: App) {
 
 	app.post("/:season/pixel/:tileX/:tileY", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
+			const userRow = await userService.getUserProfile(req.user!.id)
+				.catch(() => null);
+			if (userRow && userRow.banned) {
+				const reason = userRow.suspensionReason ?? "other";
+				console.log(`${userRow.name}#${userRow.id} attempted to paint while banned.`);
+				return res.status(451)
+					.json({ err: reason, suspension: "ban" });
+			}
+
 			const season = req.params["season"] as string;
 			const tileX = Number.parseInt(req.params["tileX"] as string);
 			const tileY = Number.parseInt(req.params["tileY"] as string);
 			const { colors, coords } = req.body;
-
+			
 			const validationError = validatePaintPixels({ season, tileX, tileY, colors, coords });
 			if (validationError) {
 				return res.status(HTTP_STATUS.BAD_REQUEST)
