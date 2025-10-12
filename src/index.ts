@@ -67,16 +67,17 @@ app.use((req, res, next) => {
 	// 	.toISOString()}] ${req.method} ${req.url}`);
 	if (req.body && Object.keys(req.body).length > 0) {
 		// Disabled since this leaks passwords and sensitive info. Instead log other info seperately.
-		//console.log(`[${req.ip}] Body:`, inspect(req.body, inspectOptions));
+		// console.log(`[${req.ip}] Body:`, inspect(req.body, inspectOptions));
 	}
 	
 
 	const originalJson = res.json;
 	res.json = function (data) {
 		const duration = Date.now() - startTime;
-		if (req.url == "/me") {
-			console.log(`[${req.ip}] ${data.name}#${data.id} got user information`);
-		}
+		// this is also pretty annoying. we will log paints and such from logged in accounts
+		// if (req.url == "/me") {
+		// 	console.log(`[${req.ip}] ${data.name}#${data.id} got user information`);
+		// }
 		// console.log(`[${req.ip}] Response JSON (${res.statusCode}) [${duration}ms]:`, inspect(data, inspectOptions));
 		return originalJson.call(this, data);
 	};
