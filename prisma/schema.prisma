@@ -90,6 +90,20 @@ model FavoriteLocation {
 	longitude Float
 }
 
+model BannedIP {
+	id               Int      @id @default(autoincrement())
+	cidr             String   @unique
+	ipv4Min          Int?     @db.UnsignedInt
+	ipv4Max          Int?     @db.UnsignedInt
+	ipv6Min          Bytes?
+	ipv6Max          Bytes?
+	suspensionReason String
+	createdAt        DateTime @default(now())
+
+	@@unique([ipv4Min, ipv4Max])
+	@@unique([ipv6Min, ipv6Max])
+}
+
 model Tile {
 	id        Int    @id @default(autoincrement())
 	season    Int    @db.UnsignedSmallInt @default(0)

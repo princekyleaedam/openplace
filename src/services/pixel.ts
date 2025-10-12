@@ -4,6 +4,8 @@ import { checkColorUnlocked, COLOR_PALETTE } from "../utils/colors.js";
 import { calculateChargeRecharge } from "../utils/charges.js";
 import { Region, RegionService } from "./region.js";
 import { LEVEL_BASE_PIXEL, LEVEL_EXPONENT, LEVEL_UP_DROPLETS_REWARD, LEVEL_UP_MAX_CHARGES_REWARD, PAINTED_DROPLETS_REWARD } from "../config/pixel.js";
+import { AuthService } from "./auth.js";
+import { BanReason } from "../types/index.js";
 
 export interface PaintPixelsInput {
 	tileX: number;
@@ -53,9 +55,11 @@ function calculateLevel(pixelsPainted: number): number {
 export class PixelService {
 	public readonly emptyTile: Buffer;
 	private readonly regionService: RegionService;
+	private readonly authService: AuthService;
 
 	constructor(private prisma: PrismaClient) {
 		this.regionService = new RegionService(prisma);
+		this.authService = new AuthService(prisma);
 
 		const canvas = createCanvas(1000, 1000);
 		const ctx = canvas.getContext("2d");
@@ -308,7 +312,7 @@ export class PixelService {
 		});
 	}
 
-	async paintPixels(userId: number, input: PaintPixelsInput, season: number = 0): Promise<PaintPixelsResult> {
+	async paintPixels(userId: number, ip: string, input: PaintPixelsInput, season: number = 0): Promise<PaintPixelsResult> {
 		const { tileX, tileY, colors, coords } = input;
 
 		if (!colors || !coords || !Array.isArray(colors) || !Array.isArray(coords)) {
@@ -328,6 +332,11 @@ export class PixelService {
 		}
 
 		if (user.banned || user.timeoutUntil > new Date()) {
+			throw new Error("banned");
+		}
+
+		const ban = await this.authService.getIPBan(ip);
+		if (ban) {
 			throw new Error("banned");
 		}
 

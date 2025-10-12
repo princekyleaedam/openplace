@@ -6,10 +6,11 @@ import { authMiddleware } from "../middleware/auth.js";
 import jwt from "jsonwebtoken";
 import fs from "fs/promises";
 import { UserService } from "../services/user.js";
-import { AuthenticatedRequest } from "../types/index.js";
-import { AuthToken } from "../services/auth.js";
+import { AuthenticatedRequest, BanReason } from "../types/index.js";
+import { AuthService, AuthToken } from "../services/auth.js";
 
 const userService = new UserService(prisma);
+const authService = new AuthService(prisma);
 
 export default function (app: App) {
 	app.get("/login", async (_req, res) => {
@@ -44,8 +45,9 @@ export default function (app: App) {
 				}
 
 				if (user.banned) {
+					const reason = authService.messageForBanReason(user.suspensionReason as BanReason);
 					return res.status(403)
-						.json({ error: "You have been banned." });
+						.json({ error: `You have been banned. Reason: ${reason}` });
 				}
 
 				if (req.ip) {
@@ -57,8 +59,19 @@ export default function (app: App) {
 						.json({ error: "Username must be between 3 and 16 characters and cannot contain special characters." });
 				}
 
+				const ban = await authService.getIPBan(req.ip!);
+				if (ban) {
+					const reason = authService.messageForBanReason(ban.suspensionReason as BanReason);
+					return res.status(403)
+						.json({ error: `You have been banned. Reason: ${reason}` });
+				}
+
 				const passwordHash = await bcrypt.hash(password, 10);
-				const firstUser = (await prisma.user.count()) === 0;
+				const firstUser = (await prisma.user.count({
+					where: {
+						id: { gte: 0 }
+					}
+				})) === 0;
 
 				let country = req.get("cf-ipcountry") as string;
 				if (!(/^[A-Z]{2}$/).test(country)) {

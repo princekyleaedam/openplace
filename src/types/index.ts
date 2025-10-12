@@ -41,7 +41,8 @@ export enum BanReason {
 	Bot = "bot",
 	Griefing = "griefing",
 	MultiAccounting = "multi-accounting",
-	Other = "other"
+	Other = "other",
+	IPList = "ip-list"
 }
 
 export enum TicketResolution {

@@ -117,14 +117,14 @@ export default function (app: App) {
 			const tileX = Number.parseInt(req.params["tileX"] as string);
 			const tileY = Number.parseInt(req.params["tileY"] as string);
 			const { colors, coords } = req.body;
-			
+
 			const validationError = validatePaintPixels({ season, tileX, tileY, colors, coords });
 			if (validationError) {
 				return res.status(HTTP_STATUS.BAD_REQUEST)
 					.json(createErrorResponse(validationError, HTTP_STATUS.BAD_REQUEST));
 			}
 
-			const result = await pixelService.paintPixels(req.user!.id, { tileX, tileY, colors, coords });
+			const result = await pixelService.paintPixels(req.user!.id, req.ip!, { tileX, tileY, colors, coords });
 			const name = await userService.getUserName(req.user!.id) ?? `user:${req.user!.id}`;
 			console.log(`[${req.ip}] ${name}#${req.user!.id} painted ${coords.length} pixels at tile (${tileX}, ${tileY})`);
 			if (req.ip) {
