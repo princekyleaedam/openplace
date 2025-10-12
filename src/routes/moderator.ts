@@ -132,10 +132,11 @@ export default function (app: App) {
 							zoom: ticket.zoom,
 							reason: ticket.reason,
 							notes: ticket.notes,
-							image: ticket.image
-								? Buffer.from(ticket.image)
-									.toString("base64")
-								: "",
+							// image: ticket.image
+							// 	? Buffer.from(ticket.image)
+							// 		.toString("base64")
+							// 	: "",
+							imageUrl: "data:image/jpeg;base64," + (ticket.image ? Buffer.from(ticket.image).toString("base64") : ""),
 							createdAt: ticket.createdAt,
 							userId: reportedUser.id,
 							reportedByName: author.name,

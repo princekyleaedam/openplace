@@ -6,17 +6,18 @@ import { AuthenticatedRequest, BanReason, TicketResolution } from "../types/inde
 import { authMiddleware } from "../middleware/auth.js";
 import { adminMiddleware } from "./admin.js";
 import { Ticket } from "@prisma/client";
+import multer from "multer";
 
 const ticketService = new TicketService(prisma);
 
 async function makeTicket(req: AuthenticatedRequest, res: Response): Promise<Ticket | undefined> {
-	const reportedUserId = Number.parseInt(req.body.reportedUserId?.at(0) ?? -1);
-	const latitude = Number.parseFloat(req.body.latitude?.at(0) ?? -1);
-	const longitude = Number.parseFloat(req.body.longitude?.at(0) ?? -1);
-	const zoom = Number.parseFloat(req.body.zoom?.at(0) ?? -1);
-	const reason = req.body.reason?.at(0);
-	const notes = req.body.notes?.at(0);
-	const image = req.body.image?.at(0) as File;
+	const reportedUserId = Number.parseInt(req.body.reportedUserId ?? -1);
+	const latitude = Number.parseFloat(req.body.latitude ?? -1);
+	const longitude = Number.parseFloat(req.body.longitude ?? -1);
+	const zoom = Number.parseFloat(req.body.zoom ?? -1);
+	const reason = req.body.reason;
+	const notes = req.body.notes;
+	const image = req.file;
 
 	if (!reportedUserId || !latitude || !longitude || !zoom || !reason) {
 		res.status(400)
@@ -64,12 +65,28 @@ async function makeTicket(req: AuthenticatedRequest, res: Response): Promise<Tic
 		zoom,
 		reason,
 		notes,
-		image
+		image: image as Express.Multer.File,
 	});
 }
 
 export default function (app: App) {
-	app.post("/report-user", authMiddleware, multipart(), async (req: AuthenticatedRequest, res) => {
+	const imageUpload = multer({
+		storage: multer.memoryStorage(),
+		limits: {
+			fileSize: 10 * 1024 * 1024, // 10MB
+			files: 1
+		},
+		fileFilter: (req, file, cb) => {
+			// Chỉ cho phép image files
+			if (file.mimetype.startsWith('image/')) {
+				cb(null, true);
+			} else {
+				cb(new Error('Only image files are allowed'));
+			}
+		}
+	});
+
+	app.post("/report-user", authMiddleware, imageUpload.single("image"), async (req: AuthenticatedRequest, res) => {
 		try {
 			const ticket = await makeTicket(req, res);
 			if (!ticket) {

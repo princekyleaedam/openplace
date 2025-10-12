@@ -10,7 +10,7 @@ interface ReportUserInput {
 	zoom: number;
 	reason: BanReason;
 	notes: string;
-	image: File;
+	image: Express.Multer.File;
 }
 
 export class TicketService {
@@ -21,20 +21,6 @@ export class TicketService {
 	}
 
 	async reportUser(input: ReportUserInput): Promise<Ticket> {
-		// TODO: Image upload is not working. milliparsec bug?
-		let imageBuffer: Buffer | undefined;
-		const anyImage: any = input.image as any;
-		if (anyImage) {
-			if (typeof anyImage.bytes === "function") {
-				imageBuffer = await anyImage.bytes();
-			} else if (typeof anyImage.arrayBuffer === "function") {
-				const ab = await anyImage.arrayBuffer();
-				imageBuffer = Buffer.from(ab);
-			} else if (anyImage.buffer instanceof Buffer) {
-				imageBuffer = anyImage.buffer as Buffer;
-			}
-		}
-
 		return await this.prisma.ticket.create({
 			data: {
 				userId: input.reportingUserId,
@@ -44,7 +30,7 @@ export class TicketService {
 				zoom: input.zoom,
 				reason: input.reason,
 				notes: input.notes,
-				image: imageBuffer || null
+				image: input.image.buffer,
 			}
 		});
 	}
