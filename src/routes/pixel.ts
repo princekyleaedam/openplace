@@ -104,15 +104,6 @@ export default function (app: App) {
 
 	app.post("/:season/pixel/:tileX/:tileY", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
-			const userRow = await userService.getUserProfile(req.user!.id)
-				.catch(() => null);
-			if (userRow && userRow.banned) {
-				const reason = userRow.suspensionReason ?? "other";
-				console.log(`${userRow.name}#${userRow.id} attempted to paint while banned.`);
-				return res.status(451)
-					.json({ err: reason, suspension: "ban" });
-			}
-
 			const season = req.params["season"] as string;
 			const tileX = Number.parseInt(req.params["tileX"] as string);
 			const tileY = Number.parseInt(req.params["tileY"] as string);
@@ -124,6 +115,16 @@ export default function (app: App) {
 					.json(createErrorResponse(validationError, HTTP_STATUS.BAD_REQUEST));
 			}
 
+			const userRow = await userService.getUserProfile(req.user!.id)
+				.catch(() => null);
+			if (userRow && userRow.banned) {
+				const reason = userRow.suspensionReason ?? "other";
+				const date = new Date();
+				console.log(`[${date.toISOString()}] [${req.ip}] ${userRow.name}#${userRow.id} attempted to paint ${colors.length} pixels at tile (${tileX}, ${tileY}) while banned.`);
+				return res.status(451)
+					.json({ err: reason, suspension: "ban" });
+			}
+
 			const account = {
 				userId: req.user!.id,
 				ip: req.ip!,
@@ -131,7 +132,8 @@ export default function (app: App) {
 			};
 			const result = await pixelService.paintPixels(account, { tileX, tileY, colors, coords });
 			const name = await userService.getUserName(req.user!.id) ?? `user:${req.user!.id}`;
-			console.log(`[${req.ip}] ${name}#${req.user!.id} painted ${colors.length} pixels at tile (${tileX}, ${tileY})`);
+			const date = new Date();
+			console.log(`[${date.toISOString()}] [${req.ip}] ${name}#${req.user!.id} painted ${colors.length} pixels at tile (${tileX}, ${tileY})`);
 			if (req.ip) {
 				await userService.setLastIP(req.user!.id, req.ip);
 			}
