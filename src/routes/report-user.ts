@@ -1,7 +1,6 @@
 import { App, Response } from "@tinyhttp/app";
 import { prisma } from "../config/database.js";
 import { TicketService } from "../services/ticket.js";
-import { multipart } from "milliparsec";
 import { AuthenticatedRequest, BanReason, TicketResolution } from "../types/index.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { adminMiddleware } from "./admin.js";
@@ -102,7 +101,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/admin/ban-user", authMiddleware, adminMiddleware, multipart(), async (req: AuthenticatedRequest, res) => {
+	app.post("/admin/ban-user", authMiddleware, adminMiddleware, imageUpload.single("image"), async (req: AuthenticatedRequest, res) => {
 		try {
 			const ticket = await makeTicket(req, res);
 			if (!ticket) {
@@ -120,7 +119,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/moderator/timeout-user", authMiddleware, adminMiddleware, multipart(), async (req: AuthenticatedRequest, res) => {
+	app.post("/moderator/timeout-user", authMiddleware, adminMiddleware, imageUpload.single("image"), async (req: AuthenticatedRequest, res) => {
 		try {
 			const ticket = await makeTicket(req, res);
 			if (!ticket) {

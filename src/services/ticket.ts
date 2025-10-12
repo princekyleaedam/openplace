@@ -1,6 +1,7 @@
 import { PrismaClient, Ticket } from "@prisma/client";
 import { BanReason, TicketResolution } from "../types";
 import { UserService } from "./user";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 interface ReportUserInput {
 	reportingUserId: number;
@@ -21,6 +22,12 @@ export class TicketService {
 	}
 
 	async reportUser(input: ReportUserInput): Promise<Ticket> {
+		const image = await loadImage(input.image.buffer);
+		const canvas = createCanvas(image.width, image.height);
+		const ctx = canvas.getContext("2d");
+		ctx.drawImage(image, 0, 0);
+		const buffer = canvas.toBuffer("image/jpeg");
+
 		return await this.prisma.ticket.create({
 			data: {
 				userId: input.reportingUserId,
@@ -30,7 +37,7 @@ export class TicketService {
 				zoom: input.zoom,
 				reason: input.reason,
 				notes: input.notes,
-				image: input.image.buffer,
+				image: buffer,
 			}
 		});
 	}
