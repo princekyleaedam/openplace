@@ -41,6 +41,7 @@ model User {
   alliance               Alliance?          @relation(fields: [allianceId], references: [id])
   paintedPixels          Pixel[]
   favoriteLocations      FavoriteLocation[]
+  bannedIPs              BannedIP[]
   createdTickets         Ticket[]           @relation("TicketUser")
   reportedTickets        Ticket[]           @relation("TicketReportedUser")
   moderatedTickets       Ticket[]           @relation("TicketModeratorUser")
@@ -48,6 +49,10 @@ model User {
   reportedNotes          UserNote[]         @relation("UserNoteReportedUser")
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
+
+  @@index([banned])
+  @@index([registrationIP])
+  @@index([lastIP])
 }
 
 model Alliance {
@@ -92,16 +97,19 @@ model FavoriteLocation {
 
 model BannedIP {
   id               Int      @id @default(autoincrement())
-  cidr             String   @unique
+  cidr             String
   ipv4Min          Int?     @db.UnsignedInt
   ipv4Max          Int?     @db.UnsignedInt
-  ipv6Min          Bytes?
-  ipv6Max          Bytes?
+  ipv6Min          Bytes?   @db.Binary(16)
+  ipv6Max          Bytes?   @db.Binary(16)
   suspensionReason String
+  userId           Int?
+  user             User?    @relation(fields: [userId], references: [id])
   createdAt        DateTime @default(now())
 
-  @@unique([ipv4Min, ipv4Max])
-  @@unique([ipv6Min, ipv6Max])
+  @@index([cidr])
+  @@index([ipv4Min, ipv4Max])
+  @@index([ipv6Min, ipv6Max])
 }
 
 model Tile {

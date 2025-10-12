@@ -2,6 +2,7 @@ import { PrismaClient, User } from "@prisma/client";
 import { calculateChargeRecharge } from "../utils/charges.js";
 import { englishDataset, englishRecommendedTransformers, RegExpMatcher } from "obscenity";
 import { BanReason } from "../types/index.js";
+import { AuthService } from "./auth.js";
 
 export interface UpdateUserInput {
 	name?: string;
@@ -29,7 +30,11 @@ const usernameMatcher = new RegExpMatcher({
 });
 
 export class UserService {
-	constructor(private prisma: PrismaClient) {}
+	private readonly authService: AuthService;
+
+	constructor(private prisma: PrismaClient) {
+		this.authService = new AuthService(prisma);
+	}
 
 	static isValidUsername(username: string): boolean {
 		return usernameRegex.test(username);
@@ -169,6 +174,8 @@ export class UserService {
 				suspensionReason: state ? reason : null
 			}
 		});
+
+		await this.authService.banUser(userId, state, reason);
 	}
 
 	async timeout(userId: number, state: boolean) {

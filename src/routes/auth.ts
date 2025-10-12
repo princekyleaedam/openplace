@@ -59,10 +59,15 @@ export default function (app: App) {
 						.json({ error: "Username must be between 3 and 16 characters and cannot contain special characters." });
 				}
 
-				const ban = await authService.getIPBan(req.ip!);
+				let country = req.get("cf-ipcountry") as string ?? null;
+				if (!(/^[A-Z]{2}$/).test(country)) {
+					country = "US";
+				}
+
+				const ban = await authService.getBan({ ip: req.ip!, country });
 				if (ban) {
 					console.log(`Banned IP ${req.ip} attempted to register as ${username}`);
-					const reason = authService.messageForBanReason(ban.suspensionReason as BanReason);
+					const reason = authService.messageForBanReason(ban.reason);
 					return res.status(403)
 						.json({ error: `You have been banned. Reason: ${reason}` });
 				}
@@ -73,11 +78,6 @@ export default function (app: App) {
 						id: { gte: 0 }
 					}
 				})) === 0;
-
-				let country = req.get("cf-ipcountry") as string;
-				if (!(/^[A-Z]{2}$/).test(country)) {
-					country = "US";
-				}
 
 				user = await prisma.user.create({
 					data: {

@@ -5,7 +5,9 @@ import { calculateChargeRecharge } from "../utils/charges.js";
 import { Region, RegionService } from "./region.js";
 import { LEVEL_BASE_PIXEL, LEVEL_EXPONENT, LEVEL_UP_DROPLETS_REWARD, LEVEL_UP_MAX_CHARGES_REWARD, PAINTED_DROPLETS_REWARD } from "../config/pixel.js";
 import { AuthService } from "./auth.js";
+import { TicketService } from "./ticket.js";
 import { BanReason } from "../types/index.js";
+import { UserService } from "./user.js";
 
 export interface PaintPixelsInput {
 	tileX: number;
@@ -52,14 +54,18 @@ function calculateLevel(pixelsPainted: number): number {
 	return Math.pow(pixelsPainted / LEVEL_BASE_PIXEL, LEVEL_EXPONENT) + 1;
 }
 
+const BAN_ON_BANNED_IP = process.env["BAN_ON_BANNED_IP"] === "1";
+
 export class PixelService {
 	public readonly emptyTile: Buffer;
 	private readonly regionService: RegionService;
 	private readonly authService: AuthService;
+	private readonly userService: UserService;
 
 	constructor(private prisma: PrismaClient) {
 		this.regionService = new RegionService(prisma);
 		this.authService = new AuthService(prisma);
+		this.userService = new UserService(prisma);
 
 		const canvas = createCanvas(1000, 1000);
 		const ctx = canvas.getContext("2d");
@@ -312,7 +318,8 @@ export class PixelService {
 		});
 	}
 
-	async paintPixels(userId: number, ip: string, input: PaintPixelsInput, season: number = 0): Promise<PaintPixelsResult> {
+	async paintPixels(account: { userId: number; ip: string; country?: string; }, input: PaintPixelsInput, season: number = 0): Promise<PaintPixelsResult> {
+		const { userId } = account;
 		const { tileX, tileY, colors, coords } = input;
 
 		if (!colors || !coords || !Array.isArray(colors) || !Array.isArray(coords)) {
@@ -332,11 +339,16 @@ export class PixelService {
 		}
 
 		if (user.banned || user.timeoutUntil > new Date()) {
+			await this.userService.ban(userId, true, user.suspensionReason as BanReason);
 			throw new Error("banned");
 		}
 
-		const ban = await this.authService.getIPBan(ip);
+		const ban = await this.authService.getBan(account);
 		if (ban) {
+			if (BAN_ON_BANNED_IP) {
+				await this.userService.ban(userId, true, ban.reason);
+			}
+
 			throw new Error("banned");
 		}
 

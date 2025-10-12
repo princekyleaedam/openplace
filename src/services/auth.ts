@@ -1,10 +1,15 @@
 import { JwtPayload } from "jsonwebtoken";
-import { BannedIP, Prisma, PrismaClient } from "@prisma/client";
+import { BannedIP, Prisma, PrismaClient, User } from "@prisma/client";
 import { BanReason } from "../types";
+import { normalizeCidr, parseCidr } from "cidr-tools";
 
 export interface AuthToken extends JwtPayload {
 	userId: number;
 	sessionId: string;
+}
+
+export interface Ban {
+	reason: BanReason;
 }
 
 const banReasonMessages = new Map<BanReason, string>([
@@ -18,21 +23,148 @@ const banReasonMessages = new Map<BanReason, string>([
 	[BanReason.IPList, "VPNs are not permitted"]
 ]);
 
+const BLOCK_TOR = process.env["BLOCK_TOR"] === "1";
+
+function ipv6ToUint8Array(value: bigint): Uint8Array {
+	const bytes = new Uint8Array(16);
+	for (let i = 15; i >= 0; i--) {
+		bytes[i] = Number(value & 0xFFn);
+		value >>= 8n;
+	}
+	return bytes;
+}
+
 export class AuthService {
 	constructor(private prisma: PrismaClient) {}
 
-	async getIPBan(ip: string): Promise<BannedIP | null> {
+	async getBan({ ip, country }: { ip: string; country?: string }): Promise<Ban | null> {
+		if (BLOCK_TOR && country === "T1") {
+			return {
+				reason: BanReason.IPList
+			};
+		}
+
 		const isIPv6 = ip.includes(":");
-		const ver = isIPv6 ? "6" : "4";
-		const func = isIPv6 ? "INET6_ATON" : "INET_ATON";
+		const cidr = normalizeCidr(`${ip}/${isIPv6 ? "128" : "32"}`);
+		const { start } = parseCidr(cidr);
+		if (!start) {
+			console.warn(`Failed to parse IP: ${ip}`);
+			return null;
+		}
 
-		const query = await this.prisma.$queryRaw<Array<BannedIP>>`
-			SELECT * FROM BannedIP
-			WHERE ${Prisma.raw(func)}(${ip}) BETWEEN ipv${Prisma.raw(ver)}Min AND ipv${Prisma.raw(ver)}Max
-			LIMIT 1
-		`;
+		const range = isIPv6
+			? {
+					ipv6Min: ipv6ToUint8Array(start),
+					ipv6Max: ipv6ToUint8Array(start)
+				}
+			: {
+					ipv4Min: Number(start),
+					ipv4Max: Number(start)
+				};
 
-		return query[0] ?? null;
+		const bannedIP = await this.prisma.bannedIP.findFirst({
+			where: {
+				OR: [
+					{
+						userId: null,
+						...range
+					},
+					{
+						userId: { not: null },
+						cidr,
+						...range
+					}
+				]
+			}
+		});
+		if (bannedIP) {
+			return {
+				reason: bannedIP.suspensionReason as BanReason
+			};
+		}
+
+		return null;
+	}
+
+	async banUser(userId: number, state: boolean, reason: BanReason | null) {
+		console.log(`${state ? "Banning" : "Unbanning"} IPs of user ${userId}`);
+
+		if (state) {
+			const user = await this.prisma.user.findUnique({
+				where: { id: userId },
+				select: {
+					registrationIP: true,
+					lastIP: true
+				}
+			});
+			if (!user) {
+				throw new Error("User not found");
+			}
+
+			const ips = [user.registrationIP, user.lastIP]
+				.filter(Boolean) as string[];
+			for (const ip of ips) {
+				const isIPv6 = ip.includes(":");
+				const cidr = normalizeCidr(`${ip}/${isIPv6 ? "128" : "32"}`);
+				const { start } = parseCidr(cidr);
+				if (!start) {
+					console.warn("Attempted to ban invalid IP:", ip);
+					continue;
+				}
+
+				const range = isIPv6
+					? {
+							ipv6Min: ipv6ToUint8Array(start),
+							ipv6Max: ipv6ToUint8Array(start)
+						}
+					: {
+							ipv4Min: Number(start),
+							ipv4Max: Number(start)
+						};
+
+				const bannedIPs = await this.prisma.bannedIP.count({
+					where: {
+						userId,
+						cidr,
+						...range
+					},
+					take: 1
+				});
+
+				if (!bannedIPs) {
+					await this.prisma.bannedIP.create({
+						data: {
+							cidr,
+							suspensionReason: reason!,
+							userId,
+							...range
+						}
+					});
+				}
+			}
+		} else {
+			const bannedIPs = await this.prisma.bannedIP.findMany({
+				where: {
+					userId
+				}
+			});
+
+			// Unban all other instances of the same IP
+			for (const bannedIP of bannedIPs) {
+				const isIPv6 = bannedIP.ipv6Min !== null;
+				await this.prisma.bannedIP.deleteMany({
+					where: isIPv6
+						? {
+								ipv6Min: bannedIP.ipv6Min,
+								ipv6Max: bannedIP.ipv6Max
+							}
+						: {
+								ipv4Min: bannedIP.ipv4Min,
+								ipv4Max: bannedIP.ipv4Max
+							}
+				});
+			}
+		}
 	}
 
 	messageForBanReason(reason: BanReason): string {

@@ -124,7 +124,12 @@ export default function (app: App) {
 					.json(createErrorResponse(validationError, HTTP_STATUS.BAD_REQUEST));
 			}
 
-			const result = await pixelService.paintPixels(req.user!.id, req.ip!, { tileX, tileY, colors, coords });
+			const account = {
+				userId: req.user!.id,
+				ip: req.ip!,
+				country: req.get("cf-ipcountry") as string ?? null
+			};
+			const result = await pixelService.paintPixels(account, { tileX, tileY, colors, coords });
 			const name = await userService.getUserName(req.user!.id) ?? `user:${req.user!.id}`;
 			console.log(`[${req.ip}] ${name}#${req.user!.id} painted ${coords.length} pixels at tile (${tileX}, ${tileY})`);
 			if (req.ip) {
