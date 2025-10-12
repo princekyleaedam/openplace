@@ -79,21 +79,29 @@ let lines: string[] = [];
 let total = 0;
 
 stream.on("data", async (chunk) => {
+	stream.pause();
+
 	buffer += chunk;
 	const parts = buffer.split("\n");
 	buffer = parts.pop() || "";
 	lines.push(...parts);
 
-	while (lines.length >= 10) {
-		const batch = lines.slice(0, 10);
+	while (lines.length >= 100) {
+		const batch = lines.slice(0, 100);
 		lines = lines.slice(10);
 		await processLines(batch);
 		total += batch.length;
 		process.stdout.write(`\rImported ${total} IPs`);
 	}
+
+	stream.resume();
 });
 
 stream.on("end", async () => {
+	if (buffer) {
+		lines.push(buffer);
+	}
+
 	await processLines(lines);
 	total += lines.length;
 	process.stdout.write(`\rImported ${total} IPs\n`);
