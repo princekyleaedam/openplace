@@ -1,6 +1,7 @@
 import { PrismaClient, Ticket } from "@prisma/client";
 import { BanReason, TicketResolution } from "../types";
 import { UserService } from "./user";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 interface ReportUserInput {
 	reportingUserId: number;
@@ -10,7 +11,7 @@ interface ReportUserInput {
 	zoom: number;
 	reason: BanReason;
 	notes: string;
-	image: File;
+	image: Express.Multer.File;
 }
 
 export class TicketService {
@@ -21,19 +22,11 @@ export class TicketService {
 	}
 
 	async reportUser(input: ReportUserInput): Promise<Ticket> {
-		// TODO: Image upload is not working. milliparsec bug?
-		let imageBuffer: Buffer | undefined;
-		const anyImage: any = input.image as any;
-		if (anyImage) {
-			if (typeof anyImage.bytes === "function") {
-				imageBuffer = await anyImage.bytes();
-			} else if (typeof anyImage.arrayBuffer === "function") {
-				const ab = await anyImage.arrayBuffer();
-				imageBuffer = Buffer.from(ab);
-			} else if (anyImage.buffer instanceof Buffer) {
-				imageBuffer = anyImage.buffer as Buffer;
-			}
-		}
+		const image = await loadImage(input.image.buffer);
+		const canvas = createCanvas(image.width, image.height);
+		const ctx = canvas.getContext("2d");
+		ctx.drawImage(image, 0, 0);
+		const buffer = canvas.toBuffer("image/jpeg");
 
 		return await this.prisma.ticket.create({
 			data: {
@@ -44,7 +37,7 @@ export class TicketService {
 				zoom: input.zoom,
 				reason: input.reason,
 				notes: input.notes,
-				image: imageBuffer || null
+				image: buffer,
 			}
 		});
 	}

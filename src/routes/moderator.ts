@@ -86,7 +86,7 @@ export default function (app: App) {
 				const reportedCount = await prisma.ticket.count({ where: { reportedUserId: reportedUser.id } });
 				const timeoutCount = await prisma.ticket.count({ where: { reportedUserId: reportedUser.id, resolution: "Timeout" } });
 				const pixelsPainted = await prisma.pixel.count({ where: { user: { id: reportedUser.id } } });
-			
+
 				let sameIpAccounts = 0;
 				if (reportedUser.lastIP) {
 					sameIpAccounts = await prisma.user.count({ where: { lastIP: reportedUser.lastIP, id: { not: reportedUser.id } } });
@@ -132,25 +132,16 @@ export default function (app: App) {
 							zoom: ticket.zoom,
 							reason: ticket.reason,
 							notes: ticket.notes,
-							image: ticket.image 
-								? Buffer.from(ticket.image)
-									.toString("base64")
-								: "",
+							// image: ticket.image
+							// 	? Buffer.from(ticket.image)
+							// 		.toString("base64")
+							// 	: "",
+							imageUrl: "data:image/jpeg;base64," + (ticket.image ? Buffer.from(ticket.image).toString("base64") : ""),
 							createdAt: ticket.createdAt,
 							userId: reportedUser.id,
 							reportedByName: author.name,
 							reportedByPicture: author.picture,
-							reportedBy: author
-								? {
-										userId: author.id,
-										id: author.id,
-										name: author.name,
-										discord: author.discord,
-										country: author.country,
-										banned: author.banned,
-										role: author.role
-									}
-								: null,
+							reportedBy: author.id,
 							reportedCount,
 							timeoutCount,
 							lastTimeoutReason: null,
