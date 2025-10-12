@@ -145,6 +145,15 @@ export class UserService {
 		});
 	}
 
+	async getUserName(userId: number) {
+		const user = await this.prisma.user.findUnique({
+			where: { id: userId },
+			select: { name: true }
+		});
+
+		return user?.name ?? null;
+	}
+
 	async setLastIP(userId: number, ip: string) {
 		await this.prisma.user.update({
 			where: { id: userId },

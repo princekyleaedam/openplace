@@ -83,6 +83,7 @@ export default function (app: App) {
 						chargesLastUpdatedAt: new Date()
 					}
 				});
+				console.log(`[${req.ip}] registered with ${user.name}#${user.id}!`);
 			}
 
 			const session = await prisma.session.create({
@@ -104,7 +105,7 @@ export default function (app: App) {
 			res.setHeader("Set-Cookie", [
 				`j=${token}; HttpOnly; Path=/; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax`
 			]);
-
+			console.log(`[${req.ip}] ${user.name}#${user.id} logged in`);
 			return res.json({ success: true });
 		} catch (error) {
 			console.error("Login error:", error);
