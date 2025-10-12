@@ -1,3 +1,4 @@
 {
 	"*.{j,t}s{,x}": "npm exec -- eslint --fix",
+	"*.prisma": "npm exec -- prisma format"
 }
