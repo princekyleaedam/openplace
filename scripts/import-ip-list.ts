@@ -43,11 +43,11 @@ async function processLines(lines: string[]) {
 					throw new Error("Invalid IP");
 				}
 
-				const hasExisting = await tx.bannedIP.count({
+				const hasExisting = (await tx.bannedIP.count({
 					where: {
 						cidr
 					}
-				}) > 0;
+				})) > 0;
 
 				if (!hasExisting) {
 					await tx.bannedIP.create({

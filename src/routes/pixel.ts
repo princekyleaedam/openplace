@@ -131,7 +131,7 @@ export default function (app: App) {
 			};
 			const result = await pixelService.paintPixels(account, { tileX, tileY, colors, coords });
 			const name = await userService.getUserName(req.user!.id) ?? `user:${req.user!.id}`;
-			console.log(`[${req.ip}] ${name}#${req.user!.id} painted ${coords.length} pixels at tile (${tileX}, ${tileY})`);
+			console.log(`[${req.ip}] ${name}#${req.user!.id} painted ${colors.length} pixels at tile (${tileX}, ${tileY})`);
 			if (req.ip) {
 				await userService.setLastIP(req.user!.id, req.ip);
 			}
