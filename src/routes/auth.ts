@@ -125,7 +125,8 @@ export default function (app: App) {
 			res.setHeader("Set-Cookie", [
 				`j=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
 			]);
-
+			const name = await userService.getUserName(req.user!.id) ?? `user:${req.user!.id}`;
+			console.log(`[${req.ip}] ${name}#${req.user!.id} logged out`);
 			return res.json({ success: true });
 		} catch (error) {
 			console.error("Logout error:", error);
