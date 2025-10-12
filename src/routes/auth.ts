@@ -61,6 +61,7 @@ export default function (app: App) {
 
 				const ban = await authService.getIPBan(req.ip!);
 				if (ban) {
+					console.log(`Banned IP ${req.ip} attempted to register as ${username}`);
 					const reason = authService.messageForBanReason(ban.suspensionReason as BanReason);
 					return res.status(403)
 						.json({ error: `You have been banned. Reason: ${reason}` });
