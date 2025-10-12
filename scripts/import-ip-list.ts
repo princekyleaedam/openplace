@@ -43,25 +43,29 @@ async function processLines(lines: string[]) {
 					throw new Error("Invalid IP");
 				}
 
-				await tx.bannedIP.upsert({
+				const hasExisting = await tx.bannedIP.count({
 					where: {
 						cidr
-					},
-					update: {},
-					create: {
-						cidr,
-						suspensionReason: BanReason.IPList,
-						...(isIPv6
-							? {
-									ipv6Min: ipv6ToUint8Array(start),
-									ipv6Max: ipv6ToUint8Array(end)
-								}
-							: {
-									ipv4Min: Number(start),
-									ipv4Max: Number(end)
-								})
 					}
-				});
+				}) > 0;
+
+				if (!hasExisting) {
+					await tx.bannedIP.create({
+						data: {
+							cidr,
+							suspensionReason: BanReason.IPList,
+							...(isIPv6
+								? {
+										ipv6Min: ipv6ToUint8Array(start),
+										ipv6Max: ipv6ToUint8Array(end)
+									}
+								: {
+										ipv4Min: Number(start),
+										ipv4Max: Number(end)
+									})
+						}
+					});
+				}
 			} catch (error) {
 				if ((error as { code: string; })?.code !== "P2002") {
 					console.warn(`Invalid line skipped: ${trimmed}`, error);
