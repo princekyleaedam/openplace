@@ -33,7 +33,7 @@ export class UserService {
 	private readonly authService: AuthService;
 
 	constructor(private prisma: PrismaClient) {
-		this.authService = new AuthService(prisma);
+		this.authService = new AuthService(prisma, this);
 	}
 
 	static isValidUsername(username: string): boolean {
@@ -166,7 +166,7 @@ export class UserService {
 		});
 	}
 
-	async ban(userId: number, state: boolean, reason: BanReason | null) {
+	async ban(userId: number, state: boolean, reason: BanReason | null, isRecursive: boolean = false) {
 		await this.prisma.user.update({
 			where: { id: userId },
 			data: {
@@ -175,7 +175,9 @@ export class UserService {
 			}
 		});
 
-		await this.authService.banUser(userId, state, reason);
+		if (!isRecursive) {
+			await this.authService.banUser(userId, state, reason);
+		}
 	}
 
 	async timeout(userId: number, state: boolean) {

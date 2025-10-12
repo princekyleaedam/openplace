@@ -1,7 +1,8 @@
 import { JwtPayload } from "jsonwebtoken";
-import { BannedIP, Prisma, PrismaClient, User } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { BanReason } from "../types";
 import { normalizeCidr, parseCidr } from "cidr-tools";
+import { UserService } from "./user";
 
 export interface AuthToken extends JwtPayload {
 	userId: number;
@@ -35,7 +36,11 @@ function ipv6ToUint8Array(value: bigint): Uint8Array {
 }
 
 export class AuthService {
-	constructor(private prisma: PrismaClient) {}
+	private readonly userService: UserService;
+
+	constructor(private prisma: PrismaClient, userService?: UserService) {
+		this.userService = userService ?? new UserService(prisma);
+	}
 
 	async getBan({ ip, country }: { ip: string; country?: string }): Promise<Ban | null> {
 		if (BLOCK_TOR && country === "T1") {
@@ -131,7 +136,8 @@ export class AuthService {
 					take: 1
 				});
 
-				if (!bannedIPs) {
+				if (bannedIPs === 0) {
+					console.log(`Banning ${cidr}`);
 					await this.prisma.bannedIP.create({
 						data: {
 							cidr,
@@ -140,6 +146,26 @@ export class AuthService {
 							...range
 						}
 					});
+				}
+
+				// Ban any users with this IP
+				const usersWithIP = await this.prisma.user.findMany({
+					where: {
+						OR: [
+							{ registrationIP: ip },
+							{ lastIP: ip }
+						],
+						banned: false
+					},
+					select: {
+						id: true,
+						name: true
+					}
+				});
+
+				for (const user of usersWithIP) {
+					console.log(`Banning ${user.name}#${user.id} because they share an IP`);
+					await this.userService.ban(user.id, true, reason, true);
 				}
 			}
 		} else {
@@ -151,6 +177,7 @@ export class AuthService {
 
 			// Unban all other instances of the same IP
 			for (const bannedIP of bannedIPs) {
+				console.log(`Unbanning ${bannedIP.cidr}`);
 				const isIPv6 = bannedIP.ipv6Min !== null;
 				await this.prisma.bannedIP.deleteMany({
 					where: isIPv6
