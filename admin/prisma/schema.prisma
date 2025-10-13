@@ -1,0 +1,172 @@
+generator client {
+	provider = "prisma-client-js"
+}
+
+datasource db {
+	provider = "mysql"
+	url      = "mysql://root:password@db/openplace"
+}
+
+model User {
+	id                     Int      @id @default(autoincrement())
+	name                   String
+	registrationIP         String?
+	lastIP                 String?
+	discord                String?
+	country                String
+	email                  String?  @unique
+	passwordHash           String
+	banned                 Boolean  @default(false)
+	suspensionReason       String?
+	timeoutUntil           DateTime @default(now())
+	needsPhoneVerification Boolean  @default(false)
+	isCustomer             Boolean  @default(false)
+	role                   String   @default("user")
+	pixelsPainted          Int      @default(0)
+	droplets               Int      @default(0)
+	maxCharges             Float    @default(20)
+	currentCharges         Float    @default(20)
+	chargesCooldownMs      Int      @default(30000)
+	chargesLastUpdatedAt   DateTime @default(now())
+	extraColorsBitmap      Int      @default(0)
+	flagsBitmap            Bytes?
+	equippedFlag           Int      @default(0)
+	showLastPixel          Boolean  @default(true)
+	maxFavoriteLocations   Int      @default(15)
+	picture                String?
+	level                  Float    @default(1)
+	allianceId             Int?
+	allianceRole           String   @default("member")
+	alliance               Alliance? @relation(fields: [allianceId], references: [id])
+	paintedPixels          Pixel[]
+	favoriteLocations      FavoriteLocation[]
+	createdTickets         Ticket[] @relation("TicketUser")
+	reportedTickets        Ticket[] @relation("TicketReportedUser")
+	moderatedTickets       Ticket[] @relation("TicketModeratorUser")
+	createdNotes           UserNote[] @relation("UserNoteUser")
+	reportedNotes          UserNote[] @relation("UserNoteReportedUser")
+	createdAt              DateTime @default(now())
+	updatedAt              DateTime @updatedAt
+}
+
+model Alliance {
+	id               Int      @id @default(autoincrement())
+	name             String   @unique
+	description      String?
+	hqLatitude       Float?
+	hqLongitude      Float?
+	pixelsPainted    Int      @default(0)
+	members          User[]
+	bannedUsers      BannedUser[]
+	invites          AllianceInvite[]
+	createdAt        DateTime @default(now())
+	updatedAt        DateTime @updatedAt
+}
+
+model BannedUser {
+	id         Int      @id @default(autoincrement())
+	userId     Int
+	allianceId Int
+	alliance   Alliance @relation(fields: [allianceId], references: [id])
+	createdAt  DateTime @default(now())
+
+	@@unique([userId, allianceId])
+}
+
+model AllianceInvite {
+	id         String   @id @default(uuid())
+	allianceId Int
+	alliance   Alliance @relation(fields: [allianceId], references: [id])
+	createdAt  DateTime @default(now())
+}
+
+model FavoriteLocation {
+	id        Int    @id @default(autoincrement())
+	userId    Int
+	user      User   @relation(fields: [userId], references: [id])
+	name      String @default("")
+	latitude  Float
+	longitude Float
+}
+
+model Tile {
+	id        Int    @id @default(autoincrement())
+	season    Int    @db.UnsignedSmallInt @default(0)
+	x         Int    @db.UnsignedSmallInt
+	y         Int    @db.UnsignedSmallInt
+	imageData Bytes?
+	pixels    Pixel[]
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
+
+	@@unique([season, x, y])
+}
+
+model Pixel {
+	id        Int      @id @default(autoincrement())
+	season    Int      @db.UnsignedSmallInt @default(0)
+	tileX     Int      @db.UnsignedSmallInt
+	tileY     Int      @db.UnsignedSmallInt
+	x         Int      @db.UnsignedSmallInt
+	y         Int      @db.UnsignedSmallInt
+	colorId   Int      @db.UnsignedSmallInt
+	paintedBy Int
+	user      User     @relation(fields: [paintedBy], references: [id])
+	tile      Tile     @relation(fields: [season, tileX, tileY], references: [season, x, y])
+	paintedAt DateTime @default(now())
+
+	@@unique([season, tileX, tileY, x, y])
+	@@index([season, tileX, tileY])
+}
+
+model Region {
+	id        Int    @id @default(autoincrement())
+	cityId    Int    @unique
+	name      String
+	number    Int
+	countryId Int
+}
+
+model ProfilePicture {
+	id     Int    @id @default(autoincrement())
+	userId Int
+	url    String
+}
+
+model Session {
+	id        String   @id @default(uuid())
+	userId    Int
+	expiresAt DateTime
+	createdAt DateTime @default(now())
+}
+
+model Ticket {
+	id             String   @id @default(uuid())
+	userId         Int
+	user           User     @relation("TicketUser", fields: [userId], references: [id])
+	reportedUserId Int
+	reportedUser   User     @relation("TicketReportedUser", fields: [reportedUserId], references: [id])
+	moderatorUserId Int?
+	moderatorUser  User?    @relation("TicketModeratorUser", fields: [moderatorUserId], references: [id])
+	latitude       Float
+	longitude      Float
+	zoom           Float
+	reason         String
+	notes          String
+	image          Bytes?
+	resolution     String?
+	severe         Boolean  @default(false)
+	createdAt      DateTime @default(now())
+	updatedAt      DateTime @updatedAt
+}
+
+model UserNote {
+	id             Int      @id @default(autoincrement())
+	userId         Int
+	user           User     @relation("UserNoteUser", fields: [userId], references: [id])
+	reportedUserId Int
+	reportedUser   User     @relation("UserNoteReportedUser", fields: [reportedUserId], references: [id])
+	content        String
+	createdAt      DateTime @default(now())
+	updatedAt      DateTime @updatedAt
+}

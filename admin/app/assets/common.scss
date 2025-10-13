@@ -1,0 +1,15 @@
+@use 'bootstrap';
+@use '@fortawesome/fontawesome-free/css/all.min.css';
+
+:root {
+    --bs-body-font-size: 0.95rem;
+    font-size: var(--bs-body-font-size);
+}
+
+body {
+    background-color: #100e0d;
+}
+
+a {
+    text-decoration: none !important;
+}
