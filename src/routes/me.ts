@@ -44,4 +44,19 @@ export default function (app: App) {
 			return handleServiceError(error as Error, res);
 		}
 	});
+
+	app.delete("/me", authMiddleware, async (req: AuthenticatedRequest, res) => {
+		try {
+			const { confirmText } = req.body || {};
+			const currentName = await userService.getUserName(req.user!.id);
+			if (!currentName || confirmText !== currentName) {
+				return res.status(HTTP_STATUS.BAD_REQUEST)
+					.json(createErrorResponse("Invalid confirm text", HTTP_STATUS.BAD_REQUEST));
+			}
+			const result = await userService.deleteAccount(req.user!.id);
+			return res.json(result);
+		} catch (error) {
+			return handleServiceError(error as Error, res);
+		}
+	});
 }
