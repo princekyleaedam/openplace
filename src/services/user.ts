@@ -150,6 +150,35 @@ export class UserService {
 		});
 	}
 
+	async deleteAccount(userId: number) {
+		const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true } });
+		if (!user) {
+			throw new Error("User not found");
+		}
+		const newName = `Deleted Account #-${user.id}`;
+		await this.prisma.$transaction([
+			this.prisma.profilePicture.deleteMany({ where: { userId } }),
+			this.prisma.session.deleteMany({ where: { userId } }),
+			this.prisma.user.update({
+				where: { id: userId },
+				data: {
+					name: newName,
+					role: "deleted",
+					email: null,
+					passwordHash: "",
+					discord: null,
+					picture: null,
+					allianceId: null,
+					allianceRole: "member",
+					equippedFlag: 0,
+					flagsBitmap: null,
+					showLastPixel: false
+				}
+			})
+		]);
+		return { success: true };
+	}
+
 	async getUserName(userId: number) {
 		const user = await this.prisma.user.findUnique({
 			where: { id: userId },
