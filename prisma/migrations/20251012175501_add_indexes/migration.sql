@@ -12,3 +12,9 @@ CREATE INDEX `User_role_pixelsPainted_idx` ON `User`(`role`, `pixelsPainted`);
 
 -- CreateIndex
 CREATE INDEX `User_pixelsPainted_idx` ON `User`(`pixelsPainted`);
+
+-- CreateIndex
+CREATE INDEX `Pixel_paintedAt_regionCityId_idx` ON `Pixel`(`paintedAt`, `regionCityId`);
+
+-- CreateIndex
+CREATE INDEX `Pixel_paintedAt_regionCountryId_idx` ON `Pixel`(`paintedAt`, `regionCountryId`);
