@@ -15,9 +15,9 @@
 		"test:watch": "vitest",
 		"lint": "tsc --noEmit && eslint --ext .js,.ts src/",
 		"lint:fix": "eslint --ext .js,.ts src/ --fix",
-		"db:push": "prisma db push && prisma generate",
+		"db:push": "prisma db push",
 		"db:generate": "prisma generate",
-		"db:deploy": "prisma migrate deploy && prisma generate",
+		"db:deploy": "prisma migrate deploy",
 		"db:dev": "prisma migrate dev"
 	},
 	"dependencies": {

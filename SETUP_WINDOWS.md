@@ -76,10 +76,8 @@ Edit `.env` and replace `root:password` with your MariaDB root password and chan
 ## 6. Setup Prisma and database
 
 ```powershell
-npx prisma migrate deploy
 npx prisma generate
-npx prisma db push
-npx prisma db execute --url "<YOUR_DATABASE_URL>" --file "prisma\region.sql"
+npm run setup
 ```
 
 ---

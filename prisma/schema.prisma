@@ -53,6 +53,8 @@ model User {
   @@index([banned])
   @@index([registrationIP])
   @@index([lastIP])
+  @@index([role, pixelsPainted])
+  @@index([pixelsPainted])
 }
 
 model Alliance {
@@ -67,6 +69,8 @@ model Alliance {
   invites       AllianceInvite[]
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
+
+  @@index([pixelsPainted])
 }
 
 model BannedUser {
@@ -144,6 +148,10 @@ model Pixel {
   @@index([season, tileX, tileY])
   @@index([regionCityId])
   @@index([regionCountryId])
+  @@index([paintedAt])
+  @@index([paintedBy, paintedAt])
+  @@index([paintedAt, regionCityId])
+  @@index([paintedAt, regionCountryId])
 }
 
 model Region {
