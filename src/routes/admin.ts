@@ -296,7 +296,7 @@ export default function (app: App) {
 
 
 
-	app.get(["/admin/tickets", "/admin/closed-tickets"], authMiddleware, adminMiddleware, async (req: AuthenticatedRequest, res) => {
+	app.get(["/admin/tickets", "/admin/closed-tickets", "/admin/closed-reports"], authMiddleware, adminMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
 			const user = await prisma.user.findUnique({
 				where: { id: req.user!.id }
@@ -306,7 +306,83 @@ export default function (app: App) {
 					.json({ error: "Forbidden", status: 403 });
 			}
 
-			const resolved = req.path === "/admin/closed-tickets";
+			const resolved = req.path === "/admin/closed-tickets" || req.path === "/admin/closed-reports"; // TODO: Check if closed-reports is correct
+			const startDate = req.query["start"] as string;
+			const endDate = req.query["end"] as string;
+			
+			if (resolved && startDate && endDate) {
+				let dateFilter = {};
+				if (startDate && endDate) {
+					dateFilter = {
+						createdAt: {
+							gte: new Date(startDate),
+							lte: new Date(endDate)
+						}
+					};
+				}
+
+				const mods = await prisma.user.findMany({
+					where: {
+						role: { in: ["moderator"] } // , "admin" ?
+					},
+					select: {
+						id: true,
+						name: true,
+						role: true,
+					}
+				});
+
+				const modStats = await Promise.all(mods.map(async (mod) => {
+					const [total, ban, ignored, timeout] = await Promise.all([
+						prisma.ticket.count({
+							where: {
+								...dateFilter,
+								moderatorUserId: mod.id,
+								resolution: { not: null }
+							}
+						}),
+						prisma.ticket.count({
+							where: {
+								...dateFilter,
+								moderatorUserId: mod.id,
+								resolution: "ban"
+							}
+						}),
+						prisma.ticket.count({
+							where: {
+								...dateFilter,
+								moderatorUserId: mod.id,
+								resolution: "ignore"
+							}
+						}),
+						prisma.ticket.count({
+							where: {
+								...dateFilter,
+								moderatorUserId: mod.id,
+								resolution: "timeout"
+							}
+						})
+					]);
+
+					const suspensionRate = total > 0 ? (ban + timeout) / total : 0;
+
+					return {
+						user: {
+							id: mod.id,
+							name: mod.name,
+							role: mod.role,
+						},
+						total,
+						ban,
+						ignored,
+						timeout,
+						suspensionRate
+					};
+				}));
+
+				return res.json({ items: modStats });
+			}
+
 			const tickets = await prisma.ticket.findMany({
 				where: { resolution: resolved ? { not: null } : null },
 				orderBy: { createdAt: "desc" }
@@ -646,6 +722,7 @@ export default function (app: App) {
 				.json({ error: "Internal Server Error", status: 500 });
 		}
 	});
+
 
 	app.get("/admin", authMiddleware, adminMiddleware, async (_req, res) => {
 		const html = await fs.readFile("./frontend/admin.html", "utf8");
