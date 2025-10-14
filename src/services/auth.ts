@@ -49,6 +49,12 @@ export class AuthService {
 			};
 		}
 
+		// Validate IP address format
+		if (!ip || typeof ip !== 'string' || ip.length < 7 || (!ip.includes('.') && !ip.includes(':'))) {
+			console.warn(`Invalid IP address format: ${ip}`);
+			return null;
+		}
+
 		const isIPv6 = ip.includes(":");
 		const cidr = normalizeCidr(`${ip}/${isIPv6 ? "128" : "32"}`);
 		const { start } = parseCidr(cidr);
