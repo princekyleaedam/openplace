@@ -164,6 +164,8 @@ model Region {
   longitude Float
 
   @@unique([latitude, longitude])
+  @@index([latitude])
+  @@index([longitude])
 }
 
 model ProfilePicture {
