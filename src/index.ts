@@ -36,6 +36,39 @@ const app = new App({
 	}
 });
 
+// Fix IP address handling early to prevent @tinyhttp errors
+app.use((req, res, next) => {
+	// Ensure req.ip is always a valid IP address
+	let ip = req.get("cf-connecting-ip") as string ?? 
+	         req.get("x-forwarded-for") as string ?? 
+	         req.connection?.remoteAddress ?? 
+	         req.ip ?? 
+	         "127.0.0.1";
+	
+	// Clean up IP address (remove port, handle multiple IPs)
+	if (ip.includes(',')) {
+		ip = ip.split(',')[0].trim();
+	}
+	if (ip.includes(':')) {
+		const parts = ip.split(':');
+		if (parts.length > 2) {
+			// IPv6
+			ip = parts.join(':');
+		} else {
+			// IPv4 with port
+			ip = parts[0];
+		}
+	}
+	
+	// Validate IP format
+	if (!ip || ip.length < 7 || (!ip.includes('.') && !ip.includes(':'))) {
+		ip = "127.0.0.1";
+	}
+	
+	req.ip = ip;
+	next?.();
+});
+
 app.use(cors());
 app.use(cookieParser());
 
@@ -44,7 +77,6 @@ const jsonMiddleware = json({
 });
 
 app.use((req, res, next) => {
-	req.ip = req.get("cf-connecting-ip") as string ?? req.get("x-forwarded-for") as string ?? req.ip;
 	res.set("cache-control", "private, must-revalidate");
 	next?.();
 });
