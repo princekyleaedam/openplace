@@ -364,7 +364,11 @@ export default function (app: App) {
 						})
 					]);
 
-					const suspensionRate = total > 0 ? (ban + timeout) / total : 0;
+					if (total === 0) {
+						return null;
+					}
+
+					const suspensionRate = (ban + timeout) / total;
 
 					return {
 						user: {
@@ -380,7 +384,9 @@ export default function (app: App) {
 					};
 				}));
 
-				return res.json({ items: modStats });
+				const filteredModStats = modStats.filter(stat => stat !== null);
+
+				return res.json({ items: filteredModStats });
 			}
 
 			const tickets = await prisma.ticket.findMany({
