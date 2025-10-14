@@ -33,14 +33,14 @@ export class RegionService {
 		// Find the closest region for this pixel
 		const { latitude, longitude } = RegionService.pixelsToCoordinates(tile, pixel);
 
-		let delta = 0.1;
-		for (let attempt = 0; attempt < 7; attempt++) {
+		let delta = 0.05;
+		for (let attempt = 0; attempt < 5; attempt++) {
 			const regions = await this.prisma.region.findMany({
 				where: {
 					latitude: { gte: latitude - delta, lte: latitude + delta },
 					longitude: { gte: longitude - delta, lte: longitude + delta }
 				},
-				take: 250
+				take: 10
 			});
 
 			if (regions.length > 0) {
@@ -101,14 +101,14 @@ export class RegionService {
 	}
 
 	private async findNearestRegionByDistance(latitude: number, longitude: number) {
-		let delta = 1;
-		for (let attempt = 0; attempt < 8; attempt++) {
+		let delta = 0.5;
+		for (let attempt = 0; attempt < 5; attempt++) {
 			const regions = await this.prisma.region.findMany({
 				where: {
 					latitude: { gte: latitude - delta, lte: latitude + delta },
 					longitude: { gte: longitude - delta, lte: longitude + delta }
 				},
-				take: 500
+				take: 100
 			});
 			if (regions.length > 0) {
 				let best = regions[0]!;

@@ -278,10 +278,16 @@ export class PixelService {
 			);
 			const tile = tiles[0];
 
-			const image = await loadImage(tile?.imageData ?? this.emptyTile);
-			ctx.drawImage(image, 0, 0);
+			if (tile?.imageData) {
+				const image = await loadImage(tile.imageData);
+				ctx.drawImage(image, 0, 0);
+			} else {
+				ctx.clearRect(0, 0, 1000, 1000);
+			}
 
 			const imageData = ctx.getImageData(0, 0, 1000, 1000);
+			const data = imageData.data;
+			
 			for (const pixel of pixels) {
 				const color = COLOR_PALETTE[pixel.colorId];
 				if (!color) continue;
@@ -289,10 +295,10 @@ export class PixelService {
 				const [r, g, b] = color.rgb;
 				const a = pixel.colorId === 0 ? 0 : 255;
 				const index = (pixel.y * 1000 + pixel.x) * 4;
-				imageData.data[index + 0] = r;
-				imageData.data[index + 1] = g;
-				imageData.data[index + 2] = b;
-				imageData.data[index + 3] = a;
+				data[index + 0] = r;
+				data[index + 1] = g;
+				data[index + 2] = b;
+				data[index + 3] = a;
 			}
 			ctx.putImageData(imageData, 0, 0);
 
@@ -375,7 +381,8 @@ export class PixelService {
 		}
 
 		const regionCache = new Map<string, Region>();
-		const validPixels = [];
+		const validPixels: Array<{ x: number; y: number; colorId: number; coordKey: string; region?: Region }> = [];
+		const uniqueCoords = new Set<string>();
 
 		for (const [i, colorId] of colors.entries()) {
 			const coord = pairedCoords[i];
@@ -387,17 +394,31 @@ export class PixelService {
 			}
 
 			const coordKey = `${tileX},${tileY},${x},${y}`;
-			let region;
-			if (regionCache.has(coordKey)) {
-				region = regionCache.get(coordKey);
-			} else {
-				region = await this.regionService.getRegionForCoordinates([tileX, tileY], [x, y]);
-				regionCache.set(coordKey, region);
-			}
-
+			uniqueCoords.add(coordKey);
 			validPixels.push({
-				x, y, colorId, region
+				x, y, colorId, coordKey
 			});
+		}
+
+		const regionPromises = Array.from(uniqueCoords).map(async (coordKey) => {
+			if (regionCache.has(coordKey)) {
+				return { coordKey, region: regionCache.get(coordKey)! };
+			}
+			const [tileXStr, tileYStr, xStr, yStr] = coordKey.split(',');
+			const region = await this.regionService.getRegionForCoordinates(
+				[parseInt(tileXStr), parseInt(tileYStr)], 
+				[parseInt(xStr), parseInt(yStr)]
+			);
+			regionCache.set(coordKey, region);
+			return { coordKey, region };
+		});
+
+		const regionResults = await Promise.all(regionPromises);
+		const regionMap = new Map(regionResults.map(r => [r.coordKey, r.region]));
+
+		for (const pixel of validPixels) {
+			pixel.region = regionMap.get(pixel.coordKey);
+			delete (pixel as any).coordKey;
 		}
 
 		const painted = validPixels.length;
@@ -472,17 +493,31 @@ export class PixelService {
 		const newDroplets = user.droplets + levelUpRewards.droplets + paintedRewards.droplets;
 		const newMaxCharges = user.maxCharges + levelUpRewards.maxCharges;
 
-		await this.prisma.user.update({
-			where: { id: userId },
-			data: {
-				currentCharges: newCharges,
-				pixelsPainted: newPixelsPainted,
-				level: newLevel,
-				droplets: newDroplets,
-				maxCharges: newMaxCharges,
-				chargesLastUpdatedAt: new Date()
+		// Use atomic update with retry to handle deadlock
+		let retries = 3;
+		while (retries > 0) {
+			try {
+				await this.prisma.user.update({
+					where: { id: userId },
+					data: {
+						currentCharges: newCharges,
+						pixelsPainted: newPixelsPainted,
+						level: newLevel,
+						droplets: newDroplets,
+						maxCharges: newMaxCharges,
+						chargesLastUpdatedAt: new Date()
+					}
+				});
+				break;
+			} catch (error: any) {
+				if (error.code === 'P2034' && retries > 1) {
+					retries--;
+					await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
+					continue;
+				}
+				throw error;
 			}
-		});
+		}
 
 		if (user.allianceId) {
 			await this.prisma.alliance.update({
