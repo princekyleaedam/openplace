@@ -68,6 +68,7 @@ async function downloadToUint8Array(url: string): Promise<Uint8Array[]> {
       print(`${toMB(received)} MB / ${totalText}`);
     }
   }
+  print(`100% (${toMB(received)} MB / ${totalText})`);
   process.stdout.write("\n");
   return chunks;
 }
