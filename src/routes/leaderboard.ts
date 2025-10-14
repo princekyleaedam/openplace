@@ -382,7 +382,7 @@ export default function (app: App) {
 		try {
 			const { city, mode } = req.params;
 			const paramId = Number.parseInt(city || "0");
-			if (!mode || !validModes.has(mode) || Number.isNaN(paramId) || paramId <= 0) {
+			if (!mode || !validModes.has(mode) || Number.isNaN(paramId)) {
 				return res.status(400)
 					.json({ error: "Invalid params", status: 400 });
 			}
@@ -497,7 +497,7 @@ export default function (app: App) {
 			}
 
 			const paramId = Number.parseInt(city || "0");
-			if (Number.isNaN(paramId) || paramId <= 0) {
+			if (Number.isNaN(paramId)) {
 				return res.status(400)
 					.json({ error: "Invalid params", status: 400 });
 			}
