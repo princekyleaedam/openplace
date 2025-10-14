@@ -124,13 +124,6 @@ export class RegionService {
 			}
 			delta *= 2;
 		}
-		return {
-			id: 0,
-			cityId: 0,
-			name: "openplace",
-			number: 1,
-			countryId: 13,
-			flagId: 13
-		};
+		return undefined;
 	}
 }
