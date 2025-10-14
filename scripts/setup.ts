@@ -213,7 +213,7 @@ console.log(chalk.bgHex("#406ae1").white.bold(" Welcome to openplace "));
 
       const transform = new TransformStream();
       const reader = transform.readable.getReader();
-      const decoder = new TextDecoder(); 
+      const decoder = new TextDecoder();
       fileEntry.getData(transform.writable);
 
       let addedCount = 0;
@@ -248,7 +248,7 @@ console.log(chalk.bgHex("#406ae1").white.bold(" Welcome to openplace "));
 
                 const countryId = countryCodesToIDs.get(countryCode);
                 if (!countryId) {
-                  ignoredCountries.add(countryCode); 
+                  ignoredCountries.add(countryCode);
                   console.warn(
                     chalk.yellow(`[${nowStr()}] Skipping unknown country:`),
                     countryCode
@@ -278,6 +278,8 @@ console.log(chalk.bgHex("#406ae1").white.bold(" Welcome to openplace "));
               })
             )
           );
+        }, {
+          timeout: 15_000
         });
 
         addedCount += lines.length;
