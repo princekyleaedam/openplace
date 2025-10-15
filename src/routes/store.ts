@@ -38,7 +38,14 @@ export default function (app: App) {
 					.json({ error: "Unauthorized", status: 401 });
 			}
 
-			const totalCost = item.price * (product.amount || 1);
+			const amount = product.amount || 1;
+			
+			if (amount < 0 || amount > Number.MAX_SAFE_INTEGER) {
+				return res.status(400)
+					.json({ error: "Bad Request", status: 400 });
+			}
+			
+			const totalCost = item.price * amount;
 
 			if (user.droplets < totalCost) {
 				return res.status(403)
@@ -51,7 +58,7 @@ export default function (app: App) {
 
 			switch (item.type) {
 			case "charges":
-				updateData.maxCharges = user.maxCharges + (5 * (product.amount || 1));
+				updateData.maxCharges = user.maxCharges + (5 * amount);
 				break;
 
 			case "paint": {
@@ -61,7 +68,7 @@ export default function (app: App) {
 					user.chargesLastUpdatedAt || new Date(),
 					user.chargesCooldownMs
 				);
-				updateData.currentCharges = currentCharges + (30 * (product.amount || 1));
+				updateData.currentCharges = currentCharges + (30 * amount);
 				updateData.chargesLastUpdatedAt = new Date();
 				break;
 			}
