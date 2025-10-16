@@ -40,7 +40,7 @@ export default function (app: App) {
 
 			const amount = product.amount || 1;
 			
-			if (amount < 0 || amount > Number.MAX_SAFE_INTEGER) {
+			if (amount < 0 || amount > Number.MAX_SAFE_INTEGER || !Number.isInteger(amount)) {
 				return res.status(400)
 					.json({ error: "Bad Request", status: 400 });
 			}
