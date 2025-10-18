@@ -155,14 +155,13 @@ export class UserService {
 		if (!user) {
 			throw new Error("User not found");
 		}
-		const newName = `Deleted Account #-${user.id}`;
 		await this.prisma.$transaction([
 			this.prisma.profilePicture.deleteMany({ where: { userId } }),
 			this.prisma.session.deleteMany({ where: { userId } }),
 			this.prisma.user.update({
 				where: { id: userId },
 				data: {
-					name: newName,
+					name: "Deleted Account",
 					role: "deleted",
 					email: null,
 					passwordHash: "",
