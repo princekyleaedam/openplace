@@ -82,8 +82,8 @@ export class PixelService {
 		if (!maxId) {
 			console.log("Table is empty");
 			return {
-				pixel: { x: 500, y: 500 },
-				tile: { x: 1024, y: 1024 }
+				pixel: { x: 220, y: 873 },
+				tile: { x: 1884, y: 1228 }
 			};
 		}
 
@@ -287,7 +287,7 @@ export class PixelService {
 
 			const imageData = ctx.getImageData(0, 0, 1000, 1000);
 			const data = imageData.data;
-			
+
 			for (const pixel of pixels) {
 				const color = COLOR_PALETTE[pixel.colorId];
 				if (!color) continue;
@@ -400,14 +400,14 @@ export class PixelService {
 			});
 		}
 
-		const regionPromises = Array.from(uniqueCoords).map(async (coordKey) => {
+		const regionPromises = [...uniqueCoords].map(async (coordKey) => {
 			if (regionCache.has(coordKey)) {
 				return { coordKey, region: regionCache.get(coordKey)! };
 			}
-			const [tileXStr, tileYStr, xStr, yStr] = coordKey.split(',');
+			const [tileXStr, tileYStr, xStr, yStr] = coordKey.split(",");
 			const region = await this.regionService.getRegionForCoordinates(
-				[parseInt(tileXStr), parseInt(tileYStr)], 
-				[parseInt(xStr), parseInt(yStr)]
+				[Number.parseInt(tileXStr), Number.parseInt(tileYStr)],
+				[Number.parseInt(xStr), Number.parseInt(yStr)]
 			);
 			regionCache.set(coordKey, region);
 			return { coordKey, region };
@@ -510,7 +510,7 @@ export class PixelService {
 				});
 				break;
 			} catch (error: any) {
-				if (error.code === 'P2034' && retries > 1) {
+				if (error.code === "P2034" && retries > 1) {
 					retries--;
 					await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
 					continue;
