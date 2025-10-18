@@ -4,6 +4,9 @@
             <div class="col-lg-6">
                 <DrawImage />
             </div>
+            <div class="col-lg-6">
+                <DummyUser />
+            </div>
         </div>
     </div>
 </template>
