@@ -136,7 +136,10 @@ export default function (app: App) {
 							// 	? Buffer.from(ticket.image)
 							// 		.toString("base64")
 							// 	: "",
-							imageUrl: "data:image/jpeg;base64," + (ticket.image ? Buffer.from(ticket.image).toString("base64") : ""),
+							imageUrl: `data:image/jpeg;base64,${ticket.image
+								? Buffer.from(ticket.image)
+									.toString("base64")
+								: ""}`,
 							createdAt: ticket.createdAt,
 							userId: reportedUser.id,
 							reportedByName: author.name,

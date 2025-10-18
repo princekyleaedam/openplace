@@ -328,7 +328,7 @@ export default function (app: App) {
 					select: {
 						id: true,
 						name: true,
-						role: true,
+						role: true
 					}
 				});
 
@@ -374,7 +374,7 @@ export default function (app: App) {
 						user: {
 							id: mod.id,
 							name: mod.name,
-							role: mod.role,
+							role: mod.role
 						},
 						total,
 						ban,

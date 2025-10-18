@@ -46,14 +46,14 @@ app.use((req, res, next) => {
 	         "127.0.0.1";
 	
 	// Clean up IP address (remove port, handle multiple IPs)
-	if (ip.includes(',')) {
-		ip = ip.split(',')[0].trim();
+	if (ip.includes(",")) {
+		ip = ip.split(",")[0].trim();
 	}
-	if (ip.includes(':')) {
-		const parts = ip.split(':');
+	if (ip.includes(":")) {
+		const parts = ip.split(":");
 		if (parts.length > 2) {
 			// IPv6
-			ip = parts.join(':');
+			ip = parts.join(":");
 		} else {
 			// IPv4 with port
 			ip = parts[0];
@@ -61,7 +61,7 @@ app.use((req, res, next) => {
 	}
 	
 	// Validate IP format
-	if (!ip || ip.length < 7 || (!ip.includes('.') && !ip.includes(':'))) {
+	if (!ip || ip.length < 7 || (!ip.includes(".") && !ip.includes(":"))) {
 		ip = "127.0.0.1";
 	}
 	

@@ -50,7 +50,7 @@ export class AuthService {
 		}
 
 		// Validate IP address format
-		if (!ip || typeof ip !== 'string' || ip.length < 7 || (!ip.includes('.') && !ip.includes(':'))) {
+		if (!ip || typeof ip !== "string" || ip.length < 7 || (!ip.includes(".") && !ip.includes(":"))) {
 			console.warn(`Invalid IP address format: ${ip}`);
 			return null;
 		}

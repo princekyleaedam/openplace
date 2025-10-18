@@ -403,7 +403,7 @@ export class AllianceService {
 		return { success: true };
 	}
 
-    async getLeaderboard(userId: number, mode: string) {
+	async getLeaderboard(userId: number, mode: string) {
 		const user = await this.prisma.user.findUnique({
 			where: { id: userId }
 		});
@@ -412,116 +412,116 @@ export class AllianceService {
 			throw new Error("Forbidden");
 		}
 
-        let dateFilter = {};
-        const now = new Date();
-        switch (mode) {
-        case "today": {
-            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            dateFilter = { paintedAt: { gte: startOfDay } };
-            break;
-        }
-        case "week": {
-            const startOfWeek = new Date(now);
-            startOfWeek.setDate(now.getDate() - 7);
-            dateFilter = { paintedAt: { gte: startOfWeek } };
-            break;
-        }
-        case "month": {
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            dateFilter = { paintedAt: { gte: startOfMonth } };
-            break;
-        }
-        }
+		let dateFilter = {};
+		const now = new Date();
+		switch (mode) {
+		case "today": {
+			const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+			dateFilter = { paintedAt: { gte: startOfDay } };
+			break;
+		}
+		case "week": {
+			const startOfWeek = new Date(now);
+			startOfWeek.setDate(now.getDate() - 7);
+			dateFilter = { paintedAt: { gte: startOfWeek } };
+			break;
+		}
+		case "month": {
+			const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+			dateFilter = { paintedAt: { gte: startOfMonth } };
+			break;
+		}
+		}
 
-        if (mode === "all-time") {
-            const members = await this.prisma.user.findMany({
-                where: { allianceId: user.allianceId, pixelsPainted: { gt: 0 } },
-                orderBy: { pixelsPainted: "desc" },
-                take: 50,
-                select: {
-                    id: true,
-                    name: true,
-                    equippedFlag: true,
-                    pixelsPainted: true,
-                    showLastPixel: true
-                }
-            });
-            const lastPixels = new Map<number, { latitude: number; longitude: number }>();
-            await Promise.all(members.map(async (m) => {
-                if (!m.showLastPixel) {
-                    return;
-                }
+		if (mode === "all-time") {
+			const members = await this.prisma.user.findMany({
+				where: { allianceId: user.allianceId, pixelsPainted: { gt: 0 } },
+				orderBy: { pixelsPainted: "desc" },
+				take: 50,
+				select: {
+					id: true,
+					name: true,
+					equippedFlag: true,
+					pixelsPainted: true,
+					showLastPixel: true
+				}
+			});
+			const lastPixels = new Map<number, { latitude: number; longitude: number }>();
+			await Promise.all(members.map(async (m) => {
+				if (!m.showLastPixel) {
+					return;
+				}
 
-                const last = await this.prisma.pixel.findFirst({
-                    where: { paintedBy: m.id },
-                    orderBy: [{ paintedAt: "desc" }, { id: "desc" }],
-                    select: { tileX: true, tileY: true, x: true, y: true }
-                });
-                if (last) {
-                    const coords = RegionService.pixelsToCoordinates([last.tileX, last.tileY], [last.x, last.y]);
-                    lastPixels.set(m.id, coords);
-                }
-            }));
-            return members.map(member => {
-                const memberLastPixels = member.showLastPixel ? lastPixels.get(member.id) : undefined;
-                return {
-                    userId: member.id,
-                    name: member.name,
-                    equippedFlag: member.equippedFlag,
-                    pixelsPainted: member.pixelsPainted,
-                    lastLatitude: memberLastPixels?.latitude,
-                    lastLongitude: memberLastPixels?.longitude
-                };
-            });
-        }
+				const last = await this.prisma.pixel.findFirst({
+					where: { paintedBy: m.id },
+					orderBy: [{ paintedAt: "desc" }, { id: "desc" }],
+					select: { tileX: true, tileY: true, x: true, y: true }
+				});
+				if (last) {
+					const coords = RegionService.pixelsToCoordinates([last.tileX, last.tileY], [last.x, last.y]);
+					lastPixels.set(m.id, coords);
+				}
+			}));
+			return members.map(member => {
+				const memberLastPixels = member.showLastPixel ? lastPixels.get(member.id) : undefined;
+				return {
+					userId: member.id,
+					name: member.name,
+					equippedFlag: member.equippedFlag,
+					pixelsPainted: member.pixelsPainted,
+					lastLatitude: memberLastPixels?.latitude,
+					lastLongitude: memberLastPixels?.longitude
+				};
+			});
+		}
 
-        const pixelCounts = await this.prisma.pixel.groupBy({
-            by: ["paintedBy"],
-            _count: { id: true },
-            where: { ...dateFilter, user: { allianceId: user.allianceId } },
-            orderBy: { _count: { id: "desc" } },
-            take: 50
-        });
+		const pixelCounts = await this.prisma.pixel.groupBy({
+			by: ["paintedBy"],
+			_count: { id: true },
+			where: { ...dateFilter, user: { allianceId: user.allianceId } },
+			orderBy: { _count: { id: "desc" } },
+			take: 50
+		});
 
-        const memberIds = pixelCounts.map(p => p.paintedBy as number);
-        const members = await this.prisma.user.findMany({
-            where: { id: { in: memberIds } },
-            select: {
-                id: true,
-                name: true,
-                equippedFlag: true,
-                showLastPixel: true
-            }
-        });
-        const memberMap = new Map(members.map(m => [m.id, m]));
+		const memberIds = pixelCounts.map(p => p.paintedBy as number);
+		const members = await this.prisma.user.findMany({
+			where: { id: { in: memberIds } },
+			select: {
+				id: true,
+				name: true,
+				equippedFlag: true,
+				showLastPixel: true
+			}
+		});
+		const memberMap = new Map(members.map(m => [m.id, m]));
 
-        const lastPixels = new Map<number, { latitude: number; longitude: number }>();
-        await Promise.all(members.map(async (m) => {
-            if (!m.showLastPixel) {
-                return;
-            }
-            const last = await this.prisma.pixel.findFirst({
-                where: { paintedBy: m.id },
-                orderBy: [{ paintedAt: "desc" }, { id: "desc" }],
-                select: { tileX: true, tileY: true, x: true, y: true }
-            });
-            if (last) {
-                const coords = RegionService.pixelsToCoordinates([last.tileX, last.tileY], [last.x, last.y]);
-                lastPixels.set(m.id, coords);
-            }
-        }));
+		const lastPixels = new Map<number, { latitude: number; longitude: number }>();
+		await Promise.all(members.map(async (m) => {
+			if (!m.showLastPixel) {
+				return;
+			}
+			const last = await this.prisma.pixel.findFirst({
+				where: { paintedBy: m.id },
+				orderBy: [{ paintedAt: "desc" }, { id: "desc" }],
+				select: { tileX: true, tileY: true, x: true, y: true }
+			});
+			if (last) {
+				const coords = RegionService.pixelsToCoordinates([last.tileX, last.tileY], [last.x, last.y]);
+				lastPixels.set(m.id, coords);
+			}
+		}));
 
-        return pixelCounts.map(pc => {
-            const m = memberMap.get(pc.paintedBy as number);
-            const memberLastPixels = m?.showLastPixel ? lastPixels.get(m.id) : undefined;
-            return {
-                userId: m?.id || (pc.paintedBy as number),
-                name: m?.name || "Unknown",
-                equippedFlag: m?.equippedFlag || 0,
-                pixelsPainted: (pc._count?.id as number) || 0,
-                lastLatitude: memberLastPixels?.latitude,
-                lastLongitude: memberLastPixels?.longitude
-            };
-        });
+		return pixelCounts.map(pc => {
+			const m = memberMap.get(pc.paintedBy as number);
+			const memberLastPixels = m?.showLastPixel ? lastPixels.get(m.id) : undefined;
+			return {
+				userId: m?.id || (pc.paintedBy as number),
+				name: m?.name || "Unknown",
+				equippedFlag: m?.equippedFlag || 0,
+				pixelsPainted: (pc._count?.id as number) || 0,
+				lastLatitude: memberLastPixels?.latitude,
+				lastLongitude: memberLastPixels?.longitude
+			};
+		});
 	}
 }

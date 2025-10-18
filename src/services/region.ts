@@ -9,6 +9,8 @@ export interface Region {
 	flagId: number;
 }
 
+const deg2rad = (v: number): number => v * Math.PI / 180;
+
 export class RegionService {
 	constructor(private prisma: PrismaClient) {}
 
@@ -85,15 +87,13 @@ export class RegionService {
 		};
 	}
 
-	private deg2rad(v: number): number { return v * Math.PI / 180; }
-
 	// ref: https://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
 	private getDistanceFromLatLon(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }): number {
-		const R = 6371000;
-		const dLat = this.deg2rad(b.latitude - a.latitude);
-		const dLon = this.deg2rad(b.longitude - a.longitude);
-		const lat1 = this.deg2rad(a.latitude);
-		const lat2 = this.deg2rad(b.latitude);
+		const R = 6_371_000;
+		const dLat = deg2rad(b.latitude - a.latitude);
+		const dLon = deg2rad(b.longitude - a.longitude);
+		const lat1 = deg2rad(a.latitude);
+		const lat2 = deg2rad(b.latitude);
 		const sinDLat = Math.sin(dLat / 2);
 		const sinDLon = Math.sin(dLon / 2);
 		const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon;
@@ -124,6 +124,5 @@ export class RegionService {
 			}
 			delta *= 2;
 		}
-		return undefined;
 	}
 }

@@ -64,7 +64,7 @@ async function makeTicket(req: AuthenticatedRequest, res: Response): Promise<Tic
 		zoom,
 		reason,
 		notes,
-		image: image as Express.Multer.File,
+		image: image as Express.Multer.File
 	});
 }
 
@@ -77,10 +77,10 @@ export default function (app: App) {
 		},
 		fileFilter: (req, file, cb) => {
 			// Chỉ cho phép image files
-			if (file.mimetype.startsWith('image/')) {
+			if (file.mimetype.startsWith("image/")) {
 				cb(null, true);
 			} else {
-				cb(new Error('Only image files are allowed'));
+				cb(new Error("Only image files are allowed"));
 			}
 		}
 	});
