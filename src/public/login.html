@@ -167,21 +167,20 @@
 			if (response.ok) {
 				window.location.href = "/";
 			} else {
-				errorDiv.textContent = data.error || "Login failed";
+				switch (response.status) {
+					case 429:
+						errorDiv.textContent = "Rate limit exceeded";
+						break;
+					case 403:
+						errorDiv.textContent = "You have been banned.";
+						break;
+					default:
+						errorDiv.textContent = data?.error || "Login failed";
+						break;
+				}
 			}
 		} catch (error) {
-		switch (response.status) {
-				case 429:
-					errorDiv.textContent = "Try again in a minute, rate limit exceeded";
-					break;
-				case 403:
-					errorDiv.textContent = "You have been banned.";
-        break;
-    	default:
-        	errorDiv.textContent = "Network error occurred";
-        break;
-		}
-
+			errorDiv.textContent = "Network error occurred";
 		}
 	});
 	</script>
