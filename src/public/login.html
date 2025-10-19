@@ -162,7 +162,6 @@
 				body: JSON.stringify({ username, password })
 			});
 
-			const data = await response.json();
 
 			if (response.ok) {
 				window.location.href = "/";
@@ -175,6 +174,7 @@
 						errorDiv.textContent = "You have been banned.";
 						break;
 					default:
+						const data = await response.json();
 						errorDiv.textContent = data?.error || "Login failed";
 						break;
 				}
