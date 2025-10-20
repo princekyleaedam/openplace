@@ -64,7 +64,7 @@ async function makeTicket(req: AuthenticatedRequest, res: Response): Promise<Tic
 		zoom,
 		reason,
 		notes,
-		image: image as Express.Multer.File
+		image: image as Express.Multer.File,
 	});
 }
 
@@ -75,17 +75,19 @@ export default function (app: App) {
 			fileSize: 10 * 1024 * 1024, // 10MB
 			files: 1
 		},
-		fileFilter: (req, file, cb) => {
+		fileFilter: (_req, file, cb) => {
 			// Chỉ cho phép image files
 			if (file.mimetype.startsWith("image/")) {
 				cb(null, true);
 			} else {
-				cb(new Error("Only image files are allowed"));
+				cb(new Error('Only image files are allowed'));
 			}
 		}
 	});
 
-	app.post("/report-user", authMiddleware, imageUpload.single("image"), async (req: AuthenticatedRequest, res) => {
+	const useMulterSingle = (field: string) => (req: any, res: any, next?: any) => (imageUpload.single(field) as any)(req as any, res as any, next as any);
+
+	app.post("/report-user", authMiddleware, useMulterSingle("image"), async (req: AuthenticatedRequest, res) => {
 		try {
 			const ticket = await makeTicket(req, res);
 			if (!ticket) {
@@ -101,7 +103,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/admin/ban-user", authMiddleware, adminMiddleware, imageUpload.single("image"), async (req: AuthenticatedRequest, res) => {
+	app.post("/admin/ban-user", authMiddleware, adminMiddleware, useMulterSingle("image"), async (req: AuthenticatedRequest, res) => {
 		try {
 			const ticket = await makeTicket(req, res);
 			if (!ticket) {
@@ -119,7 +121,7 @@ export default function (app: App) {
 		}
 	});
 
-	app.post("/moderator/timeout-user", authMiddleware, adminMiddleware, imageUpload.single("image"), async (req: AuthenticatedRequest, res) => {
+	app.post("/moderator/timeout-user", authMiddleware, adminMiddleware, useMulterSingle("image"), async (req: AuthenticatedRequest, res) => {
 		try {
 			const ticket = await makeTicket(req, res);
 			if (!ticket) {

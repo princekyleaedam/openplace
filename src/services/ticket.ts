@@ -37,7 +37,7 @@ export class TicketService {
 				zoom: input.zoom,
 				reason: input.reason,
 				notes: input.notes,
-				image: buffer
+				image: buffer,
 			}
 		});
 	}

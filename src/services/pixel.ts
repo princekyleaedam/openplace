@@ -5,9 +5,9 @@ import { calculateChargeRecharge } from "../utils/charges.js";
 import { Region, RegionService } from "./region.js";
 import { LEVEL_BASE_PIXEL, LEVEL_EXPONENT, LEVEL_UP_DROPLETS_REWARD, LEVEL_UP_MAX_CHARGES_REWARD, PAINTED_DROPLETS_REWARD } from "../config/pixel.js";
 import { AuthService } from "./auth.js";
-import { TicketService } from "./ticket.js";
 import { BanReason } from "../types/index.js";
 import { UserService } from "./user.js";
+import { leaderboardService } from "./leaderboard.js";
 
 export interface PaintPixelsInput {
 	tileX: number;
@@ -46,6 +46,7 @@ export interface PixelInfoResult {
 		allianceId?: number;
 		allianceName?: string;
 		equippedFlag?: number;
+		picture?: string | null;
 	}[];
 	region: Region;
 }
@@ -61,6 +62,8 @@ export class PixelService {
 	private readonly regionService: RegionService;
 	private readonly authService: AuthService;
 	private readonly userService: UserService;
+	private readonly regionCache = new Map<string, { region: Region; timestamp: number }>();
+	private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 	constructor(private prisma: PrismaClient) {
 		this.regionService = new RegionService(prisma);
@@ -71,6 +74,20 @@ export class PixelService {
 		const ctx = canvas.getContext("2d");
 		ctx.clearRect(0, 0, 1000, 1000);
 		this.emptyTile = canvas.toBuffer("image/png");
+
+		// Clean up cache every 10 minutes
+		setInterval(() => {
+			this.cleanupCache();
+		}, 10 * 60 * 1000);
+	}
+
+	private cleanupCache(): void {
+		const now = Date.now();
+		for (const [key, value] of this.regionCache.entries()) {
+			if (now - value.timestamp > this.CACHE_TTL) {
+				this.regionCache.delete(key);
+			}
+		}
 	}
 
 	async getRandomTile(): Promise<RandomTileResult> {
@@ -82,8 +99,8 @@ export class PixelService {
 		if (!maxId) {
 			console.log("Table is empty");
 			return {
-				pixel: { x: 220, y: 873 },
-				tile: { x: 1884, y: 1228 }
+				pixel: { x: 500, y: 500 },
+				tile: { x: 1024, y: 1024 }
 			};
 		}
 
@@ -123,10 +140,11 @@ export class PixelService {
 			if (pixel) {
 				paintedBy.push({
 					id: pixel.user.id,
-					name: pixel.user.name,
+					name: pixel.user.nickname || pixel.user.name,
 					allianceId: pixel.user.allianceId || 0,
 					allianceName: pixel.user.alliance?.name || "",
-					equippedFlag: pixel.user.equippedFlag
+					equippedFlag: pixel.user.equippedFlag,
+					picture: pixel.user.picture
 				});
 			} else {
 				paintedBy.push({
@@ -169,10 +187,11 @@ export class PixelService {
 					if (pixel) {
 						paintedBy.push({
 							id: pixel.user.id,
-							name: pixel.user.name,
+							name: pixel.user.nickname || pixel.user.name,
 							allianceId: pixel.user.allianceId || 0,
 							allianceName: pixel.user.alliance?.name || "",
-							equippedFlag: pixel.user.equippedFlag
+							equippedFlag: pixel.user.equippedFlag,
+							picture: pixel.user.picture
 						});
 					} else {
 						paintedBy.push({
@@ -190,30 +209,18 @@ export class PixelService {
 	}
 
 	async getTileImage(tileX: number, tileY: number, season: number = 0): Promise<{ buffer: Buffer; updatedAt: Date }> {
-		const tile = await this.prisma.tile.findUnique({
-			where: {
-				season_x_y: {
-					season,
-					x: tileX,
-					y: tileY
-				}
-			}
-		});
-
-		if (!tile) {
-			return {
-				buffer: this.emptyTile,
-				updatedAt: new Date(0)
-			};
+		const rows = await this.prisma.$queryRaw<{ imageData: Buffer | null; ts: number | null }[]>(
+			Prisma.sql`SELECT imageData, UNIX_TIMESTAMP(updatedAt) as ts FROM Tile WHERE season = ${season} AND x = ${tileX} AND y = ${tileY} LIMIT 1`
+		);
+		const row = rows[0];
+		if (!row) {
+			return { buffer: this.emptyTile, updatedAt: new Date() };
 		}
-
-		if (tile.imageData) {
-			return {
-				buffer: Buffer.from(tile.imageData),
-				updatedAt: tile.updatedAt
-			};
+		const ts = typeof row.ts === "number" && Number.isFinite(row.ts) ? row.ts : Math.floor(Date.now() / 1000);
+		const updatedAt = new Date(ts * 1000);
+		if (row.imageData) {
+			return { buffer: Buffer.from(row.imageData), updatedAt };
 		}
-
 		return await this.updatePixelTile(tileX, tileY, season);
 	}
 
@@ -269,59 +276,92 @@ export class PixelService {
 	}
 
 	async drawPixelsToTile(pixels: { x: number; y: number; colorId: number }[], tileX: number, tileY: number, season: number = 0): Promise<void> {
-		await this.prisma.$transaction(async (tx) => {
-			const canvas = createCanvas(1000, 1000);
-			const ctx = canvas.getContext("2d");
+		// Process canvas updates in smaller chunks to prevent memory issues
+		const canvasChunkSize = 1000;
 
-			const tiles = await tx.$queryRaw<{ season: number; x: number; y: number; imageData: Buffer }[]>(
-				Prisma.sql`SELECT season, x, y, imageData FROM Tile WHERE season = ${season} AND x = ${tileX} AND y = ${tileY} LIMIT 1 FOR UPDATE`
-			);
-			const tile = tiles[0];
+		if (pixels.length <= canvasChunkSize) {
+			// Small request, process normally
+			await this.processCanvasChunk(pixels, tileX, tileY, season);
+		} else {
+			for (let i = 0; i < pixels.length; i += canvasChunkSize) {
+				const chunk = pixels.slice(i, i + canvasChunkSize);
+				await this.processCanvasChunk(chunk, tileX, tileY, season);
 
-			if (tile?.imageData) {
-				const image = await loadImage(tile.imageData);
-				ctx.drawImage(image, 0, 0);
-			} else {
-				ctx.clearRect(0, 0, 1000, 1000);
+				// Delay between chunks to prevent memory buildup and reduce contention
+				if (i + canvasChunkSize < pixels.length) {
+					await new Promise(resolve => setTimeout(resolve, 50));
+				}
 			}
+		}
+	}
 
-			const imageData = ctx.getImageData(0, 0, 1000, 1000);
-			const data = imageData.data;
+	private async processCanvasChunk(pixels: { x: number; y: number; colorId: number }[], tileX: number, tileY: number, season: number): Promise<void> {
+		let canvas: any = null;
+		let image: any = null;
 
-			for (const pixel of pixels) {
-				const color = COLOR_PALETTE[pixel.colorId];
-				if (!color) continue;
+		try {
+			await this.prisma.$transaction(async (tx) => {
+				canvas = createCanvas(1000, 1000);
+				const ctx = canvas.getContext("2d");
 
-				const [r, g, b] = color.rgb;
-				const a = pixel.colorId === 0 ? 0 : 255;
-				const index = (pixel.y * 1000 + pixel.x) * 4;
-				data[index + 0] = r;
-				data[index + 1] = g;
-				data[index + 2] = b;
-				data[index + 3] = a;
-			}
-			ctx.putImageData(imageData, 0, 0);
+				const tiles = await tx.$queryRaw<{ season: number; x: number; y: number; imageData: Buffer }[]>(
+					Prisma.sql`SELECT season, x, y, imageData FROM Tile WHERE season = ${season} AND x = ${tileX} AND y = ${tileY} LIMIT 1 FOR UPDATE`
+				);
+				const tile = tiles[0];
 
-			const buffer = canvas.toBuffer("image/png");
-			await tx.tile.upsert({
-				where: {
-					season_x_y: {
+				if (tile?.imageData) {
+					image = await loadImage(tile.imageData);
+					ctx.drawImage(image, 0, 0);
+				} else {
+					ctx.clearRect(0, 0, 1000, 1000);
+				}
+
+				const imageData = ctx.getImageData(0, 0, 1000, 1000);
+				const data = imageData.data;
+
+				for (const pixel of pixels) {
+					const color = COLOR_PALETTE[pixel.colorId];
+					if (!color) continue;
+
+					const [r, g, b] = color.rgb;
+					const a = pixel.colorId === 0 ? 0 : 255;
+					const index = (pixel.y * 1000 + pixel.x) * 4;
+					data[index + 0] = r;
+					data[index + 1] = g;
+					data[index + 2] = b;
+					data[index + 3] = a;
+				}
+				ctx.putImageData(imageData, 0, 0);
+
+				const buffer = canvas.toBuffer("image/png");
+				await tx.tile.upsert({
+					where: {
+						season_x_y: {
+							season,
+							x: tileX,
+							y: tileY
+						}
+					},
+					create: {
 						season,
 						x: tileX,
-						y: tileY
+						y: tileY,
+						imageData: buffer
+					},
+					update: {
+						imageData: buffer
 					}
-				},
-				create: {
-					season,
-					x: tileX,
-					y: tileY,
-					imageData: buffer
-				},
-				update: {
-					imageData: buffer
-				}
+				});
 			});
-		});
+		} finally {
+			// Clean up resources to prevent memory leaks
+			if (canvas) {
+				canvas = null;
+			}
+			if (image) {
+				image = null;
+			}
+		}
 	}
 
 	async paintPixels(account: { userId: number; ip: string; country?: string; }, input: PaintPixelsInput, season: number = 0): Promise<PaintPixelsResult> {
@@ -380,8 +420,7 @@ export class PixelService {
 			pairedCoords.push({ x: coords[i], y: coords[i + 1] });
 		}
 
-		const regionCache = new Map<string, Region>();
-		const validPixels: Array<{ x: number; y: number; colorId: number; coordKey: string; region?: Region }> = [];
+		const validPixels: Array<{ x: number; y: number; colorId: number; coordKey: string; region?: Region | undefined }> = [];
 		const uniqueCoords = new Set<string>();
 
 		for (const [i, colorId] of colors.entries()) {
@@ -400,24 +439,41 @@ export class PixelService {
 			});
 		}
 
-		const regionPromises = [...uniqueCoords].map(async (coordKey) => {
-			if (regionCache.has(coordKey)) {
-				return { coordKey, region: regionCache.get(coordKey)! };
-			}
-			const [tileXStr, tileYStr, xStr, yStr] = coordKey.split(",");
-			const region = await this.regionService.getRegionForCoordinates(
-				[Number.parseInt(tileXStr), Number.parseInt(tileYStr)],
-				[Number.parseInt(xStr), Number.parseInt(yStr)]
-			);
-			regionCache.set(coordKey, region);
-			return { coordKey, region };
-		});
+		// Process region lookups with improved caching
+		const regionPromises = [];
+		const coordArray = [...uniqueCoords];
+		const batchSize = 1000;
+
+		for (let i = 0; i < coordArray.length; i += batchSize) {
+			const batch = coordArray.slice(i, i + batchSize);
+			const batchPromises = batch.map(async (coordKey) => {
+				// Check cache first
+				const cached = this.regionCache.get(coordKey);
+				if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+					return { coordKey, region: cached.region };
+				}
+
+				const [tileXStr, tileYStr, xStr, yStr] = coordKey.split(",");
+				if (!tileXStr || !tileYStr || !xStr || !yStr) {
+					throw new Error(`Invalid coordinate key: ${coordKey}`);
+				}
+				const region = await this.regionService.getRegionForCoordinates(
+					[Number.parseInt(tileXStr), Number.parseInt(tileYStr)],
+					[Number.parseInt(xStr), Number.parseInt(yStr)]
+				);
+
+				// Cache the result
+				this.regionCache.set(coordKey, { region, timestamp: Date.now() });
+				return { coordKey, region };
+			});
+			regionPromises.push(...batchPromises);
+		}
 
 		const regionResults = await Promise.all(regionPromises);
 		const regionMap = new Map(regionResults.map(r => [r.coordKey, r.region]));
 
 		for (const pixel of validPixels) {
-			pixel.region = regionMap.get(pixel.coordKey);
+			pixel.region = regionMap.get(pixel.coordKey) ?? undefined;
 			delete (pixel as any).coordKey;
 		}
 
@@ -442,7 +498,7 @@ export class PixelService {
 		// Use insert ignore to avoid race condition when multiple users paint the same tile at the same time
 		await this.prisma.$executeRaw(Prisma.sql`INSERT IGNORE INTO Tile (season, x, y) VALUES (${season}, ${tileX}, ${tileY})`);
 
-		const now = new Date();
+		const paintedAt = new Date();
 
 		if (validPixels.length > 0) {
 			const values = validPixels.map(pixel => ({
@@ -453,26 +509,32 @@ export class PixelService {
 				y: pixel.y,
 				colorId: pixel.colorId,
 				paintedBy: userId,
-				paintedAt: now,
+				paintedAt,
 				regionCityId: pixel.region?.cityId,
 				regionCountryId: pixel.region?.countryId
 			}));
 
-			// Upsert 1000 pixels at a time for performance, and to avoid the limit of prepared statement placeholders
-			for (let i = 0; i < values.length; i += 1000) {
-				const batch = values.slice(i, i + 1000);
+			// Process in smaller batches to avoid memory issues with large requests
+			const dbBatchSize = 500;
+			for (let i = 0; i < values.length; i += dbBatchSize) {
+				const batch = values.slice(i, i + dbBatchSize);
 				await this.prisma.$executeRaw`
-					INSERT INTO Pixel (season, tileX, tileY, x, y, colorId, paintedBy, paintedAt, regionCityId, regionCountryId)
-					VALUES ${Prisma.join(batch.map(v =>
-		Prisma.sql`(${v.season}, ${v.tileX}, ${v.tileY}, ${v.x}, ${v.y}, ${v.colorId}, ${v.paintedBy}, ${v.paintedAt}, ${v.regionCityId}, ${v.regionCountryId})`
-	))}
-					ON DUPLICATE KEY UPDATE
-						colorId = VALUES(colorId),
-						paintedBy = VALUES(paintedBy),
-						paintedAt = VALUES(paintedAt),
-						regionCityId = VALUES(regionCityId),
-						regionCountryId = VALUES(regionCountryId)
-				`;
+				INSERT INTO Pixel (season, tileX, tileY, x, y, colorId, paintedBy, paintedAt, regionCityId, regionCountryId)
+				VALUES ${Prisma.join(batch.map(v =>
+					Prisma.sql`(${v.season}, ${v.tileX}, ${v.tileY}, ${v.x}, ${v.y}, ${v.colorId}, ${v.paintedBy}, ${v.paintedAt}, ${v.regionCityId}, ${v.regionCountryId})`
+				))}
+				ON DUPLICATE KEY UPDATE
+					colorId = VALUES(colorId),
+					paintedBy = VALUES(paintedBy),
+					paintedAt = VALUES(paintedAt),
+					regionCityId = VALUES(regionCityId),
+					regionCountryId = VALUES(regionCountryId)
+			`;
+
+				// Add delay between batches to prevent database overload
+				if (i + dbBatchSize < values.length) {
+					await new Promise(resolve => setTimeout(resolve, 10));
+				}
 			}
 		}
 
@@ -490,47 +552,217 @@ export class PixelService {
 			droplets: painted * PAINTED_DROPLETS_REWARD
 		};
 
-		const newDroplets = user.droplets + levelUpRewards.droplets + paintedRewards.droplets;
-		const newMaxCharges = user.maxCharges + levelUpRewards.maxCharges;
-
-		// Use atomic update with retry to handle deadlock
-		let retries = 3;
+		// Retry logic for handling race conditions and deadlocks
+		let retries = 5;
 		while (retries > 0) {
 			try {
-				await this.prisma.user.update({
-					where: { id: userId },
-					data: {
-						currentCharges: newCharges,
-						pixelsPainted: newPixelsPainted,
-						level: newLevel,
-						droplets: newDroplets,
-						maxCharges: newMaxCharges,
-						chargesLastUpdatedAt: new Date()
+				await this.prisma.$transaction(async (tx) => {
+					// Lock user first, then alliance to prevent deadlock
+					const rows = await tx.$queryRaw<{ id: number; currentCharges: number; maxCharges: number; pixelsPainted: number; level: number; droplets: number }[]>(
+						Prisma.sql`SELECT id, currentCharges, maxCharges, pixelsPainted, level, droplets FROM User WHERE id = ${userId} LIMIT 1 FOR UPDATE`
+					);
+					const u = rows[0];
+					if (!u) return;
+
+					// Update user first
+					await tx.user.update({
+						where: { id: userId },
+						data: {
+							currentCharges: newCharges,
+							pixelsPainted: u.pixelsPainted + painted,
+							level: calculateLevel(u.pixelsPainted + painted),
+							droplets: u.droplets + levelUpRewards.droplets + paintedRewards.droplets,
+							maxCharges: u.maxCharges + levelUpRewards.maxCharges,
+							chargesLastUpdatedAt: new Date()
+						}
+					});
+
+					// Then update alliance if user has one
+					if (user.allianceId) {
+						// Lock alliance to prevent race conditions
+						const allianceRows = await tx.$queryRaw<{ id: number; pixelsPainted: number }[]>(
+							Prisma.sql`SELECT id, pixelsPainted FROM Alliance WHERE id = ${user.allianceId} LIMIT 1 FOR UPDATE`
+						);
+						const alliance = allianceRows[0];
+						if (alliance) {
+							await tx.alliance.update({
+								where: { id: user.allianceId },
+								data: { pixelsPainted: alliance.pixelsPainted + painted }
+							});
+						}
 					}
+				}, {
+					timeout: 10000, // 10 second timeout
+					isolationLevel: 'ReadCommitted' // Use read committed to reduce lock contention
 				});
-				break;
+				break; // Success, exit retry loop
 			} catch (error: any) {
-				if (error.code === "P2034" && retries > 1) {
-					retries--;
-					await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
+				retries--;
+
+				// Check if it's a retryable error (race condition, deadlock, timeout)
+				const isRetryableError = (
+					error.message?.includes("Record has changed since last read") ||
+					error.message?.includes("deadlock") ||
+					error.message?.includes("timeout") ||
+					error.code === 'P2034' ||
+					error.code === 'P2024'
+				);
+
+				if (isRetryableError && retries > 0) {
+					// Exponential backoff with jitter
+					const baseDelay = 100 * Math.pow(2, 5 - retries);
+					const jitter = Math.random() * 50;
+					const delay = Math.min(baseDelay + jitter, 1000);
+
+					console.warn(`[PixelService] Retryable error on attempt ${6 - retries}/5: ${error.message}. Retrying in ${delay}ms`);
+					await new Promise(resolve => setTimeout(resolve, delay));
 					continue;
 				}
+
+				// If it's not a retryable error or no retries left, throw the error
+				console.error(`[PixelService] Non-retryable error or max retries exceeded:`, error);
 				throw error;
 			}
-		}
-
-		if (user.allianceId) {
-			await this.prisma.alliance.update({
-				where: { id: user.allianceId },
-				data: {
-					pixelsPainted: { increment: painted }
-				}
-			});
 		}
 
 		// await this.updatePixelTile(tileX, tileY, season);
 		await this.drawPixelsToTile(validPixels, tileX, tileY, season);
 
+		// Update region stats and invalidate leaderboards for real-time updates
+		if (painted > 0) {
+			// For large pixel counts (>10k), prioritize painting first, then update stats asynchronously
+			if (painted > 10000) {
+				// Update stats asynchronously to avoid blocking user
+				setImmediate(async () => {
+					try {
+						await this.updateRegionStats(userId, validPixels);
+						await this.invalidateRelevantLeaderboards(userId, validPixels);
+					} catch (error) {
+						console.error("Error updating region stats asynchronously:", error);
+					}
+				});
+			} else {
+				// For small pixel counts, update synchronously
+				await this.updateRegionStats(userId, validPixels);
+				await this.invalidateRelevantLeaderboards(userId, validPixels);
+			}
+		}
+
 		return { painted };
+	}
+
+	private async updateRegionStats(userId: number, pixels: any[]): Promise<void> {
+		const user = await this.prisma.user.findUnique({
+			where: { id: userId },
+			select: { allianceId: true }
+		});
+
+		const allianceId = user?.allianceId;
+
+		const regionStatsMap = new Map<string, { regionCityId?: number; regionCountryId?: number; count: number }>();
+
+		for (const pixel of pixels) {
+			if (!pixel.region) continue;
+
+			const key = `${pixel.region.cityId || 'null'}-${pixel.region.countryId || 'null'}`;
+			const existing = regionStatsMap.get(key);
+
+			if (existing) {
+				existing.count++;
+			} else {
+				regionStatsMap.set(key, {
+					regionCityId: pixel.region.cityId,
+					regionCountryId: pixel.region.countryId,
+					count: 1
+				});
+			}
+		}
+
+		// Update UserRegionStats (daily bucket via timePeriod) and UserRegionStatsDaily
+		const today = new Date();
+		const todayDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+		for (const stats of regionStatsMap.values()) {
+			try {
+				// Use raw SQL to handle null values in unique constraint
+				await this.prisma.$executeRaw`
+					INSERT INTO UserRegionStats (userId, regionCityId, regionCountryId, allianceId, timePeriod, pixelsPainted, lastPaintedAt)
+					VALUES (${userId}, ${stats.regionCityId}, ${stats.regionCountryId}, ${allianceId}, ${todayDate}, ${stats.count}, NOW())
+					ON DUPLICATE KEY UPDATE
+					pixelsPainted = pixelsPainted + ${stats.count},
+					lastPaintedAt = NOW()
+				`;
+
+				// Upsert daily table (date column stores midnight date)
+				await this.prisma.$executeRaw`
+					INSERT INTO UserRegionStatsDaily (userId, regionCityId, regionCountryId, allianceId, date, pixelsPainted, lastPaintedAt)
+					VALUES (${userId}, ${stats.regionCityId}, ${stats.regionCountryId}, ${allianceId}, ${todayDate}, ${stats.count}, NOW())
+					ON DUPLICATE KEY UPDATE
+					pixelsPainted = pixelsPainted + ${stats.count},
+					lastPaintedAt = NOW()
+				`;
+			} catch (error) {
+				console.error("Error updating region stats:", error);
+			}
+		}
+	}
+
+	private async invalidateRelevantLeaderboards(_userId: number, pixels: any[]): Promise<void> {
+		const modes: Array<"today" | "week" | "month" | "all-time"> = ["today", "week", "month", "all-time"];
+		const uniqueCityIds = new Set<number>();
+
+		for (const pixel of pixels) {
+			if (pixel.region?.cityId) {
+				uniqueCityIds.add(pixel.region.cityId);
+			}
+		}
+
+		const invalidations: Array<Promise<void>> = [];
+
+		// Invalidate region leaderboards
+		for (const cityId of uniqueCityIds) {
+			for (const mode of modes) {
+				invalidations.push(leaderboardService.invalidateLeaderboard("regionPlayers", mode, cityId));
+				invalidations.push(leaderboardService.invalidateLeaderboard("regionAlliances", mode, cityId));
+			}
+		}
+
+		await Promise.all(invalidations);
+	}
+
+	async updateUserRegionStatsForAllianceChange(userId: number, oldAllianceId: number | null, newAllianceId: number | null): Promise<void> {
+		try {
+			// Get user's existing region stats
+			const existingStats = await this.prisma.userRegionStats.findMany({
+				where: { userId }
+			});
+
+			// Update all existing stats with new alliance
+			for (const stat of existingStats) {
+				// Update existing record with new alliance
+				await this.prisma.$executeRaw`
+					UPDATE UserRegionStats 
+					SET allianceId = ${newAllianceId}
+					WHERE userId = ${stat.userId} 
+					AND regionCityId <=> ${stat.regionCityId}
+					AND regionCountryId <=> ${stat.regionCountryId}
+					AND allianceId <=> ${oldAllianceId}
+					AND timePeriod = ${stat.timePeriod}
+				`;
+
+				// And update table for the same day
+				const dateString = stat.timePeriod.toISOString().split('T')[0] + ' 00:00:00';
+				await this.prisma.$executeRaw`
+					UPDATE UserRegionStatsDaily
+					SET allianceId = ${newAllianceId}
+					WHERE userId = ${stat.userId}
+					AND regionCityId <=> ${stat.regionCityId}
+					AND regionCountryId <=> ${stat.regionCountryId}
+					AND allianceId <=> ${oldAllianceId}
+					AND date = ${dateString}
+				`;
+			}
+		} catch (error) {
+			console.error("Error updating user region stats for alliance change:", error);
+		}
 	}
 }

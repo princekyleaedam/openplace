@@ -8,6 +8,8 @@ import fs from "fs/promises";
 import { UserService } from "../services/user.js";
 import { AuthenticatedRequest, BanReason } from "../types/index.js";
 import { AuthService, AuthToken } from "../services/auth.js";
+import { getRandomUniqueName } from "../utils/unique-name.js";
+import { rateLimiter } from "../services/rate-limiter.js";
 
 const userService = new UserService(prisma);
 const authService = new AuthService(prisma);
@@ -28,9 +30,21 @@ export default function (app: App) {
 					.json({ error: "Username and password required" });
 			}
 
+			// Rate limiting
+			const rateLimit = rateLimiter.checkRateLimit(req.ip!, 5, 300000);
+			if (!rateLimit.allowed) {
+				const timestamp = new Date().toISOString();
+				console.log(`[${timestamp}] Rate limit exceeded for IP ${req.ip}`);
+				return res.status(429)
+					.json({
+						error: "Too many attempts. Please try again later.",
+						retryAfter: Math.ceil((rateLimit.resetTime - Date.now()) / 1000)
+					});
+			}
+
 			if (!UserService.isAcceptableUsername(username)) {
 				return res.status(401)
-					.json({ error: "Invalid username or password" });
+					.json({ error: "Invalid username or password or username contains offensive words" });
 			}
 
 			let user = await prisma.user.findFirst({
@@ -40,8 +54,14 @@ export default function (app: App) {
 			if (user) {
 				const passwordValid = await bcrypt.compare(password, user.passwordHash ?? "");
 				if (!passwordValid) {
+					rateLimiter.recordAttempt(req.ip!, false);
 					return res.status(401)
 						.json({ error: "Invalid username or password" });
+				}
+
+				if (user.role === "deleted") {
+					return res.status(403)
+						.json({ error: "Your account has been deleted. If you believe this is a mistake, please contact the admin for assistance." });
 				}
 
 				if (user.banned) {
@@ -82,6 +102,7 @@ export default function (app: App) {
 				user = await prisma.user.create({
 					data: {
 						name: username,
+						nickname: getRandomUniqueName(),
 						passwordHash,
 						registrationIP: req.ip!,
 						lastIP: req.ip!,
@@ -120,6 +141,7 @@ export default function (app: App) {
 			res.setHeader("Set-Cookie", [
 				`j=${token}; HttpOnly; Path=/; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax`
 			]);
+			rateLimiter.recordAttempt(req.ip!, true);
 			const date = new Date();
 			console.log(`[${date.toISOString()}] [${req.ip}] ${user.name}#${user.id} logged in`);
 			return res.json({ success: true });
@@ -151,4 +173,5 @@ export default function (app: App) {
 				.json({ error: "Internal Server Error" });
 		}
 	});
+
 }

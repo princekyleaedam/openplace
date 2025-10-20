@@ -107,7 +107,7 @@ export default function (app: App) {
 			const season = req.params["season"] as string;
 			const tileX = Number.parseInt(req.params["tileX"] as string);
 			const tileY = Number.parseInt(req.params["tileY"] as string);
-			const { colors, coords } = req.body;
+			const { colors, coords, fp } = req.body;
 
 			const validationError = validatePaintPixels({ season, tileX, tileY, colors, coords });
 			if (validationError) {

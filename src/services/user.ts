@@ -1,11 +1,12 @@
-import { PrismaClient, User } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { calculateChargeRecharge } from "../utils/charges.js";
 import { englishDataset, englishRecommendedTransformers, RegExpMatcher } from "obscenity";
 import { BanReason } from "../types/index.js";
 import { AuthService } from "./auth.js";
+import { ValidationError } from "../utils/error.js";
 
 export interface UpdateUserInput {
-	name?: string;
+	nickname?: string;
 	showLastPixel?: boolean;
 	discord?: string;
 }
@@ -51,7 +52,7 @@ export class UserService {
 				alliance: true,
 				favoriteLocations: true
 			}
-		});
+		}) as any;
 
 		if (!user) {
 			throw new Error("User not found");
@@ -81,7 +82,7 @@ export class UserService {
 		return {
 			...config,
 			id: user.id,
-			name: user.name,
+			name: user.nickname || user.name,
 			discord: user.discord ?? "",
 			country: user.country,
 			banned: user.banned,
@@ -95,7 +96,7 @@ export class UserService {
 			droplets: user.droplets,
 			equippedFlag: user.equippedFlag,
 			extraColorsBitmap: user.extraColorsBitmap,
-			favoriteLocations: user.favoriteLocations.map(loc => ({
+			favoriteLocations: user.favoriteLocations.map((loc: any) => ({
 				id: loc.id,
 				name: loc.name,
 				latitude: loc.latitude,
@@ -114,22 +115,45 @@ export class UserService {
 		};
 	}
 
+	private sanitizeInput(str: string): string {
+		return str.replace(/[<>'"&]/g, (char) => {
+			const escapeMap: Record<string, string> = {
+				"<": "&lt;",
+				">": "&gt;",
+				"'": "&#39;",
+				"\"": "&quot;",
+				"&": "&amp;"
+			};
+			return escapeMap[char] || char;
+		}).trim();
+	}
+
 	async updateUser(userId: number, input: UpdateUserInput) {
-		const { name, showLastPixel, discord } = input;
+		const { nickname, showLastPixel, discord } = input;
 
-		if (name && name.length > 16) {
-			throw new Error("The name has more than 16 characters");
+		if (nickname && nickname.length > 16) {
+			throw new Error("The nickname has more than 16 characters");
 		}
 
-		const updateData: Partial<User> = {};
-		if (name) {
-			updateData.name = name;
+		const updateData: {
+			nickname?: string;
+			showLastPixel?: boolean;
+			discord?: string | null;
+		} = {};
+
+		if (nickname !== undefined) {
+			const sanitized = this.sanitizeInput(nickname);
+			if (sanitized.length === 0) {
+				throw new Error("The nickname cannot be empty");
+			}
+			updateData.nickname = sanitized;
 		}
-		if (showLastPixel) {
+		if (showLastPixel !== undefined) {
 			updateData.showLastPixel = showLastPixel;
 		}
-		if (discord) {
-			updateData.discord = discord;
+		if (discord !== undefined) {
+			const sanitized = this.sanitizeInput(discord);
+			updateData.discord = sanitized.length > 0 ? sanitized : null;
 		}
 
 		await this.prisma.user.update({
@@ -140,15 +164,6 @@ export class UserService {
 		return { success: true };
 	}
 
-	async getProfilePictures(userId: number) {
-		return await this.prisma.profilePicture.findMany({
-			where: { userId },
-			select: {
-				id: true,
-				url: true
-			}
-		});
-	}
 
 	async deleteAccount(userId: number) {
 		const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true } });
@@ -156,22 +171,17 @@ export class UserService {
 			throw new Error("User not found");
 		}
 		await this.prisma.$transaction([
+			// this.prisma.pixel.deleteMany({ where: { user: { id: userId } } }), // kinda sus
+			// this.prisma.userFingerprint.deleteMany({ where: { userId } }), // xD
+			// this.prisma.userRegionStats.deleteMany({ where: { userId } }),
+			// this.prisma.userRegionStatsDaily.deleteMany({ where: { userId } }),
 			this.prisma.profilePicture.deleteMany({ where: { userId } }),
 			this.prisma.session.deleteMany({ where: { userId } }),
 			this.prisma.user.update({
 				where: { id: userId },
 				data: {
-					name: "Deleted Account",
+					nickname: 'Delete Account',
 					role: "deleted",
-					email: null,
-					passwordHash: "",
-					discord: null,
-					picture: null,
-					allianceId: null,
-					allianceRole: "member",
-					equippedFlag: 0,
-					flagsBitmap: null,
-					showLastPixel: false
 				}
 			})
 		]);
@@ -181,17 +191,50 @@ export class UserService {
 	async getUserName(userId: number) {
 		const user = await this.prisma.user.findUnique({
 			where: { id: userId },
-			select: { name: true }
+			select: { name: true, nickname: true }
 		});
 
-		return user?.name ?? null;
+		return (user?.nickname || user?.name) ?? null;
+	}
+
+	async getNickname(userId: number) {
+		const user = await this.prisma.user.findUnique({
+			where: { id: userId },
+			select: { nickname: true }
+		});
+
+		return user?.nickname ?? null;
 	}
 
 	async setLastIP(userId: number, ip: string) {
-		await this.prisma.user.update({
-			where: { id: userId },
-			data: { lastIP: ip }
-		});
+		let retries = 3;
+		while (retries > 0) {
+			try {
+				await this.prisma.$transaction(async (tx) => {
+					await tx.$queryRaw`SELECT id FROM User WHERE id = ${userId} LIMIT 1 FOR UPDATE`;
+					await tx.user.update({ where: { id: userId }, data: { lastIP: ip } });
+				}, {
+					timeout: 5000,
+					isolationLevel: 'ReadCommitted'
+				});
+				break;
+			} catch (error: any) {
+				retries--;
+				const isRetryableError = (
+					error.message?.includes("deadlock") ||
+					error.message?.includes("timeout") ||
+					error.code === 'P2034' ||
+					error.code === 'P2024'
+				);
+
+				if (isRetryableError && retries > 0) {
+					const delay = 100 * Math.pow(2, 3 - retries) + Math.random() * 50;
+					await new Promise(resolve => setTimeout(resolve, delay));
+					continue;
+				}
+				throw error;
+			}
+		}
 	}
 
 	async ban(userId: number, state: boolean, reason: BanReason | null, isRecursive: boolean = false) {
@@ -222,5 +265,151 @@ export class UserService {
 				timeoutUntil
 			}
 		});
+	}
+
+	async updateProfilePicture(userId: number, pictureUrl: string) {
+		if (!pictureUrl || typeof pictureUrl !== "string") {
+			throw new ValidationError("Invalid picture URL");
+		}
+
+		// Validate URL length (prevent extremely long URLs)
+		if (pictureUrl.length > 100000) { // ~100KB limit for data URL
+			throw new ValidationError("Picture URL too long");
+		}
+
+		// Validate URL format - support both HTTP URLs and data URLs
+		try {
+			// Check if it's a data URL
+			if (pictureUrl.startsWith('data:')) {
+				// Validate data URL format: data:[<mediatype>][;base64],<data>
+				if (!pictureUrl.includes(',') || pictureUrl.length < 10) {
+					throw new ValidationError("Invalid data URL format");
+				}
+
+				// Check if data URL is complete (not truncated)
+				const parts = pictureUrl.split(',');
+				if (parts.length !== 2) {
+					throw new ValidationError("Invalid data URL format - missing data part");
+				}
+
+				// Validate MIME type in data URL
+				const header = parts[0];
+				if (!header) {
+					throw new ValidationError("Invalid data URL format - missing header");
+				}
+				const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+				const hasValidMimeType = allowedMimeTypes.some(mimeType => header.includes(mimeType));
+				if (!hasValidMimeType) {
+					throw new ValidationError("Invalid image type in data URL");
+				}
+
+				// Check if base64 data is valid
+				const base64Data = parts[1];
+				if (!base64Data || base64Data.length === 0) {
+					throw new ValidationError("Invalid data URL format - empty data");
+				}
+
+				// Validate base64 content
+				const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+				if (!base64Regex.test(base64Data)) {
+					throw new ValidationError("Invalid base64 data in URL");
+				}
+			} else {
+				// Validate HTTP/HTTPS URL
+				const url = new URL(pictureUrl);
+				if (!['http:', 'https:'].includes(url.protocol)) {
+					throw new ValidationError("Only HTTP/HTTPS URLs are allowed");
+				}
+
+				// Basic domain validation (optional - can be enhanced)
+				if (url.hostname.includes('localhost') || url.hostname.includes('127.0.0.1')) {
+					throw new ValidationError("Local URLs are not allowed");
+				}
+			}
+		} catch (error) {
+			if (error instanceof ValidationError) {
+				throw error;
+			}
+			throw new ValidationError("Invalid URL format");
+		}
+
+		// Use transaction to ensure atomicity
+		const result = await this.prisma.$transaction(async (tx) => {
+			// Create profile picture
+			const profilePicture = await tx.profilePicture.create({
+				data: {
+					userId,
+					url: pictureUrl
+				}
+			});
+			// -20k bitcoin
+			await tx.user.update({
+				where: { id: userId },
+				data: {
+					picture: pictureUrl,
+					droplets: {
+						decrement: 20000
+					}
+				}
+			});
+
+			return { success: true, pictureId: profilePicture.id };
+		});
+
+		return result;
+	}
+
+	async changeProfilePicture(userId: number, pictureId: number | null) {
+		if (pictureId === null) {
+			// Set empty profile picture
+			await this.prisma.user.update({
+				where: { id: userId },
+				data: {
+					picture: null
+				}
+			});
+			return { success: true };
+		}
+
+		const profilePicture = await this.prisma.profilePicture.findFirst({
+			where: {
+				id: pictureId,
+				userId
+			}
+		});
+
+		if (!profilePicture) {
+			throw new ValidationError("Profile picture not found or access denied");
+		}
+
+		await this.prisma.user.update({
+			where: { id: userId },
+			data: {
+				picture: profilePicture.url
+			}
+		});
+
+		return { success: true };
+	}
+
+	async getProfilePictures(userId: number) {
+		const pictures = await this.prisma.profilePicture.findMany({
+			where: { userId },
+			orderBy: { id: "desc" },
+			select: {
+				id: true,
+				url: true
+			}
+		});
+
+		return pictures;
+	}
+
+	async logoutFromAllDevices(userId: number) {
+		await this.prisma.session.deleteMany({
+			where: { userId }
+		});
+
+		return { success: true };
 	}
 }

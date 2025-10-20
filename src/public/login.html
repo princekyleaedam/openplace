@@ -162,25 +162,26 @@
 				body: JSON.stringify({ username, password })
 			});
 
+			const data = await response.json();
 
 			if (response.ok) {
 				window.location.href = "/";
 			} else {
-				switch (response.status) {
-					case 429:
-						errorDiv.textContent = "Rate limit exceeded";
-						break;
-					case 403:
-						errorDiv.textContent = "You have been banned.";
-						break;
-					default:
-						const data = await response.json();
-						errorDiv.textContent = data?.error || "Login failed";
-						break;
-				}
+				errorDiv.textContent = data.error || "Login failed";
 			}
 		} catch (error) {
-			errorDiv.textContent = "Network error occurred";
+		switch (response.status) {
+				case 429:
+					errorDiv.textContent = "Try again in a minute, rate limit exceeded";
+					break;
+				case 403:
+					errorDiv.textContent = "You have been banned.";
+        break;
+    	default:
+        	errorDiv.textContent = "Network error occurred";
+        break;
+		}
+
 		}
 	});
 	</script>

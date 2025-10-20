@@ -39,8 +39,9 @@ const userService = new UserService(prisma);
 export default function (app: App) {
 	app.get("/admin/users", authMiddleware, adminMiddleware, async (req, res) => {
 		try {
-			const id = Number.parseInt(req.query["id"] as string ?? "") || 0;
-			if (Number.isNaN(id) || id <= 0) {
+			const idStr = req.query["id"] as string ?? "";
+			const id = Number.parseInt(idStr);
+			if (!Number.isInteger(id) || id <= 0 || id > Number.MAX_SAFE_INTEGER) {
 				return res.status(400)
 					.json({ error: "Bad Request", status: 400 });
 			}
@@ -82,7 +83,7 @@ export default function (app: App) {
 				.json({
 					userId: user.id,
 					id: user.id,
-					name: user.name,
+					name: user.nickname || user.name,
 					droplets: user.droplets,
 					picture: user.picture,
 					role: user.role,
@@ -135,7 +136,7 @@ export default function (app: App) {
 						author: {
 							role: note.user.role,
 							id: note.user.id,
-							name: note.user.name
+							name: note.user.nickname || note.user.name
 						},
 						note: note.content,
 						createdAt: note.createdAt
@@ -196,7 +197,7 @@ export default function (app: App) {
 				return res.status(404)
 					.json({ error: "User not found", status: 404 });
 			}
-			
+
 			// TODO: Rewrite this to use the new ticket service
 			const [
 				globalClosedTotal,
@@ -309,7 +310,7 @@ export default function (app: App) {
 			const resolved = req.path === "/admin/closed-tickets" || req.path === "/admin/closed-reports"; // TODO: Check if closed-reports is correct
 			const startDate = req.query["start"] as string;
 			const endDate = req.query["end"] as string;
-			
+
 			if (resolved && startDate && endDate) {
 				let dateFilter = {};
 				if (startDate && endDate) {
@@ -328,6 +329,7 @@ export default function (app: App) {
 					select: {
 						id: true,
 						name: true,
+						nickname: true,
 						role: true
 					}
 				});
@@ -373,7 +375,7 @@ export default function (app: App) {
 					return {
 						user: {
 							id: mod.id,
-							name: mod.name,
+							name: mod.nickname || mod.name,
 							role: mod.role
 						},
 						total,
@@ -401,6 +403,7 @@ export default function (app: App) {
 				select: {
 					id: true,
 					name: true,
+					nickname: true,
 					discord: true,
 					country: true,
 					banned: true
@@ -425,12 +428,12 @@ export default function (app: App) {
 					id: userId,
 					reportedUser: reportedUser
 						? {
-								id: reportedUser.id,
-								name: reportedUser.name,
-								discord: reportedUser.discord || "",
-								country: reportedUser.country,
-								banned: reportedUser.banned
-							}
+							id: reportedUser.id,
+							name: reportedUser.nickname || reportedUser.name,
+							discord: reportedUser.discord || "",
+							country: reportedUser.country,
+							banned: reportedUser.banned
+						}
 						: null,
 					createdAt: userTickets[0]?.createdAt,
 					reports: userTickets.map(ticket => ({
@@ -626,7 +629,7 @@ export default function (app: App) {
 				...alliance,
 				membersCount: alliance.members?.length || 0,
 				ownerId: owner?.id,
-				ownerName: owner?.name
+				ownerName: owner?.nickname || owner?.name
 			};
 
 			return res.status(200)
@@ -728,7 +731,6 @@ export default function (app: App) {
 				.json({ error: "Internal Server Error", status: 500 });
 		}
 	});
-
 
 	app.get("/admin", authMiddleware, adminMiddleware, async (_req, res) => {
 		const html = await fs.readFile("./frontend/admin.html", "utf8");
