@@ -680,7 +680,7 @@ export class PixelService {
 
 		// Update UserRegionStats (daily bucket via timePeriod) and UserRegionStatsDaily
 		const today = new Date();
-		const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+		const todayDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
 		for (const stats of regionStatsMap.values()) {
 			try {
 				// Use raw SQL to handle null values in unique constraint
@@ -749,7 +749,7 @@ export class PixelService {
 					AND timePeriod = ${stat.timePeriod}
 				`;
 
-				// And update daily table for the same day
+				// And update table for the same day
 				const dateString = stat.timePeriod.toISOString().split('T')[0] + ' 00:00:00';
 				await this.prisma.$executeRaw`
 					UPDATE UserRegionStatsDaily
