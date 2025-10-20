@@ -76,7 +76,7 @@ Edit `.env` and replace `root:password` with your MariaDB root password and chan
 ## 6. Setup Prisma and database
 
 ```powershell
-npx prisma generate
+npm run db:generate
 npm run setup
 ```
 
