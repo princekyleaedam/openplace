@@ -53,8 +53,7 @@ export default function (app: App) {
 			if (typeof amount !== 'number' || 
 				!Number.isFinite(amount) || 
 				!Number.isInteger(amount) || 
-				amount < 1 || 
-				amount > 1000) {
+				amount < 1) {
 				console.warn(`[${new Date().toISOString()}] Invalid purchase amount from ${req.ip}:`, amount);
 				return res.status(400)
 					.json({ error: "Bad Request", status: 400 });
@@ -190,3 +189,4 @@ export default function (app: App) {
 		}
 	});
 }
+
