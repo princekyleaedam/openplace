@@ -738,46 +738,28 @@ export class PixelService {
 
 			// Update all existing stats with new alliance
 			for (const stat of existingStats) {
-				// Create or update record with new alliance using raw SQL (preserve timePeriod)
+				// Update existing record with new alliance
 				await this.prisma.$executeRaw`
-					INSERT INTO UserRegionStats (userId, regionCityId, regionCountryId, allianceId, timePeriod, pixelsPainted, lastPaintedAt)
-					VALUES (${stat.userId}, ${stat.regionCityId}, ${stat.regionCountryId}, ${newAllianceId}, ${stat.timePeriod}, ${stat.pixelsPainted}, ${stat.lastPaintedAt})
-					ON DUPLICATE KEY UPDATE
-					pixelsPainted = VALUES(pixelsPainted),
-					lastPaintedAt = VALUES(lastPaintedAt)
+					UPDATE UserRegionStats 
+					SET allianceId = ${newAllianceId}
+					WHERE userId = ${stat.userId} 
+					AND regionCityId <=> ${stat.regionCityId}
+					AND regionCountryId <=> ${stat.regionCountryId}
+					AND allianceId <=> ${oldAllianceId}
+					AND timePeriod = ${stat.timePeriod}
 				`;
 
 				// And update daily table for the same day
 				const dateString = stat.timePeriod.toISOString().split('T')[0] + ' 00:00:00';
 				await this.prisma.$executeRaw`
-					INSERT INTO UserRegionStatsDaily (userId, regionCityId, regionCountryId, allianceId, date, pixelsPainted, lastPaintedAt)
-					VALUES (${stat.userId}, ${stat.regionCityId}, ${stat.regionCountryId}, ${newAllianceId}, ${dateString}, ${stat.pixelsPainted}, ${stat.lastPaintedAt})
-					ON DUPLICATE KEY UPDATE
-					pixelsPainted = VALUES(pixelsPainted),
-					lastPaintedAt = VALUES(lastPaintedAt)
+					UPDATE UserRegionStatsDaily
+					SET allianceId = ${newAllianceId}
+					WHERE userId = ${stat.userId}
+					AND regionCityId <=> ${stat.regionCityId}
+					AND regionCountryId <=> ${stat.regionCountryId}
+					AND allianceId <=> ${oldAllianceId}
+					AND date = ${dateString}
 				`;
-
-				// Delete old record if alliance changed
-				if (oldAllianceId !== newAllianceId) {
-					await this.prisma.$executeRaw`
-						DELETE FROM UserRegionStats 
-						WHERE userId = ${stat.userId} 
-						AND regionCityId <=> ${stat.regionCityId}
-						AND regionCountryId <=> ${stat.regionCountryId}
-						AND allianceId <=> ${oldAllianceId}
-						AND timePeriod = ${stat.timePeriod}
-					`;
-
-					const deleteDateString = stat.timePeriod.toISOString().split('T')[0] + ' 00:00:00';
-					await this.prisma.$executeRaw`
-						DELETE FROM UserRegionStatsDaily
-						WHERE userId = ${stat.userId}
-						AND regionCityId <=> ${stat.regionCityId}
-						AND regionCountryId <=> ${stat.regionCountryId}
-						AND allianceId <=> ${oldAllianceId}
-						AND date = ${deleteDateString}
-					`;
-				}
 			}
 		} catch (error) {
 			console.error("Error updating user region stats for alliance change:", error);
