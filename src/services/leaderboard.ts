@@ -754,15 +754,19 @@ export class LeaderboardService {
 
 		switch (mode) {
 			case "today": {
-				const startOfDay = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+				const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+				startOfDay.setHours(0, 0, 0, 0);
 				return { paintedAt: { gte: startOfDay } };
 			}
 			case "week": {
-				const startOfWeek = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - 7));
+				const startOfWeek = new Date(now);
+				startOfWeek.setDate(now.getDate() - 7);
+				startOfWeek.setHours(0, 0, 0, 0);
 				return { paintedAt: { gte: startOfWeek } };
 			}
 			case "month": {
-				const startOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+				const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+				startOfMonth.setHours(0, 0, 0, 0);
 				return { paintedAt: { gte: startOfMonth } };
 			}
 			case "all-time":
@@ -1105,3 +1109,4 @@ export class LeaderboardService {
 }
 
 export const leaderboardService = new LeaderboardService();
+
