@@ -61,7 +61,7 @@ Update the `.env` file with your chosen MySQL password.
 
 Run the following Prisma commands:
 ```bash
-npx prisma generate
+npm run db:generate
 npm run setup
 ```
 
