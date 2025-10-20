@@ -680,7 +680,7 @@ export class PixelService {
 
 		// Update UserRegionStats (daily bucket via timePeriod) and UserRegionStatsDaily
 		const today = new Date();
-		const todayDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+		const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 		for (const stats of regionStatsMap.values()) {
 			try {
 				// Use raw SQL to handle null values in unique constraint
@@ -766,3 +766,4 @@ export class PixelService {
 		}
 	}
 }
+
