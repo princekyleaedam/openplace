@@ -14,6 +14,7 @@ model User {
   registrationIP         String?
   lastIP                 String?
   discord                String?
+  nickname               String?
   country                String
   email                  String?            @unique
   passwordHash           String
@@ -34,10 +35,11 @@ model User {
   equippedFlag           Int                @default(0)
   showLastPixel          Boolean            @default(true)
   maxFavoriteLocations   Int                @default(15)
-  picture                String?
+  picture                String?            @db.Text
   level                  Float              @default(1)
   allianceId             Int?
   allianceRole           String             @default("member")
+  allianceJoinedAt       DateTime?
   alliance               Alliance?          @relation(fields: [allianceId], references: [id])
   paintedPixels          Pixel[]
   favoriteLocations      FavoriteLocation[]
@@ -47,6 +49,8 @@ model User {
   moderatedTickets       Ticket[]           @relation("TicketModeratorUser")
   createdNotes           UserNote[]         @relation("UserNoteUser")
   reportedNotes          UserNote[]         @relation("UserNoteReportedUser")
+  regionStats            UserRegionStats[]
+  regionStatsDaily       UserRegionStatsDaily[]
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
 
@@ -146,12 +150,7 @@ model Pixel {
 
   @@unique([season, tileX, tileY, x, y])
   @@index([season, tileX, tileY])
-  @@index([regionCityId])
-  @@index([regionCountryId])
-  @@index([paintedAt])
   @@index([paintedBy, paintedAt])
-  @@index([paintedAt, regionCityId])
-  @@index([paintedAt, regionCountryId])
 }
 
 model Region {
@@ -171,7 +170,7 @@ model Region {
 model ProfilePicture {
   id     Int    @id @default(autoincrement())
   userId Int
-  url    String
+  url    String @db.Text
 }
 
 model Session {
@@ -210,4 +209,57 @@ model UserNote {
   content        String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model LeaderboardView {
+  id            Int      @id @default(autoincrement())
+  type          String
+  mode          String
+  entityId      Int?
+  regionId      Int?
+  rank          Int
+  pixelsPainted Int
+  lastUpdated   DateTime @default(now()) @updatedAt
+
+  @@unique([type, mode, entityId, regionId])
+  @@index([type, mode, rank])
+  @@index([type, mode, pixelsPainted])
+  @@index([type, mode, regionId])
+}
+
+model UserRegionStats {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+  regionCityId    Int?
+  regionCountryId Int?
+  allianceId      Int?
+  timePeriod      DateTime
+  pixelsPainted   Int      @default(0)
+  lastPaintedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([userId, regionCityId, regionCountryId, allianceId, timePeriod])
+  @@index([userId])
+  @@index([regionCityId])
+  @@index([regionCountryId])
+  @@index([allianceId])
+  @@index([regionCityId, userId])
+  @@index([regionCityId, allianceId])
+}
+
+model UserRegionStatsDaily {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+  regionCityId    Int?
+  regionCountryId Int?
+  allianceId      Int?
+  date            DateTime
+  pixelsPainted   Int      @default(0)
+  lastPaintedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([userId, regionCityId, regionCountryId, allianceId, date])
+  @@index([regionCityId, date, pixelsPainted, userId])
+  @@index([regionCityId, date, pixelsPainted, allianceId])
+  @@index([regionCountryId, date, pixelsPainted])
 }
