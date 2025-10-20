@@ -29,11 +29,25 @@ const moderatorMiddleware = async (req: AuthenticatedRequest, res: Response, nex
 const pixelService = new PixelService(prisma);
 const ticketService = new TicketService(prisma);
 
+
 // TODO: Split this up further. Just ignoring so I can actually read this file without zigzags for now
 // eslint-disable-next-line max-lines-per-function
 export default function (app: App) {
-	app.get("/moderator/tickets", authMiddleware, moderatorMiddleware, async (_req, res) => {
+	app.get("/moderator/tickets", authMiddleware, moderatorMiddleware, async (req, res) => {
 		try {
+			const page = parseInt(req.query['page'] as string) || 1;
+			const limit = parseInt(req.query['limit'] as string) || 20;
+
+			// Validate pagination parameters
+			if (!Number.isInteger(page) || page < 1 || page > 10000) {
+				return res.status(400).json({ error: "Bad Request", status: 400 });
+			}
+			if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+				return res.status(400).json({ error: "Bad Request", status: 400 });
+			}
+
+			const offset = (page - 1) * limit;
+
 			const tickets = await prisma.ticket.findMany({
 				where: {
 					resolution: null
@@ -41,6 +55,8 @@ export default function (app: App) {
 				orderBy: {
 					createdAt: "desc"
 				},
+				skip: offset,
+				take: limit,
 				select: {
 					id: true,
 					latitude: true,
@@ -56,6 +72,7 @@ export default function (app: App) {
 						select: {
 							id: true,
 							name: true,
+							nickname: true,
 							discord: true,
 							country: true,
 							banned: true,
@@ -67,6 +84,7 @@ export default function (app: App) {
 						select: {
 							id: true,
 							name: true,
+							nickname: true,
 							discord: true,
 							country: true,
 							banned: true,
@@ -79,49 +97,134 @@ export default function (app: App) {
 				}
 			});
 
-			const formattedTickets = await Promise.all(tickets.map(async (ticket) => {
+			const userIds = [...new Set([
+				...tickets.map(t => t.user.id),
+				...tickets.map(t => t.reportedUser.id)
+			])];
+
+			const [reportedCounts, timeoutCounts, pixelsCounts, authorReportedCounts, authorPixelsCounts, sameIpData] = await Promise.all([
+				prisma.ticket.groupBy({
+					by: ['reportedUserId'],
+					_count: { id: true },
+					where: { reportedUserId: { in: userIds } }
+				}),
+				prisma.ticket.groupBy({
+					by: ['reportedUserId'],
+					_count: { id: true },
+					where: { reportedUserId: { in: userIds }, resolution: "Timeout" }
+				}),
+				prisma.pixel.groupBy({
+					by: ['paintedBy'],
+					_count: { id: true },
+					where: { paintedBy: { in: userIds } }
+				}),
+				prisma.ticket.groupBy({
+					by: ['userId'],
+					_count: { id: true },
+					where: { userId: { in: userIds } }
+				}),
+				prisma.pixel.groupBy({
+					by: ['paintedBy'],
+					_count: { id: true },
+					where: { paintedBy: { in: userIds } }
+				}),
+				prisma.user.findMany({
+					where: { id: { in: userIds } },
+					select: { id: true, lastIP: true, registrationIP: true }
+				})
+			]);
+
+			const reportedCountMap = new Map(reportedCounts.map(r => [r.reportedUserId, r._count.id]));
+			const timeoutCountMap = new Map(timeoutCounts.map(t => [t.reportedUserId, t._count.id]));
+			const pixelsCountMap = new Map(pixelsCounts.map(p => [p.paintedBy, p._count.id]));
+			const authorReportedCountMap = new Map(authorReportedCounts.map(a => [a.userId, a._count.id]));
+			const authorPixelsCountMap = new Map(authorPixelsCounts.map(a => [a.paintedBy, a._count.id]));
+
+			const sameIpCountMap = new Map<number, number>();
+			const allIps = new Set<string>();
+			const userIpMap = new Map<number, string[]>();
+
+			for (const user of sameIpData) {
+				const ips: string[] = [];
+				if (user.lastIP) {
+					ips.push(user.lastIP);
+					allIps.add(user.lastIP);
+				}
+				if (user.registrationIP) {
+					ips.push(user.registrationIP);
+					allIps.add(user.registrationIP);
+				}
+				userIpMap.set(user.id, ips);
+			}
+
+			if (allIps.size > 0) {
+				const sameIpUsers = await prisma.user.findMany({
+					where: {
+						id: { notIn: userIds },
+						OR: [
+							{ lastIP: { in: Array.from(allIps) } },
+							{ registrationIP: { in: Array.from(allIps) } }
+						]
+					},
+					select: { id: true, lastIP: true, registrationIP: true }
+				});
+
+				for (const user of sameIpData) {
+					const userIps = userIpMap.get(user.id) || [];
+					const count = sameIpUsers.filter(otherUser =>
+						userIps.includes(otherUser.lastIP || '') ||
+						userIps.includes(otherUser.registrationIP || '')
+					).length;
+					sameIpCountMap.set(user.id, count);
+				}
+			} else {
+				for (const user of sameIpData) {
+					sameIpCountMap.set(user.id, 0);
+				}
+			}
+
+
+			const formattedTickets = tickets.map((ticket) => {
 				const reportedUser = ticket.reportedUser;
 				const author = ticket.user;
 
-				const reportedCount = await prisma.ticket.count({ where: { reportedUserId: reportedUser.id } });
-				const timeoutCount = await prisma.ticket.count({ where: { reportedUserId: reportedUser.id, resolution: "Timeout" } });
-				const pixelsPainted = await prisma.pixel.count({ where: { user: { id: reportedUser.id } } });
+				const reportedCount = reportedCountMap.get(reportedUser.id) || 0;
+				const timeoutCount = timeoutCountMap.get(reportedUser.id) || 0;
+				const pixelsPainted = pixelsCountMap.get(reportedUser.id) || 0;
+				const authorReportedCount = authorReportedCountMap.get(author.id) || 0;
+				const authorPixelsPainted = authorPixelsCountMap.get(author.id) || 0;
 
-				let sameIpAccounts = 0;
-				if (reportedUser.lastIP) {
-					sameIpAccounts = await prisma.user.count({ where: { lastIP: reportedUser.lastIP, id: { not: reportedUser.id } } });
-				} else if (reportedUser.registrationIP) {
-					sameIpAccounts = await prisma.user.count({ where: { registrationIP: reportedUser.registrationIP, id: { not: reportedUser.id } } });
-				}
+				const sameIpAccounts = sameIpCountMap.get(reportedUser.id) || 0;
+
 				return {
 					id: ticket.id,
 					author: author
 						? {
-								userId: author.id,
-								name: author.name,
-								discord: author.discord,
-								country: author.country,
-								banned: author.banned,
-								role: author.role,
-								reportedCount: await prisma.ticket.count({ where: { userId: author.id } }),
-								pixelsPainted: await prisma.pixel.count({ where: { user: { id: author.id } } })
-							}
+							userId: author.id,
+							name: author.nickname || author.name,
+							discord: author.discord,
+							country: author.country,
+							banned: author.banned,
+							role: author.role,
+							reportedCount: authorReportedCount,
+							pixelsPainted: authorPixelsPainted
+						}
 						: null,
 					reportedUser: reportedUser
 						? {
-								userId: reportedUser.id,
-								id: reportedUser.id,
-								name: reportedUser.name,
-								discord: reportedUser.discord,
-								country: reportedUser.country,
-								banned: reportedUser.banned,
-								role: reportedUser.role,
-								picture: reportedUser.picture,
-								reportedCount,
-								timeoutCount,
-								pixelsPainted,
-								lastTimeoutReason: null
-							}
+							userId: reportedUser.id,
+							id: reportedUser.id,
+							name: reportedUser.nickname || reportedUser.name,
+							discord: reportedUser.discord,
+							country: reportedUser.country,
+							banned: reportedUser.banned,
+							role: reportedUser.role,
+							picture: reportedUser.picture,
+							reportedCount,
+							timeoutCount,
+							pixelsPainted,
+							lastTimeoutReason: null
+						}
 						: null,
 					createdAt: ticket.createdAt,
 					reports: [
@@ -132,17 +235,10 @@ export default function (app: App) {
 							zoom: ticket.zoom,
 							reason: ticket.reason,
 							notes: ticket.notes,
-							// image: ticket.image
-							// 	? Buffer.from(ticket.image)
-							// 		.toString("base64")
-							// 	: "",
-							imageUrl: `data:image/jpeg;base64,${ticket.image
-								? Buffer.from(ticket.image)
-									.toString("base64")
-								: ""}`,
+							imageUrl: ticket.image ? `data:image/jpeg;base64,${Buffer.from(ticket.image).toString("base64")}` : "",
 							createdAt: ticket.createdAt,
 							userId: reportedUser.id,
-							reportedByName: author.name,
+							reportedByName: author.nickname || author.name,
 							reportedByPicture: author.picture,
 							reportedBy: author.id,
 							reportedCount,
@@ -155,10 +251,21 @@ export default function (app: App) {
 						}
 					]
 				};
-			}));
+			});
+
+			const totalCount = await prisma.ticket.count({ where: { resolution: null } });
 
 			return res.status(200)
-				.json({ tickets: formattedTickets, status: 200 });
+				.json({
+					tickets: formattedTickets,
+					pagination: {
+						page,
+						limit,
+						total: totalCount,
+						totalPages: Math.ceil(totalCount / limit)
+					},
+					status: 200
+				});
 		} catch (error) {
 			console.error("Error fetching moderator tickets:", error);
 			return res.status(500)
@@ -178,6 +285,7 @@ export default function (app: App) {
 				select: {
 					id: true,
 					name: true,
+					nickname: true,
 					discord: true,
 					country: true,
 					banned: true,
@@ -190,7 +298,7 @@ export default function (app: App) {
 				users: users.map(user => ({
 					userId: user.id,
 					id: user.id,
-					name: user.name,
+					name: user.nickname || user.name,
 					banned: user.banned,
 					picture: user.picture
 				}))
@@ -215,6 +323,7 @@ export default function (app: App) {
 				select: {
 					id: true,
 					name: true,
+					nickname: true,
 					discord: true,
 					country: true,
 					banned: true
@@ -245,21 +354,21 @@ export default function (app: App) {
 					id: userId,
 					author: author
 						? {
-								id: author.id,
-								name: author.name,
-								discord: author.discord || "",
-								country: author.country,
-								banned: author.banned
-							}
+							id: author.id,
+							name: author.nickname || author.name,
+							discord: author.discord || "",
+							country: author.country,
+							banned: author.banned
+						}
 						: null,
 					reportedUser: reportedUser
 						? {
-								id: reportedUser.id,
-								name: reportedUser.name,
-								discord: reportedUser.discord || "",
-								country: reportedUser.country,
-								banned: reportedUser.banned
-							}
+							id: reportedUser.id,
+							name: reportedUser.nickname || reportedUser.name,
+							discord: reportedUser.discord || "",
+							country: reportedUser.country,
+							banned: reportedUser.banned
+						}
 						: null,
 					createdAt: ticket.createdAt,
 					reports: [ticket].map(ticket => ({
@@ -341,15 +450,15 @@ export default function (app: App) {
 
 			let resolution: TicketResolution | null = null;
 			switch (status) {
-			case "ignore":
-				resolution = TicketResolution.Ignore;
-				break;
-			case "timeout":
-				resolution = TicketResolution.Timeout;
-				break;
-			case "ban":
-				resolution = TicketResolution.Ban;
-				break;
+				case "ignore":
+					resolution = TicketResolution.Ignore;
+					break;
+				case "timeout":
+					resolution = TicketResolution.Timeout;
+					break;
+				case "ban":
+					resolution = TicketResolution.Ban;
+					break;
 			}
 
 			if (!resolution) {

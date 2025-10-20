@@ -1,12 +1,13 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import { App, Response } from "@tinyhttp/app";
 import { cors } from "@tinyhttp/cors";
 import { cookieParser } from "@tinyhttp/cookie-parser";
-import dotenv from "dotenv";
 import fs from "fs/promises";
 import { ServerResponse } from "http";
 import { json } from "milliparsec";
 import sirv from "sirv";
-import { inspect } from "util";
 import admin from "./routes/admin.js";
 import alliance from "./routes/alliance.js";
 import auth from "./routes/auth.js";
@@ -17,8 +18,7 @@ import moderator from "./routes/moderator.js";
 import pixel from "./routes/pixel.js";
 import reportUser from "./routes/report-user.js";
 import store from "./routes/store.js";
-
-dotenv.config();
+import { leaderboardService } from "./services/leaderboard.js";
 
 const isDev = process.env["NODE_ENV"] !== "production";
 
@@ -37,7 +37,7 @@ const app = new App({
 });
 
 // Fix IP address handling early to prevent @tinyhttp errors
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
 	// Ensure req.ip is always a valid IP address
 	let ip = req.get("cf-connecting-ip") as string ?? 
 	         req.get("x-forwarded-for") as string ?? 
@@ -46,18 +46,14 @@ app.use((req, res, next) => {
 	         "127.0.0.1";
 	
 	// Clean up IP address (remove port, handle multiple IPs)
-	if (ip.includes(",")) {
-		ip = ip.split(",")[0].trim();
+	if (ip && ip.includes(",")) {
+		ip = ip.split(",")[0]?.trim() ?? "";
 	}
-	if (ip.includes(":")) {
+	if (ip && ip.includes(":")) {
 		const parts = ip.split(":");
-		if (parts.length > 2) {
-			// IPv6
-			ip = parts.join(":");
-		} else {
-			// IPv4 with port
-			ip = parts[0];
-		}
+		ip = parts.length > 2
+			? parts.join(":") // IPv6
+			: parts[0] ?? ""; // IPv4 with port
 	}
 	
 	// Validate IP format
@@ -76,44 +72,32 @@ const jsonMiddleware = json({
 	payloadLimit: 50 * 1024 * 1024 // 50 MB
 });
 
-app.use((req, res, next) => {
+app.use((_req, res, next) => {
 	res.set("cache-control", "private, must-revalidate");
 	next?.();
 });
 
 app.use((req, res, next) => {
-	// Hack for paths that use multipart body
-	if (req.path === "/report-user" || req.path === "/moderator/timeout-user" || req.path === "/admin/ban-user") {
+	// Hack for paths that use multipart body or don't need JSON parsing
+	if (req.path === "/report-user" || req.path === "/moderator/timeout-user" || req.path === "/admin/ban-user" || req.path === "/me/profile-picture" || req.path === "/me/sessions") {
 		return next?.();
 	}
 
-	return jsonMiddleware(req, res, next);
+	// Wrap JSON middleware with error handling
+	try {
+		return jsonMiddleware(req, res, next);
+	} catch (error) {
+		console.warn(`[${new Date().toISOString()}] JSON parsing error for ${req.method} ${req.path} from ${req.ip}:`, error);
+		return res.status(400).json({ error: "Invalid JSON format" });
+	}
 });
 
 // Logging
-app.use((req, res, next) => {
-	const inspectOptions = { colors: true, compact: true, breakLength: Number.POSITIVE_INFINITY };
-	const startTime = Date.now();
-
-	// console.log(`[${req.ip}] [${new Date()
-	// 	.toISOString()}] ${req.method} ${req.url}`);
-	if (req.body && Object.keys(req.body).length > 0) {
-		// Disabled since this leaks passwords and sensitive info. Instead log other info seperately.
-		// console.log(`[${req.ip}] Body:`, inspect(req.body, inspectOptions));
+app.use((req, _res, next) => {
+	// Log suspicious requests
+	if (req.body && typeof req.body === 'string' && req.body.length > 0) {
+		console.warn(`[${new Date().toISOString()}] Suspicious request body from ${req.ip} to ${req.method} ${req.path}:`, req.body.substring(0, 100));
 	}
-	
-
-	const originalJson = res.json;
-	res.json = function (data) {
-		const duration = Date.now() - startTime;
-		// this is also pretty annoying. we will log paints and such from logged in accounts
-		// if (req.url == "/me") {
-		// 	console.log(`[${req.ip}] ${data.name}#${data.id} got user information`);
-		// }
-		// console.log(`[${req.ip}] Response JSON (${res.statusCode}) [${duration}ms]:`, inspect(data, inspectOptions));
-		return originalJson.call(this, data);
-	};
-
 	return next?.();
 });
 
@@ -141,4 +125,20 @@ const port = Number(process.env["BACKEND_PORT"]) || 3000;
 
 app.listen(port, () => {
 	console.log(`Server running on port ${port}`);
+	
+	console.log("Starting global leaderboard warmup scheduler (every 1 minute)");
+	leaderboardService.warmupGlobalLeaderboards().catch(err => {
+		console.error("Initial warmup failed:", err);
+	});
+	
+	setInterval(async () => {
+		try {
+			await leaderboardService.warmupGlobalLeaderboards();
+			const timestamp = new Date().toISOString();
+			// console.log(`[${timestamp}] Global leaderboards warmup completed`);
+		} catch (error) {
+			const timestamp = new Date().toISOString();
+			console.error(`[${timestamp}] Leaderboard warmup error:`, error);
+		}
+	}, 1 * 60 * 1000);
 });
