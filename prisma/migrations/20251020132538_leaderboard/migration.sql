@@ -1,8 +1,8 @@
 -- AlterTable
-ALTER TABLE `profilepicture` MODIFY `url` TEXT NOT NULL;
+ALTER TABLE `ProfilePicture` MODIFY `url` TEXT NOT NULL;
 
 -- AlterTable
-ALTER TABLE `user` ADD COLUMN `allianceJoinedAt` DATETIME(3) NULL,
+ALTER TABLE `User` ADD COLUMN `allianceJoinedAt` DATETIME(3) NULL,
     ADD COLUMN `nickname` VARCHAR(191) NULL,
     MODIFY `picture` TEXT NULL;
 
