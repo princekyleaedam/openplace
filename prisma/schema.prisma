@@ -150,7 +150,6 @@ model Pixel {
 
   @@unique([season, tileX, tileY, x, y])
   @@index([season, tileX, tileY])
-  @@index([paintedBy, paintedAt])
   @@index([regionCityId])
   @@index([regionCountryId])
   @@index([paintedAt])
