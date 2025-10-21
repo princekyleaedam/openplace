@@ -12,325 +12,326 @@ const CONCURRENCY = Number(process.env.REGION_CONCURRENCY ?? 32);  // concurrent
 const PROGRESS_REFRESH_MS = Number(process.env.PROGRESS_REFRESH_MS ?? 120); // progress redraw throttle
 
 const prisma = new PrismaClient({
-  log: process.env.DEBUG?.includes("prisma") ? ["query", "info", "warn", "error"] : ["warn", "error"],
+	log: process.env.DEBUG?.includes("prisma") ? ["query", "info", "warn", "error"] : ["warn", "error"]
 });
 
 const yes = process.argv.includes("--yes");
 
 async function prompt(message: string, defaultValue = false) {
-  if (yes) return defaultValue;
-  return (
+	if (yes) return defaultValue;
+	return (
     await inquirer.prompt([
-      {
-        type: "confirm",
-        name: "answer",
-        message,
-        default: defaultValue,
-      },
+    	{
+    		type: "confirm",
+    		name: "answer",
+    		message,
+    		default: defaultValue
+    	}
     ])
   ).answer as boolean;
 }
 
 function makeProgressPrinter(prefix = "Downloading: ") {
-  let last = 0;
-  return (percentText: string) => {
-    const now = Date.now();
-    if (now - last < PROGRESS_REFRESH_MS) return;
-    last = now;
-    process.stdout.write(chalk.blue(`\r${prefix}${percentText}`));
-  };
+	let last = 0;
+	return (percentText: string) => {
+		const now = Date.now();
+		if (now - last < PROGRESS_REFRESH_MS) return;
+		last = now;
+		process.stdout.write(chalk.blue(`\r${prefix}${percentText}`));
+	};
 }
 
 async function downloadToUint8Array(url: string): Promise<Uint8Array[]> {
-  const res = await fetch(url);
-  if (!res.ok || !res.body) {
-    throw new Error(`Failed to download ${url}: ${res.status} ${res.statusText}`);
-  }
+	const res = await fetch(url);
+	if (!res.ok || !res.body) {
+		throw new Error(`Failed to download ${url}: ${res.status} ${res.statusText}`);
+	}
 
-  const contentLengthHeader = res.headers.get("content-length");
-  const contentLength = contentLengthHeader ? Number.parseInt(contentLengthHeader, 10) : 0;
-  const toMB = (n: number) => (n / 1024 / 1024).toFixed(2);
-  const totalText = contentLength ? `${toMB(contentLength)} MB` : "unknown size";
+	const contentLengthHeader = res.headers.get("content-length");
+	const contentLength = contentLengthHeader ? Number.parseInt(contentLengthHeader, 10) : 0;
+	const toMB = (n: number) => (n / 1024 / 1024).toFixed(2);
+	const totalText = contentLength ? `${toMB(contentLength)} MB` : "unknown size";
 
-  const print = makeProgressPrinter();
-  let received = 0;
+	const print = makeProgressPrinter();
+	let received = 0;
 
-  const chunks: Uint8Array[] = [];
-  for await (const chunk of res.body) {
-    const u8 = chunk as Uint8Array;
-    received += u8.byteLength;
-    chunks.push(u8);
+	const chunks: Uint8Array[] = [];
+	for await (const chunk of res.body) {
+		const u8 = chunk as Uint8Array;
+		received += u8.byteLength;
+		chunks.push(u8);
 
-    if (contentLength) {
-      const pct = ((received / contentLength) * 100).toFixed(1);
-      print(`${pct}% (${toMB(received)} MB / ${totalText})`);
-    } else {
-      print(`${toMB(received)} MB / ${totalText}`);
-    }
-  }
-  print(`100% (${toMB(received)} MB / ${totalText})`);
-  process.stdout.write("\n");
-  return chunks;
+		if (contentLength) {
+			const pct = ((received / contentLength) * 100).toFixed(1);
+			print(`${pct}% (${toMB(received)} MB / ${totalText})`);
+		} else {
+			print(`${toMB(received)} MB / ${totalText}`);
+		}
+	}
+	print(`100% (${toMB(received)} MB / ${totalText})`);
+	process.stdout.write("\n");
+	return chunks;
 }
 
 function nowStr() {
-  return new Date().toISOString().replace("T", " ").replace("Z", "");
+	return new Date()
+		.toISOString()
+		.replace("T", " ")
+		.replace("Z", "");
 }
 
 function limit(concurrency: number) {
-  let running = 0;
-  const queue: (() => void)[] = [];
-  const next = () => {
-    running--;
-    if (queue.length) queue.shift()!();
-  };
-  return async <T>(fn: () => Promise<T>): Promise<T> =>
-    new Promise<T>((resolve, reject) => {
-      const run = async () => {
-        running++;
-        try {
-          const v = await fn();
-          resolve(v);
-        } catch (e) {
-          reject(e);
-        } finally {
-          next();
-        }
-      };
-      if (running < concurrency) run();
-      else queue.push(run);
-    });
+	let running = 0;
+	const queue: (() => void)[] = [];
+	const next = () => {
+		running--;
+		if (queue.length > 0) queue.shift()!();
+	};
+	return async <T>(fn: () => Promise<T>): Promise<T> =>
+		new Promise<T>((resolve, reject) => {
+			const run = async () => {
+				running++;
+				try {
+					const v = await fn();
+					resolve(v);
+				} catch (error) {
+					reject(error);
+				} finally {
+					next();
+				}
+			};
+			if (running < concurrency) run();
+			else queue.push(run);
+		});
 }
 
 console.log(chalk.bgHex("#406ae1").white.bold(" Welcome to openplace "));
-(async () => {
-  try {
-    if (!yes) {
-      console.log("");
-      console.log(
-        chalk.gray(
-          "This script asks questions that require manual response. If you want to automate this script, run with --yes."
-        )
-      );
-      if (!(await prompt("Ready to continue?"))) process.exit(1);
-    }
 
-    console.log("");
-    console.log(chalk.gray("Running database migration:"));
-    execSync("npm run db:deploy", { stdio: "inherit" });
+try {
+	if (!yes) {
+		console.log("");
+		console.log(
+			chalk.gray(
+				"This script asks questions that require manual response. If you want to automate this script, run with --yes."
+			)
+		);
+		if (!(await prompt("Ready to continue?"))) {
+			process.exit(1);
+		}
+	}
 
-    console.log("");
-    console.log(chalk.gray("Running base database setup:"));
+	console.log("");
+	console.log(chalk.gray("Running database migration:"));
+	execSync("npm run db:deploy", { stdio: "inherit" });
 
-    const baseUsers = [
-      { id: -1, name: "System" },
-      { id: -2, name: "Deleted Account" },
-    ] as const;
+	console.log("");
+	console.log(chalk.gray("Running base database setup:"));
 
-    await prisma.$transaction(
-      baseUsers.map((user) =>
-        prisma.user.upsert({
-          where: { id: user.id },
-          update: {},
-          create: {
-            ...user,
-            country: "XX",
-            passwordHash: "",
-            banned: true,
-          },
-        })
-      )
-    );
+	const baseUsers = [
+		{ id: -1, name: "System" },
+		{ id: -2, name: "Deleted Account" }
+	] as const;
 
-    const hasRegionData = (await prisma.region.count()) > 0;
-    console.log("");
-    console.log(
-      chalk.gray(
-        hasRegionData
-          ? "You already have region data. You can choose to update it:"
-          : "Choose the region data you would like to use:"
-      )
-    );
+	await prisma.$transaction(
+		baseUsers.map((user) =>
+			prisma.user.upsert({
+				where: { id: user.id },
+				update: {},
+				create: {
+					...user,
+					country: "XX",
+					passwordHash: "",
+					banned: true
+				}
+			})
+		)
+	);
 
-    let regionSelection:
-      | null
-      | "cities500"
-      | "cities1000"
-      | "cities5000"
-      | "allCountries" = null;
+	const hasRegionData = (await prisma.region.count()) > 0;
+	console.log("");
+	console.log(
+		chalk.gray(
+			hasRegionData
+				? "You already have region data. You can choose to update it:"
+				: "Choose the region data you would like to use:"
+		)
+	);
 
-    if (!yes) {
-      const regionChoice = await inquirer.prompt([
-        {
-          type: "list",
-          name: "region",
-          message: "GeoNames region data file:",
-          choices: [
-            {
-              name: `Skip (${hasRegionData ? "keep existing data" : "don’t use region data"})`,
-              value: null,
-            },
-            {
-              name: "Cities with population > 500 (224,000+ entries, recommended)",
-              value: "cities500",
-            },
-            {
-              name: "Cities with population > 1000 (162,000+ entries)",
-              value: "cities1000",
-            },
-            {
-              name: "Cities with population > 5000 (66,000+ entries)",
-              value: "cities5000",
-            },
-            {
-              name: "Pin-point landmarks (13 million+ entries, not recommended)",
-              value: "allCountries",
-            },
-          ],
-        },
-      ]);
-      regionSelection = regionChoice.region;
-    }
+	let regionSelection:
+		| null
+		| "cities500"
+		| "cities1000"
+		| "cities5000"
+		| "allCountries" = null;
 
-    if (regionSelection) {
-      const countryCodesToIDs = new Map<string, number>(
-        COUNTRIES.map((item) => [item.code, item.id])
-      );
+	if (!yes) {
+		const regionChoice = await inquirer.prompt([
+			{
+				type: "list",
+				name: "region",
+				message: "GeoNames region data file:",
+				choices: [
+					{
+						name: `Skip (${hasRegionData ? "keep existing data" : "don’t use region data"})`,
+						value: null
+					},
+					{
+						name: "Cities with population > 500 (224,000+ entries, recommended)",
+						value: "cities500"
+					},
+					{
+						name: "Cities with population > 1000 (162,000+ entries)",
+						value: "cities1000"
+					},
+					{
+						name: "Cities with population > 5000 (66,000+ entries)",
+						value: "cities5000"
+					},
+					{
+						name: "Pin-point landmarks (13 million+ entries, not recommended)",
+						value: "allCountries"
+					}
+				]
+			}
+		]);
+		regionSelection = regionChoice.region;
+	}
 
-      console.log(chalk.gray("Downloading region data"));
-      const zipChunks = await downloadToUint8Array(
-        `https://download.geonames.org/export/dump/${regionSelection}.zip`
-      );
+	if (regionSelection) {
+		const countryCodesToIDs = new Map<string, number>(
+			COUNTRIES.map((item) => [item.code, item.id])
+		);
 
-      const zipReader = new ZipReader(new BlobReader(new Blob(zipChunks)));
-      const entries = await zipReader.getEntries();
-      const fileEntry = entries[0] as FileEntry | undefined;
+		console.log(chalk.gray("Downloading region data"));
+		const zipChunks = await downloadToUint8Array(
+			`https://download.geonames.org/export/dump/${regionSelection}.zip`
+		);
 
-      if (!fileEntry || fileEntry.directory) {
-        await zipReader.close();
-        throw new Error("Zip file did not contain the data file");
-      }
+		const zipReader = new ZipReader(new BlobReader(new Blob(zipChunks)));
+		const entries = await zipReader.getEntries();
+		const fileEntry = entries[0] as FileEntry | undefined;
 
-      const transform = new TransformStream();
-      const reader = transform.readable.getReader();
-      const decoder = new TextDecoder();
-      fileEntry.getData(transform.writable);
+		if (!fileEntry || fileEntry.directory) {
+			await zipReader.close();
+			throw new Error("Zip file did not contain the data file");
+		}
 
-      let addedCount = 0;
-      let buffer = "";
-      let batch: string[] = [];
-      const ignoredCountries = new Set<string>();
-      const runLimited = limit(CONCURRENCY);
+		const transform = new TransformStream();
+		const reader = transform.readable.getReader();
+		const decoder = new TextDecoder();
+		fileEntry.getData(transform.writable);
 
-      const flushBatch = async () => {
-        if (batch.length === 0) return;
+		let addedCount = 0;
+		let buffer = "";
+		let batch: string[] = [];
+		const ignoredCountries = new Set<string>();
+		const runLimited = limit(CONCURRENCY);
 
-        const lines = batch;
-        batch = [];
+		const flushBatch = async () => {
+			if (batch.length === 0) return;
 
-        await prisma.$transaction(async (tx) => {
-          await Promise.all(
-            lines.map((line) =>
-              runLimited(async () => {
-                const trimmed = line.trim();
-                if (!trimmed) return;
+			const lines = batch;
+			batch = [];
 
-                const parts = trimmed.split("\t");
-                const id = parts[0];
-                const name = parts[1];
-                const latitude = parts[4];
-                const longitude = parts[5];
-                const countryCode = parts[8];
+			await prisma.$transaction(async (tx) => {
+				await Promise.all(
+					lines.map((line) =>
+						runLimited(async () => {
+							const trimmed = line.trim();
+							if (!trimmed) return;
 
-                if (!id || !name || !latitude || !longitude || !countryCode) return;
+							const parts = trimmed.split("\t");
+							const id = parts[0];
+							const name = parts[1];
+							const latitude = parts[4];
+							const longitude = parts[5];
+							const countryCode = parts[8];
 
-                if (ignoredCountries.has(countryCode)) return;
+							if (!id || !name || !latitude || !longitude || !countryCode) return;
 
-                const countryId = countryCodesToIDs.get(countryCode);
-                if (!countryId) {
-                  ignoredCountries.add(countryCode);
-                  console.warn(
-                    chalk.yellow(`[${nowStr()}] Skipping unknown country:`),
-                    countryCode
-                  );
-                  return;
-                }
+							if (ignoredCountries.has(countryCode)) return;
 
-                const data = {
-                  cityId: +id,
-                  name,
-                  number: 1,
-                  countryId,
-                  latitude: +latitude,
-                  longitude: +longitude,
-                };
+							const countryId = countryCodesToIDs.get(countryCode);
+							if (!countryId) {
+								ignoredCountries.add(countryCode);
+								console.warn(
+									chalk.yellow(`[${nowStr()}] Skipping unknown country:`),
+									countryCode
+								);
+								return;
+							}
 
-                await tx.region.upsert({
-                  where: {
-                    latitude_longitude: {
-                      latitude: data.latitude,
-                      longitude: data.longitude,
-                    },
-                  },
-                  create: data,
-                  update: data,
-                });
-              })
-            )
-          );
-        }, {
-          timeout: 15_000
-        });
+							const data = {
+								cityId: Number(id),
+								name,
+								number: 1,
+								countryId,
+								latitude: Number(latitude),
+								longitude: Number(longitude)
+							};
 
-        addedCount += lines.length;
-        process.stdout.write(
-          chalk.blue(`\rImported ${addedCount.toLocaleString()} entries`)
-        );
-      };
+							await tx.region.upsert({
+								where: {
+									latitude_longitude: {
+										latitude: data.latitude,
+										longitude: data.longitude
+									}
+								},
+								create: data,
+								update: data
+							});
+						})
+					)
+				);
+			}, {
+				timeout: 15_000
+			});
 
-      console.log(chalk.gray("Importing region data (streaming)…"));
-      let hasData = true;
-      while (hasData) {
-        const { value, done } = await reader.read();
-        hasData = !done;
-        if (value) buffer += decoder.decode(value, { stream: true });
+			addedCount += lines.length;
+			process.stdout.write(
+				chalk.blue(`\rImported ${addedCount.toLocaleString()} entries`)
+			);
+		};
 
-        let newlineIdx: number;
-        while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
-          const line = buffer.slice(0, newlineIdx);
-          buffer = buffer.slice(newlineIdx + 1);
-          batch.push(line);
-          if (batch.length >= BATCH_SIZE) {
-            await flushBatch();
-          }
-        }
-      }
+		console.log(chalk.gray("Importing region data (streaming)…"));
+		let hasData = true;
+		while (hasData) {
+			const { value, done } = await reader.read();
+			hasData = !done;
+			if (value) buffer += decoder.decode(value, { stream: true });
 
-      if (buffer) {
-        batch.push(...buffer.split("\n"));
-        buffer = "";
-      }
-      await flushBatch();
+			let newlineIdx: number;
+			while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+				const line = buffer.slice(0, newlineIdx);
+				buffer = buffer.slice(newlineIdx + 1);
+				batch.push(line);
+				if (batch.length >= BATCH_SIZE) {
+					await flushBatch();
+				}
+			}
+		}
 
-      await reader.releaseLock();
-      await zipReader.close();
+		if (buffer) {
+			batch.push(...buffer.split("\n"));
+			buffer = "";
+		}
+		await flushBatch();
 
-      console.log("");
-      console.log(chalk.blue.bold("Done"));
-    }
-  } catch (err) {
-    console.error(chalk.red("Error:"), err);
-    process.exitCode = 1;
-  } finally {
-    await prisma.$disconnect();
-  }
-})();
+		await reader.releaseLock();
+		await zipReader.close();
+
+		console.log("");
+		console.log(chalk.blue.bold("Done"));
+	}
+} finally {
+	await prisma.$disconnect();
+}
 
 process.on("SIGINT", async () => {
-  console.log(chalk.gray("\nShutting down…"));
-  try {
-    await prisma.$disconnect();
-  } finally {
-    process.exit(0);
-  }
+	console.log(chalk.gray("\nShutting down…"));
+	try {
+		await prisma.$disconnect();
+	} finally {
+		process.exit(0);
+	}
 });

@@ -13,19 +13,19 @@ export class RateLimiter {
 	constructor() {
 		this.cleanupInterval = setInterval(() => {
 			this.cleanup();
-		}, 60000);
+		}, 60_000);
 	}
 
 	private cleanup(): void {
 		const now = Date.now();
 		for (const [key, entry] of this.attempts.entries()) {
-			if (now - entry.lastAttempt > 300000) {
+			if (now - entry.lastAttempt > 300_000) {
 				this.attempts.delete(key);
 			}
 		}
 	}
 
-	checkRateLimit(ip: string, maxAttempts: number = 5, windowMs: number = 300000): {
+	checkRateLimit(ip: string, maxAttempts: number = 5, windowMs: number = 300_000): {
 		allowed: boolean;
 		remaining: number;
 		resetTime: number;

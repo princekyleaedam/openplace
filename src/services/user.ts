@@ -116,7 +116,7 @@ export class UserService {
 	}
 
 	private sanitizeInput(str: string): string {
-		return str.replace(/[<>'"&]/g, (char) => {
+		return str.replaceAll(/["&'<>]/g, (char) => {
 			const escapeMap: Record<string, string> = {
 				"<": "&lt;",
 				">": "&gt;",
@@ -125,7 +125,8 @@ export class UserService {
 				"&": "&amp;"
 			};
 			return escapeMap[char] || char;
-		}).trim();
+		})
+			.trim();
 	}
 
 	async updateUser(userId: number, input: UpdateUserInput) {
@@ -180,8 +181,8 @@ export class UserService {
 			this.prisma.user.update({
 				where: { id: userId },
 				data: {
-					nickname: 'Delete Account',
-					role: "deleted",
+					nickname: "Delete Account",
+					role: "deleted"
 				}
 			})
 		]);
@@ -215,7 +216,7 @@ export class UserService {
 					await tx.user.update({ where: { id: userId }, data: { lastIP: ip } });
 				}, {
 					timeout: 5000,
-					isolationLevel: 'ReadCommitted'
+					isolationLevel: "ReadCommitted"
 				});
 				break;
 			} catch (error: any) {
@@ -223,8 +224,8 @@ export class UserService {
 				const isRetryableError = (
 					error.message?.includes("deadlock") ||
 					error.message?.includes("timeout") ||
-					error.code === 'P2034' ||
-					error.code === 'P2024'
+					error.code === "P2034" ||
+					error.code === "P2024"
 				);
 
 				if (isRetryableError && retries > 0) {
@@ -273,21 +274,21 @@ export class UserService {
 		}
 
 		// Validate URL length (prevent extremely long URLs)
-		if (pictureUrl.length > 100000) { // ~100KB limit for data URL
+		if (pictureUrl.length > 100_000) { // ~100KB limit for data URL
 			throw new ValidationError("Picture URL too long");
 		}
 
 		// Validate URL format - support both HTTP URLs and data URLs
 		try {
 			// Check if it's a data URL
-			if (pictureUrl.startsWith('data:')) {
+			if (pictureUrl.startsWith("data:")) {
 				// Validate data URL format: data:[<mediatype>][;base64],<data>
-				if (!pictureUrl.includes(',') || pictureUrl.length < 10) {
+				if (!pictureUrl.includes(",") || pictureUrl.length < 10) {
 					throw new ValidationError("Invalid data URL format");
 				}
 
 				// Check if data URL is complete (not truncated)
-				const parts = pictureUrl.split(',');
+				const parts = pictureUrl.split(",");
 				if (parts.length !== 2) {
 					throw new ValidationError("Invalid data URL format - missing data part");
 				}
@@ -297,7 +298,7 @@ export class UserService {
 				if (!header) {
 					throw new ValidationError("Invalid data URL format - missing header");
 				}
-				const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+				const allowedMimeTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 				const hasValidMimeType = allowedMimeTypes.some(mimeType => header.includes(mimeType));
 				if (!hasValidMimeType) {
 					throw new ValidationError("Invalid image type in data URL");
@@ -310,19 +311,19 @@ export class UserService {
 				}
 
 				// Validate base64 content
-				const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+				const base64Regex = /^[\d+/A-Za-z]*={0,2}$/;
 				if (!base64Regex.test(base64Data)) {
 					throw new ValidationError("Invalid base64 data in URL");
 				}
 			} else {
 				// Validate HTTP/HTTPS URL
 				const url = new URL(pictureUrl);
-				if (!['http:', 'https:'].includes(url.protocol)) {
+				if (!["http:", "https:"].includes(url.protocol)) {
 					throw new ValidationError("Only HTTP/HTTPS URLs are allowed");
 				}
 
 				// Basic domain validation (optional - can be enhanced)
-				if (url.hostname.includes('localhost') || url.hostname.includes('127.0.0.1')) {
+				if (url.hostname.includes("localhost") || url.hostname.includes("127.0.0.1")) {
 					throw new ValidationError("Local URLs are not allowed");
 				}
 			}
@@ -348,7 +349,7 @@ export class UserService {
 				data: {
 					picture: pictureUrl,
 					droplets: {
-						decrement: 20000
+						decrement: 20_000
 					}
 				}
 			});

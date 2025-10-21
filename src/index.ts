@@ -87,16 +87,19 @@ app.use((req, res, next) => {
 	try {
 		return jsonMiddleware(req, res, next);
 	} catch (error) {
-		console.warn(`[${new Date().toISOString()}] JSON parsing error for ${req.method} ${req.path} from ${req.ip}:`, error);
-		return res.status(400).json({ error: "Invalid JSON format" });
+		console.warn(`[${new Date()
+			.toISOString()}] JSON parsing error for ${req.method} ${req.path} from ${req.ip}:`, error);
+		return res.status(400)
+			.json({ error: "Invalid JSON format" });
 	}
 });
 
 // Logging
 app.use((req, _res, next) => {
 	// Log suspicious requests
-	if (req.body && typeof req.body === 'string' && req.body.length > 0) {
-		console.warn(`[${new Date().toISOString()}] Suspicious request body from ${req.ip} to ${req.method} ${req.path}:`, req.body.substring(0, 100));
+	if (req.body && typeof req.body === "string" && req.body.length > 0) {
+		console.warn(`[${new Date()
+			.toISOString()}] Suspicious request body from ${req.ip} to ${req.method} ${req.path}:`, req.body.slice(0, 100));
 	}
 	return next?.();
 });
@@ -127,17 +130,20 @@ app.listen(port, () => {
 	console.log(`Server running on port ${port}`);
 	
 	console.log("Starting global leaderboard warmup scheduler (every 1 minute)");
-	leaderboardService.warmupGlobalLeaderboards().catch(err => {
-		console.error("Initial warmup failed:", err);
-	});
+	leaderboardService.warmupGlobalLeaderboards()
+		.catch(error => {
+			console.error("Initial warmup failed:", error);
+		});
 	
 	setInterval(async () => {
 		try {
 			await leaderboardService.warmupGlobalLeaderboards();
-			const timestamp = new Date().toISOString();
+			const timestamp = new Date()
+				.toISOString();
 			// console.log(`[${timestamp}] Global leaderboards warmup completed`);
 		} catch (error) {
-			const timestamp = new Date().toISOString();
+			const timestamp = new Date()
+				.toISOString();
 			console.error(`[${timestamp}] Leaderboard warmup error:`, error);
 		}
 	}, 1 * 60 * 1000);

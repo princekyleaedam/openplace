@@ -12,26 +12,26 @@ import { AuthenticatedRequest } from "../types/index.js";
 function validateImageContent(buffer: Buffer, mimeType: string): boolean {
 	// Check magic bytes (file signatures)
 	const magicBytes = {
-		'image/jpeg': [0xFF, 0xD8, 0xFF],
-		'image/png': [0x89, 0x50, 0x4E, 0x47],
-		'image/gif': [0x47, 0x49, 0x46],
-		'image/webp': [0x52, 0x49, 0x46, 0x46] // RIFF header
+		"image/jpeg": [0xFF, 0xD8, 0xFF],
+		"image/png": [0x89, 0x50, 0x4E, 0x47],
+		"image/gif": [0x47, 0x49, 0x46],
+		"image/webp": [0x52, 0x49, 0x46, 0x46] // RIFF header
 	}; // patch malicious payload upload
 	
 	const expectedBytes = magicBytes[mimeType as keyof typeof magicBytes];
 	if (!expectedBytes) return false;
 	
 	// Check if buffer starts with expected magic bytes
-	for (let i = 0; i < expectedBytes.length; i++) {
-		if (buffer[i] !== expectedBytes[i]) {
+	for (const [i, expectedByte] of expectedBytes.entries()) {
+		if (buffer[i] !== expectedByte) {
 			return false;
 		}
 	}
 	
 	// Additional WebP validation (RIFF...WEBP)
-	if (mimeType === 'image/webp') {
-		const webpSignature = buffer.toString('ascii', 8, 12);
-		if (webpSignature !== 'WEBP') {
+	if (mimeType === "image/webp") {
+		const webpSignature = buffer.toString("ascii", 8, 12);
+		if (webpSignature !== "WEBP") {
 			return false;
 		}
 	}
@@ -41,7 +41,7 @@ function validateImageContent(buffer: Buffer, mimeType: string): boolean {
 
 function isValidBase64(str: string): boolean {
 	// Check if string contains only valid base64 characters
-	const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+	const base64Regex = /^[\d+/A-Za-z]*={0,2}$/;
 	if (!base64Regex.test(str)) {
 		return false;
 	}
@@ -64,7 +64,7 @@ const upload = multer({
 	},
 	fileFilter: (_req, file, cb) => {
 		// Validate MIME type (primary validation)
-		const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+		const allowedMimeTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 		
 		if (!allowedMimeTypes.includes(file.mimetype)) {
 			cb(new Error("Only image files (JPG, PNG, GIF, WebP) are allowed"));
@@ -72,12 +72,13 @@ const upload = multer({
 		}
 		
 		// Validate file extension (secondary validation - optional for blob files)
-		const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-		const lastDotIndex = file.originalname.lastIndexOf('.');
+		const allowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+		const lastDotIndex = file.originalname.lastIndexOf(".");
 		
 		// If file has extension, validate it
 		if (lastDotIndex !== -1) {
-			const fileExtension = file.originalname.toLowerCase().substring(lastDotIndex);
+			const fileExtension = file.originalname.toLowerCase()
+				.slice(Math.max(0, lastDotIndex));
 			if (!allowedExtensions.includes(fileExtension)) {
 				cb(new Error("Invalid file extension"));
 				return;
@@ -101,30 +102,30 @@ export default function (app: App) {
 
 	app.post("/me/update", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
-		const { name, showLastPixel, discord } = req.body;
+			const { name, showLastPixel, discord } = req.body;
 
-		if (name !== undefined && typeof name !== "string") {
-			return res.status(HTTP_STATUS.BAD_REQUEST)
-				.json(createErrorResponse("Invalid name type", HTTP_STATUS.BAD_REQUEST));
-		}
+			if (name !== undefined && typeof name !== "string") {
+				return res.status(HTTP_STATUS.BAD_REQUEST)
+					.json(createErrorResponse("Invalid name type", HTTP_STATUS.BAD_REQUEST));
+			}
 
-		if (showLastPixel !== undefined && typeof showLastPixel !== "boolean") {
-			return res.status(HTTP_STATUS.BAD_REQUEST)
-				.json(createErrorResponse("Invalid showLastPixel type", HTTP_STATUS.BAD_REQUEST));
-		}
+			if (showLastPixel !== undefined && typeof showLastPixel !== "boolean") {
+				return res.status(HTTP_STATUS.BAD_REQUEST)
+					.json(createErrorResponse("Invalid showLastPixel type", HTTP_STATUS.BAD_REQUEST));
+			}
 
-		if (discord !== undefined && typeof discord !== "string") {
-			return res.status(HTTP_STATUS.BAD_REQUEST)
-				.json(createErrorResponse("Invalid discord type", HTTP_STATUS.BAD_REQUEST));
-		}
+			if (discord !== undefined && typeof discord !== "string") {
+				return res.status(HTTP_STATUS.BAD_REQUEST)
+					.json(createErrorResponse("Invalid discord type", HTTP_STATUS.BAD_REQUEST));
+			}
 
-		const validationError = validateUpdateUser({ nickname: name, showLastPixel, discord });
-		if (validationError) {
-			return res.status(HTTP_STATUS.BAD_REQUEST)
-				.json(createErrorResponse(validationError, HTTP_STATUS.BAD_REQUEST));
-		}
+			const validationError = validateUpdateUser({ nickname: name, showLastPixel, discord });
+			if (validationError) {
+				return res.status(HTTP_STATUS.BAD_REQUEST)
+					.json(createErrorResponse(validationError, HTTP_STATUS.BAD_REQUEST));
+			}
 
-		const result = await userService.updateUser(req.user!.id, { nickname: name, showLastPixel, discord });
+			const result = await userService.updateUser(req.user!.id, { nickname: name, showLastPixel, discord });
 			return res.json(result);
 		} catch (error) {
 			return handleServiceError(error as Error, res);
@@ -153,7 +154,7 @@ export default function (app: App) {
 					.json(createErrorResponse("User not found", HTTP_STATUS.NOT_FOUND));
 			}
 
-			if (user.droplets < 20000) {
+			if (user.droplets < 20_000) {
 				return res.status(HTTP_STATUS.BAD_REQUEST)
 					.json(createErrorResponse("You do not have enough droplets.", HTTP_STATUS.FORBIDDEN));
 			}
@@ -177,7 +178,7 @@ export default function (app: App) {
 				}
 				
 				// Convert file to base64
-				const base64 = buffer.toString('base64');
+				const base64 = buffer.toString("base64");
 				const mimeType = file.mimetype;
 				
 				// Validate base64 content
@@ -187,14 +188,14 @@ export default function (app: App) {
 				}
 				
 				// Ensure base64 is properly padded
-				const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
+				const paddedBase64 = base64 + "=".repeat((4 - base64.length % 4) % 4);
 				const pictureUrl = `data:${mimeType};base64,${paddedBase64}`;
 				
 				const result = await userService.updateProfilePicture(req.user!.id, pictureUrl);
 				
 				return res.json({
 					...result,
-					pictureUrl: pictureUrl
+					pictureUrl
 				});
 			} else {
 				return res.status(HTTP_STATUS.BAD_REQUEST)

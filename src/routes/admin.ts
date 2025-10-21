@@ -428,12 +428,12 @@ export default function (app: App) {
 					id: userId,
 					reportedUser: reportedUser
 						? {
-							id: reportedUser.id,
-							name: reportedUser.nickname || reportedUser.name,
-							discord: reportedUser.discord || "",
-							country: reportedUser.country,
-							banned: reportedUser.banned
-						}
+								id: reportedUser.id,
+								name: reportedUser.nickname || reportedUser.name,
+								discord: reportedUser.discord || "",
+								country: reportedUser.country,
+								banned: reportedUser.banned
+							}
 						: null,
 					createdAt: userTickets[0]?.createdAt,
 					reports: userTickets.map(ticket => ({

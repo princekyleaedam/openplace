@@ -57,7 +57,7 @@ export function validateUpdateUser(input: UpdateUserValidationInput): string | n
 		if (trimmedDiscord.length > 32) {
 			return "The discord has more than 32 characters";
 		}
-		const discordPattern = /^[a-zA-Z0-9._]+$/;
+		const discordPattern = /^[\w.]+$/;
 		if (trimmedDiscord.length > 0 && !discordPattern.test(trimmedDiscord)) {
 			return "Invalid discord username format";
 		}

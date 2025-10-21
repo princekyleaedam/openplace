@@ -31,9 +31,10 @@ export default function (app: App) {
 			}
 
 			// Rate limiting
-			const rateLimit = rateLimiter.checkRateLimit(req.ip!, 5, 300000);
+			const rateLimit = rateLimiter.checkRateLimit(req.ip!, 5, 300_000);
 			if (!rateLimit.allowed) {
-				const timestamp = new Date().toISOString();
+				const timestamp = new Date()
+					.toISOString();
 				console.log(`[${timestamp}] Rate limit exceeded for IP ${req.ip}`);
 				return res.status(429)
 					.json({
@@ -173,5 +174,4 @@ export default function (app: App) {
 				.json({ error: "Internal Server Error" });
 		}
 	});
-
 }

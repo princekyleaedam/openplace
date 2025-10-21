@@ -28,7 +28,7 @@ export class LeaderboardService {
 	private updateInterval = 3000;
 	private lastUpdate = 0;
 	private memoryCache = new Map<string, { items: LeaderboardEntry[]; ts: number }>();
-	private cacheMaxAge = 60000;
+	private cacheMaxAge = 60_000;
 	private cacheCleanupInterval: NodeJS.Timeout | null = null;
 	private queuedCount = 0;
 	private processedCount = 0;
@@ -53,7 +53,7 @@ export class LeaderboardService {
 			// 	const timestamp = new Date().toISOString();
 			// 	console.log(`[${timestamp}] Leaderboard cache cleanup: removed ${cleaned} expired entries`);
 			// }
-		}, 30000);
+		}, 30_000);
 	}
 
 
@@ -62,7 +62,7 @@ export class LeaderboardService {
 			try {
 				await prisma.$queryRaw`SELECT 1`;
 				return true;
-			} catch (error) {
+			} catch {
 				if (i === retries - 1) return false;
 				await new Promise(resolve => setTimeout(resolve, 100 * (i + 1)));
 			}
@@ -82,11 +82,12 @@ export class LeaderboardService {
 				select: { entityId: true }
 			});
 
-			const existingEntityIds = new Set(existingEntries.map(e => e.entityId).filter(id => id !== null));
+			const existingEntityIds = new Set(existingEntries.map(e => e.entityId)
+				.filter(id => id !== null));
 			const newEntityIds = new Set(entries.map(e => e.entityId));
 
 			// Delete entries that are no longer in the new list
-			const toDelete = Array.from(existingEntityIds).filter(id => !newEntityIds.has(id));
+			const toDelete = [...existingEntityIds].filter(id => !newEntityIds.has(id));
 			if (toDelete.length > 0) {
 				await prisma.leaderboardView.deleteMany({
 					where: {
@@ -108,6 +109,7 @@ export class LeaderboardService {
 					}
 				});
 
+				// eslint-disable-next-line unicorn/prefer-ternary
 				if (existing) {
 					// Update existing entry
 					await prisma.leaderboardView.update({
@@ -134,12 +136,12 @@ export class LeaderboardService {
 			} catch (error: any) {
 				// Check if it's a deadlock, write conflict, or timeout error
 				const isRetryableError = (
-					error.code === 'P2034' ||
-					error.code === 'P2024' ||
-					error.message?.includes('deadlock') ||
-					error.message?.includes('write conflict') ||
-					error.message?.includes('timeout') ||
-					error.message?.includes('connection')
+					error.code === "P2034" ||
+					error.code === "P2024" ||
+					error.message?.includes("deadlock") ||
+					error.message?.includes("write conflict") ||
+					error.message?.includes("timeout") ||
+					error.message?.includes("connection")
 				);
 
 				if (isRetryableError && attempt < maxRetries) {
@@ -205,15 +207,15 @@ export class LeaderboardService {
 			// Get date filter like global leaderboard
 			const dateFilter = this.getDateFilter(mode, this.warmupSnapshotTime || undefined);
 			let queryPromise: Promise<any>;
-			if (mode === 'all-time') {
+			if (mode === "all-time") {
 				queryPromise = prisma.userRegionStats.groupBy({
-					by: ['userId'],
+					by: ["userId"],
 					where: {
 						regionCityId: cityId
 					},
 					_sum: { pixelsPainted: true },
 					_max: { lastPaintedAt: true },
-					orderBy: { _sum: { pixelsPainted: 'desc' } },
+					orderBy: { _sum: { pixelsPainted: "desc" } },
 					take: limit
 				});
 			} else {
@@ -223,23 +225,24 @@ export class LeaderboardService {
 					where.date = { gte: dateFilter.paintedAt.gte };
 				}
 				queryPromise = prisma.userRegionStatsDaily.groupBy({
-					by: ['userId'],
+					by: ["userId"],
 					where,
 					_sum: { pixelsPainted: true },
 					_max: { lastPaintedAt: true },
-					orderBy: { _sum: { pixelsPainted: 'desc' } },
+					orderBy: { _sum: { pixelsPainted: "desc" } },
 					take: limit
 				});
 			}
 
 			const timeoutPromise = new Promise((_, reject) =>
-				setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
+				setTimeout(() => reject(new Error("Query timeout after 10 seconds")), 10_000)
 			);
 
 			const stats = await Promise.race([queryPromise, timeoutPromise]) as any;
 
 			// Get user details for the grouped results
-			const userIds = stats.map((s: any) => s.userId).filter(Boolean) as number[];
+			const userIds = stats.map((s: any) => s.userId)
+				.filter(Boolean) as number[];
 			const users = await prisma.user.findMany({
 				where: { id: { in: userIds }, role: "user" },
 				select: {
@@ -278,7 +281,8 @@ export class LeaderboardService {
 
 					// Validate entry has all required fields
 					if (!entry.id || !entry.name) {
-						console.warn(`[${new Date().toISOString()}] Invalid entry found:`, entry);
+						console.warn(`[${new Date()
+							.toISOString()}] Invalid entry found:`, entry);
 					}
 
 					return entry;
@@ -286,7 +290,7 @@ export class LeaderboardService {
 				.filter(Boolean);
 
 			return result;
-		} catch (error) {
+		} catch {
 			return [];
 		}
 	}
@@ -296,16 +300,16 @@ export class LeaderboardService {
 			// Time filter
 			const dateFilter = this.getDateFilter(mode, this.warmupSnapshotTime || undefined);
 			let allianceStats: any[] = [];
-			if (mode === 'all-time') {
+			if (mode === "all-time") {
 				allianceStats = await prisma.userRegionStats.groupBy({
-					by: ['allianceId'],
+					by: ["allianceId"],
 					where: {
 						regionCityId: cityId,
 						allianceId: { not: null }
 					},
 					_sum: { pixelsPainted: true },
 					_max: { lastPaintedAt: true },
-					orderBy: { _sum: { pixelsPainted: 'desc' } },
+					orderBy: { _sum: { pixelsPainted: "desc" } },
 					take: limit
 				} as any);
 			} else {
@@ -314,16 +318,17 @@ export class LeaderboardService {
 					where.date = { gte: dateFilter.paintedAt.gte };
 				}
 				allianceStats = await prisma.userRegionStatsDaily.groupBy({
-					by: ['allianceId'],
+					by: ["allianceId"],
 					where,
 					_sum: { pixelsPainted: true },
 					_max: { lastPaintedAt: true },
-					orderBy: { _sum: { pixelsPainted: 'desc' } },
+					orderBy: { _sum: { pixelsPainted: "desc" } },
 					take: limit
 				} as any);
 			}
 
-			const allianceIds = allianceStats.map((s: { allianceId: any; }) => s.allianceId).filter(Boolean) as number[];
+			const allianceIds = allianceStats.map((s: { allianceId: any; }) => s.allianceId)
+				.filter(Boolean) as number[];
 			const alliances = await prisma.alliance.findMany({
 				where: { id: { in: allianceIds } },
 				select: { id: true, name: true }
@@ -333,15 +338,15 @@ export class LeaderboardService {
 
 			const result = allianceStats.map((stat) => ({
 				id: stat.allianceId!,
-				name: allianceMap.get(stat.allianceId!) || '',
+				name: allianceMap.get(stat.allianceId!) || "",
 				pixelsPainted: stat._sum.pixelsPainted || 0,
 				allianceId: stat.allianceId!,
-				allianceName: allianceMap.get(stat.allianceId!) || '',
+				allianceName: allianceMap.get(stat.allianceId!) || "",
 				picture: ""
 			}));
 
 			return result;
-		} catch (error) {
+		} catch {
 			return [];
 		}
 	}
@@ -389,7 +394,7 @@ export class LeaderboardService {
 					...(user.alliance?.name && { allianceName: user.alliance.name }),
 					...(user.equippedFlag && { equippedFlag: user.equippedFlag }),
 					...(user.discord && { discord: user.discord }),
-					pixelsPainted: user.pixelsPainted,
+					pixelsPainted: user.pixelsPainted
 				}));
 			} else if (type === "alliance") {
 				const alliances = await prisma.alliance.findMany({
@@ -402,7 +407,7 @@ export class LeaderboardService {
 				return alliances.map((alliance) => ({
 					id: alliance.id,
 					name: alliance.name,
-					pixelsPainted: alliance.pixelsPainted,
+					pixelsPainted: alliance.pixelsPainted
 				}));
 			}
 		}
@@ -437,20 +442,20 @@ export class LeaderboardService {
 			.filter(Boolean);
 
 		switch (type) {
-			case "player":
-				return await this.enrichPlayerEntries(viewEntries, entityIds);
-			case "alliance":
-				return await this.enrichAllianceEntries(viewEntries, entityIds, mode);
-			case "country":
-				return await this.enrichCountryEntries(viewEntries, entityIds);
-			case "region":
-				return await this.enrichRegionEntries(viewEntries, entityIds);
-			case "regionPlayers":
-				return await this.enrichPlayerEntries(viewEntries, entityIds);
-			case "regionAlliances":
-				return await this.enrichAllianceEntries(viewEntries, entityIds, mode);
-			default:
-				return [];
+		case "player":
+			return await this.enrichPlayerEntries(viewEntries, entityIds);
+		case "alliance":
+			return await this.enrichAllianceEntries(viewEntries, entityIds, mode);
+		case "country":
+			return await this.enrichCountryEntries(viewEntries, entityIds);
+		case "region":
+			return await this.enrichRegionEntries(viewEntries, entityIds);
+		case "regionPlayers":
+			return await this.enrichPlayerEntries(viewEntries, entityIds);
+		case "regionAlliances":
+			return await this.enrichAllianceEntries(viewEntries, entityIds, mode);
+		default:
+			return [];
 		}
 	}
 
@@ -483,7 +488,7 @@ export class LeaderboardService {
 				...(user.alliance?.name && { allianceName: user.alliance.name }),
 				...(user.equippedFlag && { equippedFlag: user.equippedFlag }),
 				...(user.discord && { discord: user.discord }),
-				pixelsPainted: entry.pixelsPainted,
+				pixelsPainted: entry.pixelsPainted
 			};
 		})
 			.filter(Boolean) as LeaderboardEntry[];
@@ -601,7 +606,8 @@ export class LeaderboardService {
 
 		if (counts.length === 0) return [];
 
-		const cityIds = counts.map(c => c.regionCityId).filter(Boolean);
+		const cityIds = counts.map(c => c.regionCityId)
+			.filter(Boolean);
 		const regions = await prisma.region.findMany({
 			where: { cityId: { in: cityIds } },
 			select: {
@@ -617,8 +623,7 @@ export class LeaderboardService {
 		const regionMap = new Map(regions.map(r => [r.cityId, r]));
 
 		const entries: LeaderboardEntry[] = [];
-		for (let i = 0; i < counts.length; i++) {
-			const current = counts[i];
+		for (const current of counts) {
 			if (!current) continue;
 			const cityIdVal = current.regionCityId;
 			if (!cityIdVal) continue;
@@ -674,7 +679,8 @@ export class LeaderboardService {
 			const batch: Array<{ type: LeaderboardType; mode: LeaderboardMode; entityId?: number }> = [];
 
 			while (this.updateQueue.size > 0 && processed < this.batchSize) {
-				const cacheKey = this.updateQueue.values().next().value;
+				const cacheKey = this.updateQueue.values()
+					.next().value;
 				if (!cacheKey) break;
 
 				this.updateQueue.delete(cacheKey);
@@ -699,7 +705,7 @@ export class LeaderboardService {
 					await this.refreshCache(type, mode, entityId);
 					this.processedCount++;
 				} catch (error) {
-					console.error(`Error updating leaderboard ${type}:${mode}:${entityId || 'all'}:`, error);
+					console.error(`Error updating leaderboard ${type}:${mode}:${entityId || "all"}:`, error);
 				}
 			}
 
@@ -722,22 +728,22 @@ export class LeaderboardService {
 		const dateFilter = this.getDateFilter(mode, snapshotTime);
 
 		switch (type) {
-			case "player":
-				await this.updatePlayerLeaderboard(mode, dateFilter);
-				break;
-			case "alliance":
-				await this.updateAllianceLeaderboard(mode, dateFilter);
-				break;
-			case "country":
-				await this.updateCountryLeaderboard(mode, dateFilter);
-				break;
-			case "region":
-				await this.updateRegionLeaderboard(mode, dateFilter);
-				break;
-			case "regionPlayers":
-			case "regionAlliances":
-				// These now use real-time UserRegionStats data, no need to update LeaderboardView
-				break;
+		case "player":
+			await this.updatePlayerLeaderboard(mode, dateFilter);
+			break;
+		case "alliance":
+			await this.updateAllianceLeaderboard(mode, dateFilter);
+			break;
+		case "country":
+			await this.updateCountryLeaderboard(mode, dateFilter);
+			break;
+		case "region":
+			await this.updateRegionLeaderboard(mode, dateFilter);
+			break;
+		case "regionPlayers":
+		case "regionAlliances":
+			// These now use real-time UserRegionStats data, no need to update LeaderboardView
+			break;
 		}
 	}
 
@@ -753,26 +759,26 @@ export class LeaderboardService {
 		const now = snapshotTime || new Date();
 
 		switch (mode) {
-			case "today": {
-				const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-				startOfDay.setHours(0, 0, 0, 0);
-				return { paintedAt: { gte: startOfDay } };
-			}
-			case "week": {
-				const startOfWeek = new Date(now);
-				startOfWeek.setDate(now.getDate() - 7);
-				startOfWeek.setHours(0, 0, 0, 0);
-				return { paintedAt: { gte: startOfWeek } };
-			}
-			case "month": {
-				const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-				startOfMonth.setHours(0, 0, 0, 0);
-				return { paintedAt: { gte: startOfMonth } };
-			}
-			case "all-time":
-				return {};
-			default:
-				return {};
+		case "today": {
+			const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+			startOfDay.setHours(0, 0, 0, 0);
+			return { paintedAt: { gte: startOfDay } };
+		}
+		case "week": {
+			const startOfWeek = new Date(now);
+			startOfWeek.setDate(now.getDate() - 7);
+			startOfWeek.setHours(0, 0, 0, 0);
+			return { paintedAt: { gte: startOfWeek } };
+		}
+		case "month": {
+			const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+			startOfMonth.setHours(0, 0, 0, 0);
+			return { paintedAt: { gte: startOfMonth } };
+		}
+		case "all-time":
+			return {};
+		default:
+			return {};
 		}
 	}
 
@@ -860,7 +866,7 @@ export class LeaderboardService {
 				const paintedAtFilter: any = { gte: member.allianceJoinedAt };
 
 				// Add time period filter if it exists (today/week/month)
-				if (dateFilter && 'paintedAt' in dateFilter && dateFilter.paintedAt) {
+				if (dateFilter && "paintedAt" in dateFilter && dateFilter.paintedAt) {
 					// Use the later date between alliance join date and time period start
 					const timePeriodStart = dateFilter.paintedAt.gte;
 					if (timePeriodStart && timePeriodStart > member.allianceJoinedAt) {
@@ -882,7 +888,7 @@ export class LeaderboardService {
 			}
 		}
 
-		const entries = Array.from(allianceMap.entries())
+		const entries = [...allianceMap.entries()]
 			.sort((a, b) => b[1] - a[1])
 			.slice(0, 50)
 			.map(([allianceId, pixelsPainted], index) => ({
@@ -1009,8 +1015,8 @@ export class LeaderboardService {
 
 		if (this.updateQueue.size >= this.maxQueueSize) {
 			console.warn(`Leaderboard queue overflow (${this.updateQueue.size}/${this.maxQueueSize}), dropping oldest 100 entries`);
-			const toRemove = Array.from(this.updateQueue).slice(0, 100);
-			toRemove.forEach(key => this.updateQueue.delete(key));
+			const toRemove = [...this.updateQueue].slice(0, 100);
+			for (const key of toRemove) this.updateQueue.delete(key);
 		}
 
 		const isNew = !this.updateQueue.has(cacheKey);
@@ -1034,12 +1040,10 @@ export class LeaderboardService {
 
 		// For region leaderboards, we have real-time data so don't need to queue updates
 		// For global leaderboards, continue with normal update process
-		if (!isRegionLeaderboard) {
-			if (now - this.lastUpdate > this.updateInterval) {
-				this.lastUpdate = now;
-				if (!this.isUpdating) {
-					this.processUpdateQueue();
-				}
+		if (!isRegionLeaderboard && now - this.lastUpdate > this.updateInterval) {
+			this.lastUpdate = now;
+			if (!this.isUpdating) {
+				this.processUpdateQueue();
 			}
 		}
 	}
@@ -1104,7 +1108,6 @@ export class LeaderboardService {
 				}
 			}
 		}
-
 	}
 }
 

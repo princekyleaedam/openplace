@@ -521,8 +521,8 @@ export class PixelService {
 				await this.prisma.$executeRaw`
 				INSERT INTO Pixel (season, tileX, tileY, x, y, colorId, paintedBy, paintedAt, regionCityId, regionCountryId)
 				VALUES ${Prisma.join(batch.map(v =>
-					Prisma.sql`(${v.season}, ${v.tileX}, ${v.tileY}, ${v.x}, ${v.y}, ${v.colorId}, ${v.paintedBy}, ${v.paintedAt}, ${v.regionCityId}, ${v.regionCountryId})`
-				))}
+		Prisma.sql`(${v.season}, ${v.tileX}, ${v.tileY}, ${v.x}, ${v.y}, ${v.colorId}, ${v.paintedBy}, ${v.paintedAt}, ${v.regionCityId}, ${v.regionCountryId})`
+	))}
 				ON DUPLICATE KEY UPDATE
 					colorId = VALUES(colorId),
 					paintedBy = VALUES(paintedBy),
@@ -592,8 +592,8 @@ export class PixelService {
 						}
 					}
 				}, {
-					timeout: 10000, // 10 second timeout
-					isolationLevel: 'ReadCommitted' // Use read committed to reduce lock contention
+					timeout: 10_000, // 10 second timeout
+					isolationLevel: "ReadCommitted" // Use read committed to reduce lock contention
 				});
 				break; // Success, exit retry loop
 			} catch (error: any) {
@@ -604,8 +604,8 @@ export class PixelService {
 					error.message?.includes("Record has changed since last read") ||
 					error.message?.includes("deadlock") ||
 					error.message?.includes("timeout") ||
-					error.code === 'P2034' ||
-					error.code === 'P2024'
+					error.code === "P2034" ||
+					error.code === "P2024"
 				);
 
 				if (isRetryableError && retries > 0) {
@@ -631,7 +631,7 @@ export class PixelService {
 		// Update region stats and invalidate leaderboards for real-time updates
 		if (painted > 0) {
 			// For large pixel counts (>10k), prioritize painting first, then update stats asynchronously
-			if (painted > 10000) {
+			if (painted > 10_000) {
 				// Update stats asynchronously to avoid blocking user
 				setImmediate(async () => {
 					try {
@@ -664,7 +664,7 @@ export class PixelService {
 		for (const pixel of pixels) {
 			if (!pixel.region) continue;
 
-			const key = `${pixel.region.cityId || 'null'}-${pixel.region.countryId || 'null'}`;
+			const key = `${pixel.region.cityId || "null"}-${pixel.region.countryId || "null"}`;
 			const existing = regionStatsMap.get(key);
 
 			if (existing) {
@@ -721,8 +721,10 @@ export class PixelService {
 		// Invalidate region leaderboards
 		for (const cityId of uniqueCityIds) {
 			for (const mode of modes) {
-				invalidations.push(leaderboardService.invalidateLeaderboard("regionPlayers", mode, cityId));
-				invalidations.push(leaderboardService.invalidateLeaderboard("regionAlliances", mode, cityId));
+				invalidations.push(
+					leaderboardService.invalidateLeaderboard("regionPlayers", mode, cityId),
+					leaderboardService.invalidateLeaderboard("regionAlliances", mode, cityId)
+				);
 			}
 		}
 
@@ -740,9 +742,9 @@ export class PixelService {
 			for (const stat of existingStats) {
 				// Update existing record with new alliance
 				await this.prisma.$executeRaw`
-					UPDATE UserRegionStats 
+					UPDATE UserRegionStats
 					SET allianceId = ${newAllianceId}
-					WHERE userId = ${stat.userId} 
+					WHERE userId = ${stat.userId}
 					AND regionCityId <=> ${stat.regionCityId}
 					AND regionCountryId <=> ${stat.regionCountryId}
 					AND allianceId <=> ${oldAllianceId}
@@ -750,7 +752,8 @@ export class PixelService {
 				`;
 
 				// And update table for the same day
-				const dateString = stat.timePeriod.toISOString().split('T')[0] + ' 00:00:00';
+				const dateString = `${stat.timePeriod.toISOString()
+					.split("T")[0]} 00:00:00`;
 				await this.prisma.$executeRaw`
 					UPDATE UserRegionStatsDaily
 					SET allianceId = ${newAllianceId}

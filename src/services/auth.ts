@@ -65,13 +65,13 @@ export class AuthService {
 
 		const range = isIPv6
 			? {
-				ipv6Min: ipv6ToUint8Array(start),
-				ipv6Max: ipv6ToUint8Array(start)
-			}
+					ipv6Min: ipv6ToUint8Array(start),
+					ipv6Max: ipv6ToUint8Array(start)
+				}
 			: {
-				ipv4Min: Number(start),
-				ipv4Max: Number(start)
-			};
+					ipv4Min: Number(start),
+					ipv4Max: Number(start)
+				};
 
 		const bannedIP = await this.prisma.bannedIP.findFirst({
 			where: {
@@ -125,13 +125,13 @@ export class AuthService {
 
 				const range = isIPv6
 					? {
-						ipv6Min: ipv6ToUint8Array(start),
-						ipv6Max: ipv6ToUint8Array(start)
-					}
+							ipv6Min: ipv6ToUint8Array(start),
+							ipv6Max: ipv6ToUint8Array(start)
+						}
 					: {
-						ipv4Min: Number(start),
-						ipv4Max: Number(start)
-					};
+							ipv4Min: Number(start),
+							ipv4Max: Number(start)
+						};
 
 				const bannedIPs = await this.prisma.bannedIP.count({
 					where: {
@@ -189,13 +189,13 @@ export class AuthService {
 				await this.prisma.bannedIP.deleteMany({
 					where: isIPv6
 						? {
-							ipv6Min: bannedIP.ipv6Min,
-							ipv6Max: bannedIP.ipv6Max
-						}
+								ipv6Min: bannedIP.ipv6Min,
+								ipv6Max: bannedIP.ipv6Max
+							}
 						: {
-							ipv4Min: bannedIP.ipv4Min,
-							ipv4Max: bannedIP.ipv4Max
-						}
+								ipv4Min: bannedIP.ipv4Min,
+								ipv4Max: bannedIP.ipv4Max
+							}
 				});
 			}
 		}

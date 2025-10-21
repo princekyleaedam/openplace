@@ -10,7 +10,7 @@ export interface Region {
 }
 
 export class RegionService {
-	constructor(private prisma: PrismaClient) { }
+	constructor(private prisma: PrismaClient) {}
 
 	private cache = new Map<string, Region>();
 	private inflight = new Map<string, Promise<Region>>();
@@ -28,8 +28,8 @@ export class RegionService {
 	}[]>();
 	private static kd: { nearest: (pt: { latitude: number; longitude: number }) => any | null } | null = null;
 	private staticKey(lat: number, lon: number): string {
-		const rLat = Math.round(lat * 10000) / 10000;
-		const rLon = Math.round(lon * 10000) / 10000;
+		const rLat = Math.round(lat * 10_000) / 10_000;
+		const rLon = Math.round(lon * 10_000) / 10_000;
 		return `${rLat}:${rLon}`;
 	}
 	private static binKey(lat: number, lon: number): string {
@@ -215,7 +215,7 @@ export class RegionService {
 
 	// ref: https://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
 	private getDistanceFromLatLon(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }): number {
-		const R = 6371000;
+		const R = 6_371_000;
 		const dLat = this.deg2rad(b.latitude - a.latitude);
 		const dLon = this.deg2rad(b.longitude - a.longitude);
 		const lat1 = this.deg2rad(a.latitude);
@@ -252,9 +252,9 @@ export class RegionService {
 				for (const region of bucket) {
 					const d = this.getDistanceFromLatLon(
 						{ latitude, longitude }, {
-						latitude: region.latitude,
-						longitude: region.longitude
-					});
+							latitude: region.latitude,
+							longitude: region.longitude
+						});
 					if (d < bestD) {
 						bestD = d;
 						best = region;

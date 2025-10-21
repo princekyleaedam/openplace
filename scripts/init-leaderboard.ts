@@ -1,25 +1,16 @@
-import { leaderboardService } from "../src/services/leaderboard.js";
+import { LeaderboardMode, leaderboardService, LeaderboardType } from "../src/services/leaderboard.js";
 
-async function initializeLeaderboards() {
-  console.log("Initializing leaderboard data...");
-  
-  try {
-    console.log("Initializing regular leaderboards...");
-    const types = ["player", "alliance", "country", "region"];
-    const modes = ["today", "week", "month", "all-time"];
+console.log("Initializing leaderboard data...");
 
-    for (const type of types) {
-      console.log(`  - ${type} leaderboards...`);
-      for (const mode of modes) {
-        await leaderboardService.invalidateLeaderboard(type as any, mode as any);
-      }
-    }
+console.log("Initializing regular leaderboards...");
+const types: LeaderboardType[] = ["player", "alliance", "country", "region"];
+const modes: LeaderboardMode[] = ["today", "week", "month", "all-time"];
 
-    console.log("Leaderboard initialization completed successfully!");
-  } catch (error) {
-    console.error("Error initializing leaderboards:", error);
-    process.exit(1);
-  }
+for (const type of types) {
+	console.log(`  - ${type} leaderboards...`);
+	for (const mode of modes) {
+		await leaderboardService.invalidateLeaderboard(type, mode);
+	}
 }
 
-initializeLeaderboards();
+console.log("Leaderboard initialization completed successfully!");

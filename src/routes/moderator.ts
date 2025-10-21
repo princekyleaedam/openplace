@@ -35,15 +35,17 @@ const ticketService = new TicketService(prisma);
 export default function (app: App) {
 	app.get("/moderator/tickets", authMiddleware, moderatorMiddleware, async (req, res) => {
 		try {
-			const page = parseInt(req.query['page'] as string) || 1;
-			const limit = parseInt(req.query['limit'] as string) || 20;
+			const page = Number.parseInt(req.query["page"] as string) || 1;
+			const limit = Number.parseInt(req.query["limit"] as string) || 20;
 
 			// Validate pagination parameters
-			if (!Number.isInteger(page) || page < 1 || page > 10000) {
-				return res.status(400).json({ error: "Bad Request", status: 400 });
+			if (!Number.isInteger(page) || page < 1 || page > 10_000) {
+				return res.status(400)
+					.json({ error: "Bad Request", status: 400 });
 			}
 			if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
-				return res.status(400).json({ error: "Bad Request", status: 400 });
+				return res.status(400)
+					.json({ error: "Bad Request", status: 400 });
 			}
 
 			const offset = (page - 1) * limit;
@@ -104,27 +106,27 @@ export default function (app: App) {
 
 			const [reportedCounts, timeoutCounts, pixelsCounts, authorReportedCounts, authorPixelsCounts, sameIpData] = await Promise.all([
 				prisma.ticket.groupBy({
-					by: ['reportedUserId'],
+					by: ["reportedUserId"],
 					_count: { id: true },
 					where: { reportedUserId: { in: userIds } }
 				}),
 				prisma.ticket.groupBy({
-					by: ['reportedUserId'],
+					by: ["reportedUserId"],
 					_count: { id: true },
 					where: { reportedUserId: { in: userIds }, resolution: "Timeout" }
 				}),
 				prisma.pixel.groupBy({
-					by: ['paintedBy'],
+					by: ["paintedBy"],
 					_count: { id: true },
 					where: { paintedBy: { in: userIds } }
 				}),
 				prisma.ticket.groupBy({
-					by: ['userId'],
+					by: ["userId"],
 					_count: { id: true },
 					where: { userId: { in: userIds } }
 				}),
 				prisma.pixel.groupBy({
-					by: ['paintedBy'],
+					by: ["paintedBy"],
 					_count: { id: true },
 					where: { paintedBy: { in: userIds } }
 				}),
@@ -162,8 +164,8 @@ export default function (app: App) {
 					where: {
 						id: { notIn: userIds },
 						OR: [
-							{ lastIP: { in: Array.from(allIps) } },
-							{ registrationIP: { in: Array.from(allIps) } }
+							{ lastIP: { in: [...allIps] } },
+							{ registrationIP: { in: [...allIps] } }
 						]
 					},
 					select: { id: true, lastIP: true, registrationIP: true }
@@ -172,8 +174,8 @@ export default function (app: App) {
 				for (const user of sameIpData) {
 					const userIps = userIpMap.get(user.id) || [];
 					const count = sameIpUsers.filter(otherUser =>
-						userIps.includes(otherUser.lastIP || '') ||
-						userIps.includes(otherUser.registrationIP || '')
+						userIps.includes(otherUser.lastIP || "") ||
+						userIps.includes(otherUser.registrationIP || "")
 					).length;
 					sameIpCountMap.set(user.id, count);
 				}
@@ -200,31 +202,31 @@ export default function (app: App) {
 					id: ticket.id,
 					author: author
 						? {
-							userId: author.id,
-							name: author.nickname || author.name,
-							discord: author.discord,
-							country: author.country,
-							banned: author.banned,
-							role: author.role,
-							reportedCount: authorReportedCount,
-							pixelsPainted: authorPixelsPainted
-						}
+								userId: author.id,
+								name: author.nickname || author.name,
+								discord: author.discord,
+								country: author.country,
+								banned: author.banned,
+								role: author.role,
+								reportedCount: authorReportedCount,
+								pixelsPainted: authorPixelsPainted
+							}
 						: null,
 					reportedUser: reportedUser
 						? {
-							userId: reportedUser.id,
-							id: reportedUser.id,
-							name: reportedUser.nickname || reportedUser.name,
-							discord: reportedUser.discord,
-							country: reportedUser.country,
-							banned: reportedUser.banned,
-							role: reportedUser.role,
-							picture: reportedUser.picture,
-							reportedCount,
-							timeoutCount,
-							pixelsPainted,
-							lastTimeoutReason: null
-						}
+								userId: reportedUser.id,
+								id: reportedUser.id,
+								name: reportedUser.nickname || reportedUser.name,
+								discord: reportedUser.discord,
+								country: reportedUser.country,
+								banned: reportedUser.banned,
+								role: reportedUser.role,
+								picture: reportedUser.picture,
+								reportedCount,
+								timeoutCount,
+								pixelsPainted,
+								lastTimeoutReason: null
+							}
 						: null,
 					createdAt: ticket.createdAt,
 					reports: [
@@ -235,7 +237,10 @@ export default function (app: App) {
 							zoom: ticket.zoom,
 							reason: ticket.reason,
 							notes: ticket.notes,
-							imageUrl: ticket.image ? `data:image/jpeg;base64,${Buffer.from(ticket.image).toString("base64")}` : "",
+							imageUrl: ticket.image
+								? `data:image/jpeg;base64,${Buffer.from(ticket.image)
+									.toString("base64")}`
+								: "",
 							createdAt: ticket.createdAt,
 							userId: reportedUser.id,
 							reportedByName: author.nickname || author.name,
@@ -354,21 +359,21 @@ export default function (app: App) {
 					id: userId,
 					author: author
 						? {
-							id: author.id,
-							name: author.nickname || author.name,
-							discord: author.discord || "",
-							country: author.country,
-							banned: author.banned
-						}
+								id: author.id,
+								name: author.nickname || author.name,
+								discord: author.discord || "",
+								country: author.country,
+								banned: author.banned
+							}
 						: null,
 					reportedUser: reportedUser
 						? {
-							id: reportedUser.id,
-							name: reportedUser.nickname || reportedUser.name,
-							discord: reportedUser.discord || "",
-							country: reportedUser.country,
-							banned: reportedUser.banned
-						}
+								id: reportedUser.id,
+								name: reportedUser.nickname || reportedUser.name,
+								discord: reportedUser.discord || "",
+								country: reportedUser.country,
+								banned: reportedUser.banned
+							}
 						: null,
 					createdAt: ticket.createdAt,
 					reports: [ticket].map(ticket => ({
@@ -450,15 +455,15 @@ export default function (app: App) {
 
 			let resolution: TicketResolution | null = null;
 			switch (status) {
-				case "ignore":
-					resolution = TicketResolution.Ignore;
-					break;
-				case "timeout":
-					resolution = TicketResolution.Timeout;
-					break;
-				case "ban":
-					resolution = TicketResolution.Ban;
-					break;
+			case "ignore":
+				resolution = TicketResolution.Ignore;
+				break;
+			case "timeout":
+				resolution = TicketResolution.Timeout;
+				break;
+			case "ban":
+				resolution = TicketResolution.Ban;
+				break;
 			}
 
 			if (!resolution) {

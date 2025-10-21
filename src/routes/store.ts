@@ -26,14 +26,16 @@ export default function (app: App) {
 			// Validate product.id is a valid number
 			const productId = Number(product.id);
 			if (!Number.isInteger(productId) || productId <= 0) {
-				console.warn(`[${new Date().toISOString()}] Invalid product ID from ${req.ip}:`, product.id);
+				console.warn(`[${new Date()
+					.toISOString()}] Invalid product ID from ${req.ip}:`, product.id);
 				return res.status(400)
 					.json({ error: "Bad Request", status: 400 });
 			}
 
 			const item = STORE_ITEMS[productId as keyof typeof STORE_ITEMS];
 			if (!item) {
-				console.warn(`[${new Date().toISOString()}] Unknown product ID from ${req.ip}:`, productId);
+				console.warn(`[${new Date()
+					.toISOString()}] Unknown product ID from ${req.ip}:`, productId);
 				return res.status(400)
 					.json({ error: "Invalid item", status: 400 });
 			}
@@ -50,11 +52,12 @@ export default function (app: App) {
 			const amount = product.amount || 1;
 			
 			// Strict validation for amount
-			if (typeof amount !== 'number' || 
+			if (typeof amount !== "number" || 
 				!Number.isFinite(amount) || 
 				!Number.isInteger(amount) || 
 				amount < 1) {
-				console.warn(`[${new Date().toISOString()}] Invalid purchase amount from ${req.ip}:`, amount);
+				console.warn(`[${new Date()
+					.toISOString()}] Invalid purchase amount from ${req.ip}:`, amount);
 				return res.status(400)
 					.json({ error: "Bad Request", status: 400 });
 			}
@@ -91,7 +94,8 @@ export default function (app: App) {
 				if (product.variant) {
 					const variant = Number(product.variant);
 					if (!Number.isInteger(variant) || variant < 32 || variant > 63) {
-						console.warn(`[${new Date().toISOString()}] Invalid color variant from ${req.ip}:`, product.variant);
+						console.warn(`[${new Date()
+							.toISOString()}] Invalid color variant from ${req.ip}:`, product.variant);
 						return res.status(400)
 							.json({ error: "Bad Request", status: 400 });
 					}
@@ -104,7 +108,8 @@ export default function (app: App) {
 				if (product.variant) {
 					const variant = Number(product.variant);
 					if (!Number.isInteger(variant) || variant < 1 || variant > 251) {
-						console.warn(`[${new Date().toISOString()}] Invalid flag variant from ${req.ip}:`, product.variant);
+						console.warn(`[${new Date()
+							.toISOString()}] Invalid flag variant from ${req.ip}:`, product.variant);
 						return res.status(400)
 							.json({ error: "Bad Request", status: 400 });
 					}
@@ -135,51 +140,51 @@ export default function (app: App) {
 		try {
 			const flagId = Number.parseInt(req.params["id"] as string);
 
-		if (Number.isNaN(flagId) || flagId < 0 || flagId > 251) {
-			return res.status(400)
-				.json({ error: "Bad Request", status: 400 });
-		}
+			if (Number.isNaN(flagId) || flagId < 0 || flagId > 251) {
+				return res.status(400)
+					.json({ error: "Bad Request", status: 400 });
+			}
 
-		const user = await prisma.user.findUnique({
-			where: { id: req.user!.id }
-		});
+			const user = await prisma.user.findUnique({
+				where: { id: req.user!.id }
+			});
 
-		if (!user) {
-			return res.status(401)
-				.json({ error: "Unauthorized", status: 401 });
-		}
+			if (!user) {
+				return res.status(401)
+					.json({ error: "Unauthorized", status: 401 });
+			}
 
-		// Handle unequip (flagId = 0)
-		// idk why first flag frontend only set flagId = 0
-		if (flagId === 0) {
-			if (user.equippedFlag && user.equippedFlag > 0) {
-				await prisma.user.update({
-					where: { id: req.user!.id },
-					data: { equippedFlag: 0 }
-				});
-				return res.json({ success: true });
-			} else {
+			// Handle unequip (flagId = 0)
+			// idk why first flag frontend only set flagId = 0
+			if (flagId === 0) {
+				if (user.equippedFlag && user.equippedFlag > 0) {
+					await prisma.user.update({
+						where: { id: req.user!.id },
+						data: { equippedFlag: 0 }
+					});
+					return res.json({ success: true });
+				} else {
+					return res.status(403)
+						.json({ error: "Forbidden", status: 403 });
+				}
+			}
+
+			// Handle equip (flagId > 0)
+			const flagsBitmap = user.flagsBitmap
+				? WplaceBitMap.fromBase64(Buffer.from(user.flagsBitmap)
+					.toString("base64"))
+				: new WplaceBitMap();
+
+			if (!flagsBitmap.get(flagId)) {
 				return res.status(403)
 					.json({ error: "Forbidden", status: 403 });
 			}
-		}
 
-		// Handle equip (flagId > 0)
-		const flagsBitmap = user.flagsBitmap
-			? WplaceBitMap.fromBase64(Buffer.from(user.flagsBitmap)
-				.toString("base64"))
-			: new WplaceBitMap();
-
-		if (!flagsBitmap.get(flagId)) {
-			return res.status(403)
-				.json({ error: "Forbidden", status: 403 });
-		}
-
-		// Equip the flag
-		await prisma.user.update({
-			where: { id: req.user!.id },
-			data: { equippedFlag: flagId }
-		});
+			// Equip the flag
+			await prisma.user.update({
+				where: { id: req.user!.id },
+				data: { equippedFlag: flagId }
+			});
 
 			return res.json({ success: true });
 		} catch (error) {

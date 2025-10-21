@@ -10,26 +10,26 @@ function getDateFilter(mode: LeaderboardMode): any {
 	const now = new Date();
 
 	switch (mode) {
-		case "today": {
-			const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-			startOfDay.setHours(0, 0, 0, 0);
-			return { paintedAt: { gte: startOfDay } };
-		}
-		case "week": {
-			const startOfWeek = new Date(now);
-			startOfWeek.setDate(now.getDate() - 7);
-			startOfWeek.setHours(0, 0, 0, 0);
-			return { paintedAt: { gte: startOfWeek } };
-		}
-		case "month": {
-			const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-			startOfMonth.setHours(0, 0, 0, 0);
-			return { paintedAt: { gte: startOfMonth } };
-		}
-		case "all-time":
-			return {};
-		default:
-			return {};
+	case "today": {
+		const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+		startOfDay.setHours(0, 0, 0, 0);
+		return { paintedAt: { gte: startOfDay } };
+	}
+	case "week": {
+		const startOfWeek = new Date(now);
+		startOfWeek.setDate(now.getDate() - 7);
+		startOfWeek.setHours(0, 0, 0, 0);
+		return { paintedAt: { gte: startOfWeek } };
+	}
+	case "month": {
+		const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+		startOfMonth.setHours(0, 0, 0, 0);
+		return { paintedAt: { gte: startOfMonth } };
+	}
+	case "all-time":
+		return {};
+	default:
+		return {};
 	}
 }
 
@@ -81,9 +81,9 @@ export class AllianceService {
 			description: user.alliance.description || "",
 			hq: user.alliance.hqLatitude && user.alliance.hqLongitude
 				? {
-					latitude: user.alliance.hqLatitude,
-					longitude: user.alliance.hqLongitude
-				}
+						latitude: user.alliance.hqLatitude,
+						longitude: user.alliance.hqLongitude
+					}
 				: null,
 			members: memberCount,
 			pixelsPainted: user.alliance.pixelsPainted || 0,
@@ -154,7 +154,7 @@ export class AllianceService {
 	}
 
 	private sanitizeDescription(desc: string): string {
-		return desc.replace(/[<>'"&]/g, (char) => {
+		return desc.replaceAll(/["&'<>]/g, (char) => {
 			const escapeMap: Record<string, string> = {
 				"<": "&lt;",
 				">": "&gt;",
@@ -163,7 +163,8 @@ export class AllianceService {
 				"&": "&amp;"
 			};
 			return escapeMap[char] || char;
-		}).trim();
+		})
+			.trim();
 	}
 
 	async updateDescription(userId: number, input: UpdateAllianceDescriptionInput) {
@@ -619,7 +620,7 @@ export class AllianceService {
 			const paintedAtFilter: any = { gte: member.allianceJoinedAt };
 
 			// Add time period filter if it exists (today/week/month)
-			if (dateFilter && 'paintedAt' in dateFilter && dateFilter.paintedAt) {
+			if (dateFilter && "paintedAt" in dateFilter && dateFilter.paintedAt) {
 				// Use the later date between alliance join date and time period start
 				const timePeriodStart = dateFilter.paintedAt.gte;
 				if (timePeriodStart && timePeriodStart > member.allianceJoinedAt) {
