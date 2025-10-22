@@ -109,6 +109,7 @@ const user = computed(() => {
 	if (!value) {
 		return {
 			username: "Loading...",
+			id: 0,
 			level: 0,
 			levelProgress: 0,
 			pixelsPainted: 0,
@@ -118,6 +119,7 @@ const user = computed(() => {
 
 	return {
 		username: value.name,
+		id: value.id,
 		level: Math.floor(value.level),
 		levelProgress: 0, // TODO
 		pixelsPainted: Math.floor(value.pixelsPainted),

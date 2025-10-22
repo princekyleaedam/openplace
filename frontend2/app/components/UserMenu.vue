@@ -24,7 +24,7 @@
           <div class="flex flex-column gap-1">
             <div class="flex align-items-center gap-2">
               <span class="font-bold text-lg">{{ user.username }}</span>
-              <span class="rank-badge">#2</span>
+              <span class="rank-badge">#{{ user.id }}</span>
               <Chip
                 label="👑"
                 class="crown-chip"
