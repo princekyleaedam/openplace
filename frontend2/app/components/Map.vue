@@ -18,7 +18,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import type { GeoJSONSource, Map as MaplibreMap } from "maplibre-gl";
+import type { GeoJSONSource, Map as MaplibreMap, StyleSpecification } from "maplibre-gl";
 import type { TileCoords } from "~/utils/coordinates";
 import { getPixelBounds, getPixelsBetween, type LatLng, latLngToTileCoords, ZOOM_LEVEL } from "~/utils/coordinates";
 
@@ -31,6 +31,7 @@ interface Pixel {
 const props = defineProps<{
 	pixels: Pixel[];
 	isDrawing: boolean;
+	isSatellite: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -77,20 +78,43 @@ const setUpMapLayers = (mapInstance: MaplibreMap, savedZoom?: number) => {
 		["!=", "class", "swimming_pool"]
 	]);
 
+	// Add satellite
+	if (!mapInstance.getSource("satellite")) {
+		mapInstance.addSource("satellite", {
+			type: "raster",
+			tiles: [
+				"https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg"
+			],
+			tileSize: 256
+		});
+	}
+
+	if (props.isSatellite) {
+		if (!mapInstance.getLayer("satellite")) {
+			mapInstance.addLayer({
+				id: "satellite",
+				type: "raster",
+				source: "satellite"
+			}, "building");
+		}
+	} else {
+		mapInstance.removeLayer("satellite");
+	}
+
 	if (!mapInstance.getSource("pixel-tiles")) {
 		mapInstance.addSource("pixel-tiles", {
 			type: "raster",
 			// tiles: ["/api/files/s0/tiles/{z}/{x}/{y}.png"],
 			tiles: ["/api/files/s0/tiles/{x}/{y}.png"],
 			tileSize: 512,
-			minzoom: 11,
-			maxzoom: 11,
+			minzoom: ZOOM_LEVEL,
+			maxzoom: ZOOM_LEVEL,
 			scheme: "xyz"
 		});
 	}
 
 	const zoom = savedZoom ?? mapInstance.getZoom();
-	const resamplingMode = zoom >= 11 ? "nearest" : "linear";
+	const resamplingMode = zoom >= ZOOM_LEVEL ? "nearest" : "linear";
 	if (!mapInstance.getLayer("pixel-tiles-layer")) {
 		mapInstance.addLayer({
 			id: "pixel-tiles-layer",
@@ -129,7 +153,7 @@ const setUpMapLayers = (mapInstance: MaplibreMap, savedZoom?: number) => {
 			source: "pixels",
 			paint: {
 				"line-color": "#fff",
-				"line-width": 3,
+				"line-width": 2,
 				"line-opacity": 0.3
 			}
 		});
@@ -405,6 +429,12 @@ watch(() => props.isDrawing, () => {
 
 	// Drawing mode cursor
 	canvas.style.cursor = props.isDrawing ? "crosshair" : "grab";
+});
+
+watch(() => props.isSatellite, () => {
+	if (map) {
+		setUpMapLayers(map);
+	}
 });
 
 onUnmounted(() => {

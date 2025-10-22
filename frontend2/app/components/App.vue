@@ -4,6 +4,7 @@
       <Map
         :pixels="pixels"
         :is-drawing="isPaintOpen"
+        :is-satellite="isSatellite"
         @map-click="handleMapClick"
         @map-hover="handleMapHover"
         @draw-pixels="handleDrawPixels"
@@ -13,38 +14,58 @@
       </template>
     </ClientOnly>
 
-    <UserAvatar
-      :user="user"
-      @click="toggleUserMenu"
-    />
+    <div class="app-overlays">
+      <div class="app-overlays-profile">
+        <div>
+          <UserAvatar
+            :user="user"
+            @click="toggleUserMenu"
+          />
 
-    <UserMenu
-      ref="userMenuRef"
-      :is-open="isUserMenuOpen"
-      :user="user"
-      @close="isUserMenuOpen = false"
-    />
+          <UserMenu
+            ref="userMenuRef"
+            :is-open="isUserMenuOpen"
+            :user="user"
+            @close="isUserMenuOpen = false"
+          />
+        </div>
 
-    <PaintButton
-      :charges="currentCharges"
-      :max-charges="maxCharges"
-      :is-drawing="isPaintOpen"
-      :time-until-next="formattedTime"
-      @click="isPaintOpen = !isPaintOpen"
-    />
+        <Button
+          severity="secondary"
+          raised
+          rounded
+          aria-label="Toggle satellite"
+          @click="toggleSatellite"
+        >
+          <Icon :name="isSatellite ? 'map_vector' : 'map_satellite'" />
+        </Button>
+      </div>
 
-    <ColorPalette
-      :is-open="isPaintOpen"
-      :selected-color="selectedColor"
-      :is-eraser-mode="isEraserMode"
-      :charges="currentCharges"
-      :max-charges="maxCharges"
-      :pixel-count="pixels.length"
-      :time-until-next="formattedTime"
-      @color-select="handleColorSelect"
-      @close="handleClosePaint"
-      @toggle-eraser="isEraserMode = !isEraserMode"
-    />
+      <div class="app-overlays-paint">
+        <PaintButton
+          :charges="currentCharges"
+          :max-charges="maxCharges"
+          :is-drawing="isPaintOpen"
+          :time-until-next="formattedTime"
+          @click="isPaintOpen = !isPaintOpen"
+        />
+      </div>
+
+      <div class="app-overlays-palette">
+        <ColorPalette
+          :is-open="isPaintOpen"
+          :selected-color="selectedColor"
+          :is-eraser-mode="isEraserMode"
+          :charges="currentCharges"
+          :max-charges="maxCharges"
+          :pixel-count="pixels.length"
+          :time-until-next="formattedTime"
+          @color-select="handleColorSelect"
+          @close="handleClosePaint"
+          @toggle-eraser="isEraserMode = !isEraserMode"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -66,6 +87,7 @@ interface Pixel {
 }
 
 const isPaintOpen = ref(false);
+const isSatellite = ref(false);
 const isUserMenuOpen = ref(false);
 const selectedColor = ref("rgba(0,0,0,1)");
 const isEraserMode = ref(false);
@@ -202,6 +224,10 @@ const toggleUserMenu = (event: Event) => {
 		userMenuRef.value.toggle(event);
 	}
 };
+
+const toggleSatellite = () => {
+	isSatellite.value = !isSatellite.value;
+};
 </script>
 
 <style scoped>
@@ -209,11 +235,60 @@ const toggleUserMenu = (event: Event) => {
 	width: 100vw;
 	height: 100vh;
 	overflow: hidden;
+	user-select: none;
 }
 
 .map-loading {
 	width: 100vw;
 	height: 100vh;
-	background: #f5f5f5;
+}
+
+.app-overlays {
+	display: grid;
+	grid-template-areas:
+		"top-left . top-right"
+		". . ."
+		"paint paint paint";
+	grid-template-rows: auto 1fr auto;
+	grid-template-columns: auto 1fr auto;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	z-index: 10;
+	pointer-events: none;
+}
+
+.app-overlays > * {
+	pointer-events: auto;
+}
+
+.app-overlays-profile {
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	align-self: end;
+	justify-self: end;
+	gap: var(--p-card-body-padding);
+	grid-area: top-right;
+	margin: var(--p-card-body-padding);
+}
+
+.app-overlays-paint {
+	grid-area: paint;
+	align-self: end;
+	justify-self: center;
+	position: relative;
+	z-index: 11;
+	margin-bottom: var(--p-card-body-padding);
+}
+
+.app-overlays-palette {
+	grid-area: paint;
+	align-self: end;
+	justify-self: stretch;
+	position: relative;
+	z-index: 12;
 }
 </style>

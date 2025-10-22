@@ -1,6 +1,6 @@
 <template>
-  <div
-    style="position: fixed; top: 20px; right: 20px; z-index: 999; cursor: pointer;"
+  <button
+    class="avatar-button"
     @click="$emit('click', $event)"
   >
     <div style="position: relative;">
@@ -9,15 +9,15 @@
         :image="user.avatar || undefined"
         size="large"
         shape="circle"
-        style="background-color: #4ade80; border: 3px solid white; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);"
+        class="avatar-button-avatar"
       />
       <Badge
         :value="user.level"
         severity="secondary"
-        style="position: absolute; bottom: -5px; right: -5px; background-color: #a855f7; color: white; border: 2px solid white; min-width: 1.5rem;"
+        class="avatar-button-badge"
       />
     </div>
-  </div>
+  </button>
 </template>
 
 <script setup lang="ts">
@@ -36,3 +36,26 @@ defineEmits<{
 	click: [event: Event];
 }>();
 </script>
+
+<style scoped>
+.avatar-button {
+	position: relative;
+	background: transparent;
+	padding: 0;
+	margin: 0;
+	border: 0;
+}
+
+.avatar-button-avatar {
+	background-color: #4ade80;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-button-badge {
+	position: absolute;
+	bottom: -5px;
+	right: -5px;
+	background-color: #a855f7;
+	color: white;
+}
+</style>

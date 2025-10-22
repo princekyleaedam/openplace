@@ -43,6 +43,7 @@
               'color-button-selected': selectedColor === `rgba(${item.rgba.join(',')})`
             }]"
             :style="{ backgroundColor: `rgba(${item.rgba.join(',')})` }"
+            :raised="selectedColor === `rgba(${item.rgba.join(',')})`"
             aria-label="Select color"
             @click="$emit('colorSelect', `rgba(${item.rgba.join(',')})`)"
           />
@@ -84,11 +85,7 @@ defineEmits<{
 
 <style scoped>
 .palette-container {
-	position: fixed;
-	bottom: 0;
-	left: 0;
 	width: 100%;
-	z-index: 1001;
 }
 
 .palette-card {
@@ -124,8 +121,6 @@ defineEmits<{
 }
 
 .palette-paint-button {
-	position: static;
 	width: 100%;
-	transform: none;
 }
 </style>
