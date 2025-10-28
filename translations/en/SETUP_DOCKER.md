@@ -32,7 +32,7 @@ cp .env.example .env
     - Set your `DATABASE_URL` to `"mysql://root:password@db/openplace"`
     - The MariaDB root password is set to `password` (change if needed)
 
-> [!WARNING]
+> [WARNING ⚠️]
 > Escape special characters listed in this table: [Percent-Encoding](https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding)
 
 ## 3. Start the application
