@@ -160,10 +160,13 @@ export class UserService {
 			// Check if Discord account is linked - prevent editing if linked
 			const user = await this.prisma.user.findUnique({
 				where: { id: userId },
-				select: { discordUserId: true }
+				select: {
+					discord: true,
+					discordUserId: true
+				}
 			});
 
-			if (user?.discordUserId) {
+			if (user?.discordUserId && discord !== user?.discord) {
 				throw new Error("Can’t change Discord username while account is linked.");
 			}
 
