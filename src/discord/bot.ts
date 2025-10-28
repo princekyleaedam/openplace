@@ -65,7 +65,7 @@ class DiscordBot {
 				return;
 			}
 
-			await this.updateUser(member);
+			await this.updateUser(await member.fetch());
 		});
 
 		// Handle errors
