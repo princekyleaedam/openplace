@@ -33,7 +33,7 @@ cp .env.example .env
     - Root password MariaDB diatur ke `password` (ubah jika diperlukan)
 
 > [PERINGATAN ⚠️]
-> Mengganti karakter khusus yang tercantum dalam tabel ini: [Percent-Encoding](https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding)
+> Ganti karakter khusus yang tercantum dari tabel ini: [Percent-Encoding](https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding)
 
 ## 3. Jalankan aplikasinya
 
