@@ -68,7 +68,7 @@ Copy-Item .env.example .env
 
 Edit `.env` and replace `root:password` with your MariaDB root password and change the `JWT_SECRET`.
 
-> [!WARNING]
+> [WARNING ⚠️]
 > Escape special character listed in this table: [Percent-Encoding](https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding)
 
 ---
@@ -120,7 +120,7 @@ pm2 save
 https://{your-local-IP}:8080
 ```
 
-> [!WARNING]
+> [WARNING ⚠️]
 > ⚠️ **Important:** OpenPlace only works over HTTPS. If you try HTTP, you’ll get **400 Bad Request**.
 
 
@@ -133,5 +133,3 @@ If the schema changes, run:
 ```powershell
 npm run db:push
 ```
-
----

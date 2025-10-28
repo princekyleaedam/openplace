@@ -1,22 +1,30 @@
 # openplace
+
+<p align="center"><strong>Translations</strong></p>
+<p align="center">
+    <a href="translations/fr/LISEZMOI.md"><img src="https://flagcdn.com/256x192/fr.png" width="48" alt="French Flag"></a>
+  &nbsp;
+
+## 
+
 Openplace (styled lowercase) is a free unofficial open source backend for [wplace.](https://wplace.live) We aim to give the freedom and flexibility for all users to be able to make their own private wplace experience for themselves, their friends, or even their community.
 
-> [!WARNING]
+> [WARNING ⚠️]
 > This is a work-in-progress. Expect unfinished features and bugs. Please help us by posting issues in #help-n-support on our [Discord server](https://discord.gg/ZRC4DnP9Z2) or by contributing pull requests. Thanks!
 
 ## Getting Started
 
 ### Windows
 
-- [Guideline for Windows Installation](SETUP_WINDOWS.md)
+- [Guideline for Windows Installation](translations/en/SETUP_WINDOWS.md)
 
 ### macOS
 
-- [Guideline for macOS Installation](SETUP_MACOS.md)
+- [Guideline for macOS Installation](translations/en/SETUP_MACOS.md)
 
 ### Docker
 
-- [Guideline for Docker Installation](SETUP_DOCKER.md)
+- [Guideline for Docker Installation](translations/en/SETUP_DOCKER.md)
 
 
 ### Server accessibility
