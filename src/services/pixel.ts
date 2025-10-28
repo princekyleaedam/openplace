@@ -47,6 +47,8 @@ export interface PixelInfoResult {
 		allianceName?: string;
 		equippedFlag?: number;
 		picture?: string | null;
+		discord?: string | null;
+		discordUserId?: string | null;
 	}[];
 	region: Region;
 }
@@ -144,7 +146,9 @@ export class PixelService {
 					allianceId: pixel.user.allianceId || 0,
 					allianceName: pixel.user.alliance?.name || "",
 					equippedFlag: pixel.user.equippedFlag,
-					picture: pixel.user.picture
+					picture: pixel.user.picture,
+					discord: pixel.user.discord,
+					discordUserId: pixel.user.discordUserId
 				});
 			} else {
 				paintedBy.push({
@@ -191,7 +195,9 @@ export class PixelService {
 							allianceId: pixel.user.allianceId || 0,
 							allianceName: pixel.user.alliance?.name || "",
 							equippedFlag: pixel.user.equippedFlag,
-							picture: pixel.user.picture
+							picture: pixel.user.picture,
+							discord: pixel.user.discord,
+							discordUserId: pixel.user.discordUserId
 						});
 					} else {
 						paintedBy.push({
