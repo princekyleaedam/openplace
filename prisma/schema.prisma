@@ -9,50 +9,51 @@ datasource db {
 }
 
 model User {
-  id                     Int                @id @default(autoincrement())
+  id                     Int                    @id @default(autoincrement())
   name                   String
   registrationIP         String?
   lastIP                 String?
   discord                String?
+  discordUserId          String?                @unique
   nickname               String?
   country                String
-  email                  String?            @unique
+  email                  String?                @unique
   passwordHash           String
-  banned                 Boolean            @default(false)
+  banned                 Boolean                @default(false)
   suspensionReason       String?
-  timeoutUntil           DateTime           @default(now())
-  needsPhoneVerification Boolean            @default(false)
-  isCustomer             Boolean            @default(false)
-  role                   String             @default("user")
-  pixelsPainted          Int                @default(0)
-  droplets               Int                @default(0)
-  maxCharges             Float              @default(20)
-  currentCharges         Float              @default(20)
-  chargesCooldownMs      Int                @default(30000)
-  chargesLastUpdatedAt   DateTime           @default(now())
-  extraColorsBitmap      Int                @default(0)
+  timeoutUntil           DateTime               @default(now())
+  needsPhoneVerification Boolean                @default(false)
+  isCustomer             Boolean                @default(false)
+  role                   String                 @default("user")
+  pixelsPainted          Int                    @default(0)
+  droplets               Int                    @default(0)
+  maxCharges             Float                  @default(20)
+  currentCharges         Float                  @default(20)
+  chargesCooldownMs      Int                    @default(30000)
+  chargesLastUpdatedAt   DateTime               @default(now())
+  extraColorsBitmap      Int                    @default(0)
   flagsBitmap            Bytes?
-  equippedFlag           Int                @default(0)
-  showLastPixel          Boolean            @default(true)
-  maxFavoriteLocations   Int                @default(15)
-  picture                String?            @db.Text
-  level                  Float              @default(1)
+  equippedFlag           Int                    @default(0)
+  showLastPixel          Boolean                @default(true)
+  maxFavoriteLocations   Int                    @default(15)
+  picture                String?                @db.Text
+  level                  Float                  @default(1)
   allianceId             Int?
-  allianceRole           String             @default("member")
+  allianceRole           String                 @default("member")
   allianceJoinedAt       DateTime?
-  alliance               Alliance?          @relation(fields: [allianceId], references: [id])
+  alliance               Alliance?              @relation(fields: [allianceId], references: [id])
   paintedPixels          Pixel[]
   favoriteLocations      FavoriteLocation[]
   bannedIPs              BannedIP[]
-  createdTickets         Ticket[]           @relation("TicketUser")
-  reportedTickets        Ticket[]           @relation("TicketReportedUser")
-  moderatedTickets       Ticket[]           @relation("TicketModeratorUser")
-  createdNotes           UserNote[]         @relation("UserNoteUser")
-  reportedNotes          UserNote[]         @relation("UserNoteReportedUser")
+  createdTickets         Ticket[]               @relation("TicketUser")
+  reportedTickets        Ticket[]               @relation("TicketReportedUser")
+  moderatedTickets       Ticket[]               @relation("TicketModeratorUser")
+  createdNotes           UserNote[]             @relation("UserNoteUser")
+  reportedNotes          UserNote[]             @relation("UserNoteReportedUser")
   regionStats            UserRegionStats[]
   regionStatsDaily       UserRegionStatsDaily[]
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
 
   @@index([banned])
   @@index([registrationIP])

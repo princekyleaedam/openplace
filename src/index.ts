@@ -11,6 +11,7 @@ import sirv from "sirv";
 import admin from "./routes/admin.js";
 import alliance from "./routes/alliance.js";
 import auth from "./routes/auth.js";
+import discord from "./routes/discord.js";
 import favoriteLocation from "./routes/favorite-location.js";
 import leaderboard from "./routes/leaderboard.js";
 import me from "./routes/me.js";
@@ -19,6 +20,7 @@ import pixel from "./routes/pixel.js";
 import reportUser from "./routes/report-user.js";
 import store from "./routes/store.js";
 import { leaderboardService } from "./services/leaderboard.js";
+import { discordBot } from "./discord/bot.js";
 
 const isDev = process.env["NODE_ENV"] !== "production";
 
@@ -39,12 +41,12 @@ const app = new App({
 // Fix IP address handling early to prevent @tinyhttp errors
 app.use((req, _res, next) => {
 	// Ensure req.ip is always a valid IP address
-	let ip = req.get("cf-connecting-ip") as string ?? 
-	         req.get("x-forwarded-for") as string ?? 
-	         req.connection?.remoteAddress ?? 
-	         req.ip ?? 
+	let ip = req.get("cf-connecting-ip") as string ??
+	         req.get("x-forwarded-for") as string ??
+	         req.connection?.remoteAddress ??
+	         req.ip ??
 	         "127.0.0.1";
-	
+
 	// Clean up IP address (remove port, handle multiple IPs)
 	if (ip && ip.includes(",")) {
 		ip = ip.split(",")[0]?.trim() ?? "";
@@ -55,12 +57,12 @@ app.use((req, _res, next) => {
 			? parts.join(":") // IPv6
 			: parts[0] ?? ""; // IPv4 with port
 	}
-	
+
 	// Validate IP format
 	if (!ip || ip.length < 7 || (!ip.includes(".") && !ip.includes(":"))) {
 		ip = "127.0.0.1";
 	}
-	
+
 	req.ip = ip;
 	next?.();
 });
@@ -107,6 +109,7 @@ app.use((req, _res, next) => {
 admin(app);
 alliance(app);
 auth(app);
+discord(app);
 favoriteLocation(app);
 leaderboard(app);
 me(app);
@@ -126,20 +129,20 @@ app.use(sirv("./frontend", {
 
 const port = Number(process.env["BACKEND_PORT"]) || 3000;
 
-app.listen(port, () => {
+app.listen(port, async () => {
 	console.log(`Server running on port ${port}`);
-	
+
 	console.log("Starting global leaderboard warmup scheduler (every 1 minute)");
 	leaderboardService.warmupGlobalLeaderboards()
 		.catch(error => {
 			console.error("Initial warmup failed:", error);
 		});
-	
+
 	setInterval(async () => {
 		try {
 			await leaderboardService.warmupGlobalLeaderboards();
-			const timestamp = new Date()
-				.toISOString();
+			// const timestamp = new Date()
+			// 	.toISOString();
 			// console.log(`[${timestamp}] Global leaderboards warmup completed`);
 		} catch (error) {
 			const timestamp = new Date()
@@ -147,4 +150,15 @@ app.listen(port, () => {
 			console.error(`[${timestamp}] Leaderboard warmup error:`, error);
 		}
 	}, 1 * 60 * 1000);
+
+	await discordBot.start();
 });
+
+async function shutdown() {
+	await discordBot.stop();
+	// eslint-disable-next-line unicorn/no-process-exit
+	process.exit(0);
+}
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);

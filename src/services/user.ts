@@ -5,6 +5,10 @@ import { BanReason } from "../types/index.js";
 import { AuthService } from "./auth.js";
 import { ValidationError } from "../utils/error.js";
 
+export const COOLDOWN_MS = Number.parseInt(process.env["COOLDOWN_MS"] ?? "") || 30_000;
+export const ACTIVE_COOLDOWN_MS = Number.parseInt(process.env["ACTIVE_COOLDOWN_MS"] ?? "") || 15_000;
+export const BOOSTER_COOLDOWN_MS = Number.parseInt(process.env["BOOSTER_COOLDOWN_MS"] ?? "") || 10_000;
+
 export interface UpdateUserInput {
 	nickname?: string;
 	showLastPixel?: boolean;
@@ -153,6 +157,16 @@ export class UserService {
 			updateData.showLastPixel = showLastPixel;
 		}
 		if (discord !== undefined) {
+			// Check if Discord account is linked - prevent editing if linked
+			const user = await this.prisma.user.findUnique({
+				where: { id: userId },
+				select: { discordUserId: true }
+			});
+
+			if (user?.discordUserId) {
+				throw new Error("Can’t change Discord username while account is linked.");
+			}
+
 			const sanitized = this.sanitizeInput(discord);
 			updateData.discord = sanitized.length > 0 ? sanitized : null;
 		}

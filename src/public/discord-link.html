@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Link Discord - openplace</title>
+	<link rel="stylesheet" href="/account.css">
+</head>
+<body>
+	<div class="login-form">
+		<h1>Link Discord Account</h1>
+		<p id="status">Loading...</p>
+		<div id="error" class="error"></div>
+		<div id="content" style="display: none;">
+			<p>Connect your Discord account to openplace.</p>
+			<p>Your Discord username on your profile cannot be changed while linked. You can unlink at any time.</p>
+			<button id="linkButton">Link Discord Account</button>
+			<br><br>
+			<a href="/">Back to Home</a>
+		</div>
+		<div id="success" style="display: none;">
+			<p>Discord account linked successfully!</p>
+			<a href="/">Back to Home</a>
+		</div>
+	</div>
+
+	<script>
+	(async () => {
+		const statusDiv = document.getElementById("status");
+		const errorDiv = document.getElementById("error");
+		const contentDiv = document.getElementById("content");
+		const successDiv = document.getElementById("success");
+		const linkButton = document.getElementById("linkButton");
+
+		try {
+			const meRes = await fetch("/me", {
+				credentials: "include"
+			});
+
+			if (!meRes.ok) {
+				statusDiv.textContent = "You must be logged in to link your Discord account.";
+				return;
+			}
+
+			const userData = await meRes.json();
+			if (userData.discordUserId) {
+				statusDiv.style.display = "none";
+				successDiv.style.display = "block";
+				successDiv.innerHTML = `
+					<p>Your Discord account is already linked!</p>
+					<p><strong>Discord Username:</strong> ${userData.discord || "Unknown"}</p>
+					<a href="/discord/unlink">Unlink Discord Account</a>
+					<br><br>
+					<a href="/">Back to Home</a>
+				`;
+				return;
+			}
+
+			const configRes = await fetch("/discord/configured");
+			if (!configRes.ok) {
+				statusDiv.textContent = "Discord linking is not available.";
+				errorDiv.textContent = "Discord OAuth is not configured on this server.";
+				return;
+			}
+
+			statusDiv.style.display = "none";
+			contentDiv.style.display = "block";
+
+			linkButton.addEventListener("click", async () => {
+				try {
+					linkButton.disabled = true;
+					linkButton.textContent = "Redirecting...";
+
+					const res = await fetch("/discord/auth-url", {
+						credentials: "include"
+					});
+
+					if (!res.ok) {
+						throw new Error("Failed to get Discord authorization URL");
+					}
+
+					const data = await res.json();
+					window.location.href = data.url;
+				} catch (error) {
+					errorDiv.textContent = error.message;
+					linkButton.disabled = false;
+					linkButton.textContent = "Link Discord Account";
+				}
+			});
+		} catch (error) {
+			statusDiv.textContent = "An error occurred.";
+			errorDiv.textContent = error.message;
+		}
+	})();
+	</script>
+</body>
+</html>

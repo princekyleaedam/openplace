@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Unlink Discord - openplace</title>
+	<link rel="stylesheet" href="/account.css">
+</head>
+<body>
+	<div class="login-form">
+		<h1>Unlink Discord Account</h1>
+		<p id="status">Loading...</p>
+		<div id="error" class="error"></div>
+		<div id="content" style="display: none;">
+			<p><strong>Discord Username:</strong> <span id="discordUsername"></span></p>
+			<p>Are you sure you want to unlink your Discord account?</p>
+			<p>After unlinking, you will be able to edit your Discord username field again.</p>
+			<button id="unlinkButton" style="background-color: #dc3545;">Unlink Discord Account</button>
+			<br><br>
+			<a href="/">Cancel and Go Home</a>
+		</div>
+		<div id="success" style="display: none;">
+			<p>Discord account unlinked successfully!</p>
+			<p>You can now edit your Discord username in your profile settings.</p>
+			<a href="/">Back to Home</a>
+		</div>
+		<div id="notLinked" style="display: none;">
+			<p>Your Discord account is not currently linked.</p>
+			<a href="/discord/link">Link Discord Account</a>
+			<br><br>
+			<a href="/">Back to Home</a>
+		</div>
+	</div>
+
+	<script>
+	(async () => {
+		const statusDiv = document.getElementById("status");
+		const errorDiv = document.getElementById("error");
+		const contentDiv = document.getElementById("content");
+		const successDiv = document.getElementById("success");
+		const notLinkedDiv = document.getElementById("notLinked");
+		const unlinkButton = document.getElementById("unlinkButton");
+		const discordUsernameSpan = document.getElementById("discordUsername");
+
+		try {
+			const meRes = await fetch("/me", {
+				credentials: "include"
+			});
+
+			if (!meRes.ok) {
+				statusDiv.textContent = "You must be logged in to unlink your Discord account.";
+				return;
+			}
+
+			const userData = await meRes.json();
+			if (!userData.discordUserId) {
+				statusDiv.style.display = "none";
+				notLinkedDiv.style.display = "block";
+				return;
+			}
+
+			statusDiv.style.display = "none";
+			contentDiv.style.display = "block";
+			discordUsernameSpan.textContent = userData.discord || "Unknown";
+
+			unlinkButton.addEventListener("click", async () => {
+				try {
+					unlinkButton.disabled = true;
+					unlinkButton.textContent = "Unlinking...";
+
+					const res = await fetch("/discord/unlink", {
+						method: "POST",
+						credentials: "include"
+					});
+
+					if (!res.ok) {
+						const data = await res.json();
+						throw new Error(data.error);
+					}
+
+					contentDiv.style.display = "none";
+					successDiv.style.display = "block";
+				} catch (error) {
+					errorDiv.textContent = error.message;
+					unlinkButton.disabled = false;
+					unlinkButton.textContent = "Unlink Discord Account";
+				}
+			});
+		} catch (error) {
+			statusDiv.textContent = "An error occurred.";
+			errorDiv.textContent = error.message;
+		}
+	})();
+	</script>
+</body>
+</html>

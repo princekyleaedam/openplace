@@ -5,7 +5,7 @@ import { prisma } from "../config/database.js";
 import { authMiddleware } from "../middleware/auth.js";
 import jwt from "jsonwebtoken";
 import fs from "fs/promises";
-import { UserService } from "../services/user.js";
+import { COOLDOWN_MS, UserService } from "../services/user.js";
 import { AuthenticatedRequest, BanReason } from "../types/index.js";
 import { AuthService, AuthToken } from "../services/auth.js";
 import { getRandomUniqueName } from "../utils/unique-name.js";
@@ -112,6 +112,7 @@ export default function (app: App) {
 						droplets: 1000,
 						currentCharges: 20,
 						maxCharges: 20,
+						chargesCooldownMs: COOLDOWN_MS,
 						pixelsPainted: 0,
 						level: 1,
 						extraColorsBitmap: 0,
