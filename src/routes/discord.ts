@@ -125,7 +125,7 @@ export default function (app: App) {
 				} else if (cooldown === ACTIVE_COOLDOWN_MS) {
 					cooldownMessage = `<p><strong>Thanks for being an active server member!</strong> Your paint cooldown has been set to ${seconds} seconds.</p>`;
 				} else {
-					cooldownMessage = `<p>You’re not eligible for reduced paint cooldown time. Check the Discord server’s rules for more information.</p>`;
+					cooldownMessage = `<p>You’re not eligible for any boosts at this time. Check the Discord server’s rules for more information on when you will automatically receive boosts.</p>`;
 				}
 			} else {
 				cooldownMessage = `<p>Unable to check Discord roles. Your cooldown will be updated when the bot syncs.</p>`;
