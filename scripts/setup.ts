@@ -12,7 +12,7 @@ const CONCURRENCY = Number(process.env.REGION_CONCURRENCY ?? 32);  // concurrent
 const PROGRESS_REFRESH_MS = Number(process.env.PROGRESS_REFRESH_MS ?? 120); // progress redraw throttle
 
 const prisma = new PrismaClient({
-	log: process.env.DEBUG?.includes("prisma") ? ["query", "info", "warn", "error"] : ["warn", "error"]
+	log: process.env.DEBUG?.includes("prisma") ? ["query", "info", "warn", "error"] : ["warn"]
 });
 
 const yes = process.argv.includes("--yes");
@@ -233,59 +233,58 @@ try {
 			const lines = batch;
 			batch = [];
 
-			await prisma.$transaction(async (tx) => {
-				await Promise.all(
-					lines.map((line) =>
-						runLimited(async () => {
-							const trimmed = line.trim();
-							if (!trimmed) return;
+			await Promise.all(
+				lines.map((line) =>
+					runLimited(async () => {
+						const trimmed = line.trim();
+						if (!trimmed) return;
 
-							const parts = trimmed.split("\t");
-							const id = parts[0];
-							const name = parts[1];
-							const latitude = parts[4];
-							const longitude = parts[5];
-							const countryCode = parts[8];
+						const parts = trimmed.split("\t");
+						const id = parts[0];
+						const name = parts[1];
+						const latitude = parts[4];
+						const longitude = parts[5];
+						const countryCode = parts[8];
 
-							if (!id || !name || !latitude || !longitude || !countryCode) return;
+						if (!id || !name || !latitude || !longitude || !countryCode) return;
 
-							if (ignoredCountries.has(countryCode)) return;
+						if (ignoredCountries.has(countryCode)) return;
 
-							const countryId = countryCodesToIDs.get(countryCode);
-							if (!countryId) {
-								ignoredCountries.add(countryCode);
-								console.warn(
-									chalk.yellow(`[${nowStr()}] Skipping unknown country:`),
-									countryCode
-								);
-								return;
-							}
+						const countryId = countryCodesToIDs.get(countryCode);
+						if (!countryId) {
+							ignoredCountries.add(countryCode);
+							console.warn(
+								chalk.yellow(`[${nowStr()}] Skipping unknown country:`),
+								countryCode
+							);
+							return;
+						}
 
-							const data = {
-								cityId: Number(id),
-								name,
-								number: 1,
-								countryId,
-								latitude: Number(latitude),
-								longitude: Number(longitude)
-							};
+						const data = {
+							cityId: Number(id),
+							name,
+							number: 1,
+							countryId,
+							latitude: Number(latitude),
+							longitude: Number(longitude)
+						};
 
-							await tx.region.upsert({
+						try {
+							await prisma.region.upsert({
 								where: {
-									latitude_longitude: {
-										latitude: data.latitude,
-										longitude: data.longitude
-									}
+									cityId: data.cityId
 								},
 								create: data,
 								update: data
 							});
-						})
-					)
-				);
-			}, {
-				timeout: 15_000
-			});
+						} catch (error) {
+							if ((error as { code: string }).code !== "P2002") {
+								throw error;
+							}
+						}
+					})
+				)
+			);
 
 			addedCount += lines.length;
 			process.stdout.write(
