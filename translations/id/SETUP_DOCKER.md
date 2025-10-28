@@ -21,7 +21,7 @@ cd openplace
 
 ## 2. Mengatur environmentnya
 
-1. Copy `.env.example` to `.env`:
+1. Salin `.env.example` ke `.env`:
 
 ```bash
 cp .env.example .env
