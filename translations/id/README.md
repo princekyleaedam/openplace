@@ -30,8 +30,8 @@ Openplace (format huruf kecil) adalah backend sumber terbuka gratis yang tidak r
 ### Aksesibilitas server
 Anda diharuskan untuk mengonfigurasi sertifikat SSL jika berencana menggunakan ini dalam lingkungan produksi. Namun, jika Anda hanya menggunakan ini bersama teman-teman Anda, Anda dapat langsung mengakses `https://{IP}:8080` CATATAN: openplace hanya dihosting melalui HTTPS. Anda akan mengalami kesalahan HTTP 400 jika mencoba memuat situs web melalui HTTP.
 
-### Updating your database
-In the event that the database schematic changes, you simply need to run `npm run db:push` to update your database schema.
+### Memperbarui database Anda
+Jika skema database berubah, Anda cukup menjalankan `npm run db:push` untuk memperbarui skema database Anda.
 
 ## Lisensi
 Dilisensikan di bawah Lisensi Apache, versi 2.0. Lihat [LICENSE.md](https://github.com/openplaceteam/openplace/blob/main/LICENSE.md).
