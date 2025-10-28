@@ -179,16 +179,7 @@ export default function (app: App) {
 					.json(createErrorResponse("Discord account is not linked", HTTP_STATUS.BAD_REQUEST));
 			}
 
-			const user = await prisma.user.findUnique({
-				where: { id: req.user!.id },
-				select: { discordUserId: true }
-			});
-
 			await discordService.unlinkDiscordAccount(req.user!.id);
-
-			if (user?.discordUserId) {
-				await discordBot.updateUserId(user.discordUserId);
-			}
 
 			return res.json({
 				success: true,

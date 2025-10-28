@@ -111,7 +111,7 @@ class DiscordBot {
 				}
 			});
 			if (!user) {
-				return;
+				return null;
 			}
 
 			let cooldown = COOLDOWN_MS;

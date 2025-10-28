@@ -1,4 +1,5 @@
 import { prisma } from "../config/database.js";
+import { COOLDOWN_MS } from "./user.js";
 
 interface DiscordUser {
 	id: string;
@@ -103,12 +104,24 @@ export default class DiscordService {
 	}
 
 	async unlinkDiscordAccount(userId: number): Promise<void> {
+		const user = await prisma.user.findUnique({
+			where: { id: userId },
+			select: {
+				id: true,
+				name: true,
+				discordUserId: true
+			}
+		});
+
 		await prisma.user.update({
 			where: { id: userId },
 			data: {
-				discordUserId: null
+				discordUserId: null,
+				chargesCooldownMs: COOLDOWN_MS
 			}
 		});
+
+		console.log(`[Discord Bot] ${user?.name}#${user?.id} (discord id ${user?.discordUserId}) unlinked - cooldown reset to ${COOLDOWN_MS}ms`);
 	}
 
 	async isDiscordLinked(userId: number): Promise<boolean> {
