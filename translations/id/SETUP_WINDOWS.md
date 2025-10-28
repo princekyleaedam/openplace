@@ -69,7 +69,7 @@ Copy-Item .env.example .env
 Edit `.env` dan timpa `root:password` dengan root password MariaDB mu dan ubah `JWT_SECRET`nya.
 
 > [PEEINGATAN ⚠️]
-> Mengganti karakter khusus yang tercantum dalam tabel ini: [Percent-Encoding](https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding)
+> Ganti karakter khusus yang tercantum dari tabel ini: [Percent-Encoding](https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding)
 
 ---
 
