@@ -6,7 +6,8 @@ import { handleServiceError } from "../middleware/errorHandler.js";
 import DiscordService from "../services/discord.js";
 import { createErrorResponse, HTTP_STATUS } from "../utils/response.js";
 import { AuthenticatedRequest } from "../types/index.js";
-import { prisma } from "../config/database.js";
+import { discordBot } from "../discord/bot.js";
+import { ACTIVE_COOLDOWN_MS, BOOSTER_COOLDOWN_MS } from "../services/user.js";
 
 const discordService = new DiscordService();
 
@@ -113,6 +114,22 @@ export default function (app: App) {
 			const discordUser = await discordService.getDiscordUser(accessToken);
 			await discordService.linkDiscordAccount(stateData.userId, discordUser);
 
+			const cooldown = await discordBot.updateUserId(discordUser.id);
+
+			let cooldownMessage = "";
+			if (cooldown) {
+				const seconds = Math.floor(cooldown / 1000);
+				if (cooldown === BOOSTER_COOLDOWN_MS) {
+					cooldownMessage = `<p><strong>Thanks for boosting our server!</strong> Your paint cooldown has been set to ${seconds} seconds.</p>`;
+				} else if (cooldown === ACTIVE_COOLDOWN_MS) {
+					cooldownMessage = `<p><strong>Thanks for being an active server member!</strong> Your paint cooldown has been set to ${seconds} seconds.</p>`;
+				} else {
+					cooldownMessage = `<p>You’re not eligible for reduced paint cooldown time. Check the Discord server’s rules for more information.</p>`;
+				}
+			} else {
+				cooldownMessage = `<p>Unable to check Discord roles. Your cooldown will be updated when the bot syncs.</p>`;
+			}
+
 			// TODO: Cleanup
 			return res.send(`
 				<html>
@@ -123,8 +140,8 @@ export default function (app: App) {
 				<body>
 					<div class="login-form">
 						<h1>Success!</h1>
-						<p>Your Discord account has been linked successfully.</p>
-						<p><strong>Discord Username:</strong> ${discordUser.username}</p>
+						<p>Your Discord account (${discordUser.username}) has been linked.</p>
+						${cooldownMessage}
 						<a href="/">Back to Home</a>
 					</div>
 				</body>

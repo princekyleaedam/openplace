@@ -99,7 +99,7 @@ class DiscordBot {
 		}
 	}
 
-	private async updateUser(member: GuildMember): Promise<void> {
+	private async updateUser(member: GuildMember): Promise<number | null> {
 		try {
 			const user = await prisma.user.findFirst({
 				where: { discordUserId: member.id },
@@ -123,8 +123,34 @@ class DiscordBot {
 			}
 
 			await this.updateCooldown(user, cooldown);
+			return cooldown;
 		} catch (error) {
 			console.error("[Discord Bot] Error handling role change:", error);
+			return null;
+		}
+	}
+
+	async updateUserId(discordUserId: string): Promise<number | null> {
+		if (!this.isConfigured || !this.client || !this.serverId) {
+			return null;
+		}
+
+		try {
+			const guild = await this.client.guilds.fetch(this.serverId);
+			if (!guild) {
+				return null;
+			}
+
+			const member = await guild.members.fetch(discordUserId)
+				.catch(() => null);
+			if (!member) {
+				return null;
+			}
+
+			return await this.updateUser(member);
+		} catch (error) {
+			console.error("[Discord Bot] Error checking user roles:", error);
+			return null;
 		}
 	}
 
