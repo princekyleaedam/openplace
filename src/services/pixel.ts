@@ -208,7 +208,7 @@ export class PixelService {
 		};
 	}
 
-	async getTileImage(tileX: number, tileY: number, season: number = 0): Promise<{ buffer: Buffer; updatedAt: Date }> {
+	async getTileImage(tileX: number, tileY: number, season = 0): Promise<{ buffer: Buffer; updatedAt: Date }> {
 		const rows = await this.prisma.$queryRaw<{ imageData: Buffer | null; ts: number | null }[]>(
 			Prisma.sql`SELECT imageData, UNIX_TIMESTAMP(updatedAt) as ts FROM Tile WHERE season = ${season} AND x = ${tileX} AND y = ${tileY} LIMIT 1`
 		);
@@ -224,7 +224,7 @@ export class PixelService {
 		return await this.updatePixelTile(tileX, tileY, season);
 	}
 
-	async updatePixelTile(tileX: number, tileY: number, season: number = 0): Promise<{ buffer: Buffer; updatedAt: Date }> {
+	async updatePixelTile(tileX: number, tileY: number, season = 0): Promise<{ buffer: Buffer; updatedAt: Date }> {
 		const canvas = createCanvas(1000, 1000);
 		const ctx = canvas.getContext("2d");
 		const imageData = ctx.createImageData(1000, 1000);
@@ -275,7 +275,7 @@ export class PixelService {
 		return { buffer, updatedAt };
 	}
 
-	async drawPixelsToTile(pixels: { x: number; y: number; colorId: number }[], tileX: number, tileY: number, season: number = 0): Promise<void> {
+	async drawPixelsToTile(pixels: { x: number; y: number; colorId: number }[], tileX: number, tileY: number, season = 0): Promise<void> {
 		// Process canvas updates in smaller chunks to prevent memory issues
 		const canvasChunkSize = 1000;
 
@@ -364,7 +364,7 @@ export class PixelService {
 		}
 	}
 
-	async paintPixels(account: { userId: number; ip: string; country?: string; }, input: PaintPixelsInput, season: number = 0): Promise<PaintPixelsResult> {
+	async paintPixels(account: { userId: number; ip: string; country?: string; }, input: PaintPixelsInput, season = 0): Promise<PaintPixelsResult> {
 		const { userId } = account;
 		const { tileX, tileY, colors, coords } = input;
 
@@ -420,7 +420,7 @@ export class PixelService {
 			pairedCoords.push({ x: coords[i], y: coords[i + 1] });
 		}
 
-		const validPixels: Array<{ x: number; y: number; colorId: number; coordKey: string; region?: Region | undefined }> = [];
+		const validPixels: { x: number; y: number; colorId: number; coordKey: string; region?: Region | undefined }[] = [];
 		const uniqueCoords = new Set<string>();
 
 		for (const [i, colorId] of colors.entries()) {
@@ -707,7 +707,7 @@ export class PixelService {
 	}
 
 	private async invalidateRelevantLeaderboards(_userId: number, pixels: any[]): Promise<void> {
-		const modes: Array<"today" | "week" | "month" | "all-time"> = ["today", "week", "month", "all-time"];
+		const modes: ("today" | "week" | "month" | "all-time")[] = ["today", "week", "month", "all-time"];
 		const uniqueCityIds = new Set<number>();
 
 		for (const pixel of pixels) {
@@ -716,7 +716,7 @@ export class PixelService {
 			}
 		}
 
-		const invalidations: Array<Promise<void>> = [];
+		const invalidations: Promise<void>[] = [];
 
 		// Invalidate region leaderboards
 		for (const cityId of uniqueCityIds) {

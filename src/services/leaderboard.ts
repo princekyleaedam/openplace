@@ -73,7 +73,7 @@ export class LeaderboardService {
 	private async updateLeaderboardEntries(
 		type: LeaderboardType,
 		mode: LeaderboardMode,
-		entries: Array<{ type: LeaderboardType; mode: LeaderboardMode; entityId: number; rank: number; pixelsPainted: number }>
+		entries: { type: LeaderboardType; mode: LeaderboardMode; entityId: number; rank: number; pixelsPainted: number }[]
 	): Promise<void> {
 		await this.retryTransaction(async () => {
 			// First, get existing entries to avoid duplicates
@@ -169,7 +169,7 @@ export class LeaderboardService {
 		type: LeaderboardType,
 		mode: LeaderboardMode,
 		entityId?: number,
-		limit: number = 50
+		limit = 50
 	): Promise<LeaderboardEntry[]> {
 		// Try real-time data first for region-specific leaderboards
 		if (type === "regionPlayers" && entityId) {
@@ -359,7 +359,7 @@ export class LeaderboardService {
 		type: LeaderboardType,
 		mode: LeaderboardMode,
 		entityId?: number,
-		limit: number = 50
+		limit = 50
 	): Promise<LeaderboardEntry[]> {
 		// For region leaderboards, we now use real-time data, so return empty
 		if (type === "regionPlayers" || type === "regionAlliances") {
@@ -564,7 +564,7 @@ export class LeaderboardService {
 		}
 
 		const dateFilter = this.getDateFilter(mode, snapshotTime);
-		let counts: Array<{ regionCityId: number; count: bigint }> = [];
+		let counts: { regionCityId: number; count: bigint }[] = [];
 
 		// Use userRegionStats for better performance
 		if (mode === "all-time") {
@@ -676,7 +676,7 @@ export class LeaderboardService {
 
 		try {
 			let processed = 0;
-			const batch: Array<{ type: LeaderboardType; mode: LeaderboardMode; entityId?: number }> = [];
+			const batch: { type: LeaderboardType; mode: LeaderboardMode; entityId?: number }[] = [];
 
 			while (this.updateQueue.size > 0 && processed < this.batchSize) {
 				const cacheKey = this.updateQueue.values()
@@ -905,7 +905,7 @@ export class LeaderboardService {
 
 	private async updateCountryLeaderboard(mode: LeaderboardMode, dateFilter: any): Promise<void> {
 		// Use userRegionStats for better performance
-		let counts: Array<{ regionCountryId: number; count: bigint }> = [];
+		let counts: { regionCountryId: number; count: bigint }[] = [];
 
 		if (mode === "all-time") {
 			// For all-time, sum all pixelsPainted by regionCountryId
@@ -958,7 +958,7 @@ export class LeaderboardService {
 
 	private async updateRegionLeaderboard(mode: LeaderboardMode, dateFilter: any): Promise<void> {
 		// Use userRegionStats for better performance
-		let counts: Array<{ regionCityId: number; count: bigint }> = [];
+		let counts: { regionCityId: number; count: bigint }[] = [];
 
 		if (mode === "all-time") {
 			// For all-time, sum all pixelsPainted by regionCityId
