@@ -88,6 +88,7 @@ export class UserService {
 			id: user.id,
 			name: user.nickname || user.name,
 			discord: user.discord ?? "",
+			discordUserId: user.discordUserId,
 			country: user.country,
 			banned: user.banned,
 			suspensionReason: user.suspensionReason,
