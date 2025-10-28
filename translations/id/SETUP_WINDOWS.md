@@ -60,7 +60,7 @@ net stop caddy
 
 ## 5. Konfigurasikan dan bangun database
 
-1. Copy `.env.example` ke `.env`:
+1. Salin `.env.example` ke `.env`:
 
 ```powershell
 Copy-Item .env.example .env
