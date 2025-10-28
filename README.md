@@ -3,6 +3,8 @@
 <p align="center"><strong>Translations</strong></p>
 <p align="center">
     <a href="translations/fr/LISEZMOI.md"><img src="https://flagcdn.com/256x192/fr.png" width="48" alt="French Flag"></a>
+    <a href-"translations/id/README.md"><img
+    src-"https://flagcdn.com/256x192/id.png" width-"48" alt-"Indonesia Flag"></a>
   &nbsp;
 
 ## 
