@@ -88,7 +88,7 @@ class DiscordBot {
 		return member.roles.cache.some((role) => this.boosterRoleIds.has(role.id));
 	}
 
-	private async updateCooldown(user: { id: number; name: string; chargesCooldownMs: number; discordUserId?: string; }, cooldown: number) {
+	private async updateCooldown(user: { id: number; name: string; chargesCooldownMs: number; discordUserId: string | null; }, cooldown: number) {
 		if (user.chargesCooldownMs !== cooldown) {
 			await prisma.user.update({
 				where: { id: user.id },
@@ -106,7 +106,7 @@ class DiscordBot {
 				select: {
 					id: true,
 					name: true,
-					discord: true,
+					discordUserId: true,
 					chargesCooldownMs: true
 				}
 			});
