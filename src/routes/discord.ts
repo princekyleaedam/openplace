@@ -8,6 +8,7 @@ import { createErrorResponse, HTTP_STATUS } from "../utils/response.js";
 import { AuthenticatedRequest } from "../types/index.js";
 import { discordBot } from "../discord/bot.js";
 import { ACTIVE_COOLDOWN_MS, BOOSTER_COOLDOWN_MS } from "../services/user.js";
+import { prisma } from "../config/database.js";
 
 const discordService = new DiscordService();
 
@@ -178,7 +179,17 @@ export default function (app: App) {
 					.json(createErrorResponse("Discord account is not linked", HTTP_STATUS.BAD_REQUEST));
 			}
 
+			const user = await prisma.user.findUnique({
+				where: { id: req.user!.id },
+				select: { discordUserId: true }
+			});
+
 			await discordService.unlinkDiscordAccount(req.user!.id);
+
+			if (user?.discordUserId) {
+				await discordBot.updateUserId(user.discordUserId);
+			}
+
 			return res.json({
 				success: true,
 				message: "Discord account unlinked"
