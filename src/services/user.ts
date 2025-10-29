@@ -91,6 +91,7 @@ export class UserService {
 			discordUserId: user.discordUserId,
 			country: user.country,
 			banned: user.banned,
+			verified: user.verified,
 			suspensionReason: user.suspensionReason,
 			timeoutUntil: user.timeoutUntil.toISOString(),
 			charges: {

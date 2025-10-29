@@ -25,6 +25,11 @@
             <div class="user-name-row">
               <span class="user-name">{{ user.username }}</span>
               <span class="user-id">#{{ user.id }}</span>
+			  <span
+                v-if="verified"
+                v-tooltip.top="'This player has been verified by an administrator of this instance.'">
+                <Icon name="verified" />
+              </span>
               <span
                 v-if="countryFlag"
                 class="country-flag"

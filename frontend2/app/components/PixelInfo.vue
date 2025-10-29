@@ -27,7 +27,30 @@
         >
           <ProgressSpinner />
         </div>
-
+           <h4>Painted By</h4>
+            <div class="pixel-info-row">
+              <span class="pixel-info-label">User:</span>
+              <span>{{ pixelData.paintedBy.name }}#{{ pixelData.paintedBy.id }}</span>
+              <span
+                v-if="pixelData.paintedBy.verified"
+                v-tooltip.top="'This player has been verified by an administrator of this instance.'">
+                <Icon name="verified" />
+              </span>
+            </div>
+            <div
+              v-if="pixelData.paintedBy.discord"
+              class="pixel-info-row"
+            >
+              <span class="pixel-info-label">Discord:</span>
+              <span>{{ pixelData.paintedBy.discord }}</span>
+            </div>
+            <div
+              v-if="pixelData.paintedBy.allianceName"
+              class="pixel-info-row"
+            >
+              <span class="pixel-info-label">Alliance:</span>
+              <span>{{ pixelData.paintedBy.allianceName }}</span>
+            </div>
         <div
           v-else-if="pixelData"
           class="pixel-info-content"
@@ -52,30 +75,6 @@
             v-if="pixelData.paintedBy.id !== 0"
             class="pixel-info-section"
           >
-            <h4>Painted By</h4>
-            <div class="pixel-info-row">
-              <span class="pixel-info-label">User:</span>
-              <span>{{ pixelData.paintedBy.name }}#{{ pixelData.paintedBy.id }}</span>
-              <span
-                v-if="pixelData.paintedBy.verified"
-                v-tooltip.top="'This player has been verified by an administrator of this instance.'">
-                <Icon name="verified" />
-              </span>
-            </div>
-            <div
-              v-if="pixelData.paintedBy.discord"
-              class="pixel-info-row"
-            >
-              <span class="pixel-info-label">Discord:</span>
-              <span>{{ pixelData.paintedBy.discord }}</span>
-            </div>
-            <div
-              v-if="pixelData.paintedBy.allianceName"
-              class="pixel-info-row"
-            >
-              <span class="pixel-info-label">Alliance:</span>
-              <span>{{ pixelData.paintedBy.allianceName }}</span>
-            </div>
           </div>
 
           <div

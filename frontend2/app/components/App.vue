@@ -210,6 +210,7 @@ const user = computed<UserProfile | null>(() => {
 	return {
 		...value,
 		username: value.name,
+		verified: value.verified,
 		level: Math.floor(value.level),
 		levelProgress,
 		pixelsPainted: Math.floor(value.pixelsPainted),
