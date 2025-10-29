@@ -33,7 +33,22 @@
           class="pixel-info-content"
         >
           <div class="pixel-info-section">
-                    <div
+            <h4>Location</h4>
+            <div class="pixel-info-row">
+              <span class="pixel-info-label">Tile:</span>
+              <span>{{ coords.tile[0] }}, {{ coords.tile[1] }}</span>
+            </div>
+            <div class="pixel-info-row">
+              <span class="pixel-info-label">Pixel:</span>
+              <span>{{ coords.pixel[0] }}, {{ coords.pixel[1] }}</span>
+            </div>
+            <div class="pixel-info-row">
+              <span class="pixel-info-label">Region:</span>
+              <span>{{ pixelData.region.name }}</span>
+            </div>
+          </div>
+
+          <div
             v-if="pixelData.paintedBy.id !== 0"
             class="pixel-info-section"
           >
@@ -62,23 +77,6 @@
               <span>{{ pixelData.paintedBy.allianceName }}</span>
             </div>
           </div>
-          
-            <h4>Location</h4>
-            <div class="pixel-info-row">
-              <span class="pixel-info-label">Tile:</span>
-              <span>{{ coords.tile[0] }}, {{ coords.tile[1] }}</span>
-            </div>
-            <div class="pixel-info-row">
-              <span class="pixel-info-label">Pixel:</span>
-              <span>{{ coords.pixel[0] }}, {{ coords.pixel[1] }}</span>
-            </div>
-            <div class="pixel-info-row">
-              <span class="pixel-info-label">Region:</span>
-              <span>{{ pixelData.region.name }}</span>
-            </div>
-          </div>
-
-
 
           <div
             v-else
