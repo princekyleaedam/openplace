@@ -1,6 +1,7 @@
 export const TILE_COUNT = 2048;
 export const TILE_SIZE = 1000;
 export const ZOOM_LEVEL = 11;
+export const CLOSE_ZOOM_LEVEL = 15;
 
 export type Coords = [number, number];
 export type LatLng = Coords;

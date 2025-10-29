@@ -82,7 +82,7 @@ const tileCanvases = new Map<string, TileCanvas>();
 
 const darkMode = matchMedia("(prefers-color-scheme: dark)");
 const darkModeChanged = () => {
-	map!.setStyle(mapStyle.value);
+	map?.setStyle(mapStyle.value);
 };
 const mapStyle = ref(`/maps/styles/${darkMode.matches ? "fiord" : "liberty"}`);
 
@@ -484,11 +484,11 @@ onMounted(async () => {
 		updateFavoriteMarkers();
 	});
 
-	map.on("click", (e) => {
+	map.on("click", e => {
 		emit("mapClick", [e.lngLat.lng, e.lngLat.lat]);
 	});
 
-	map.on("contextmenu", (e) => {
+	map.on("contextmenu", e => {
 		e.preventDefault();
 
 		// Only emit right-click event if shift is not held
@@ -498,16 +498,16 @@ onMounted(async () => {
 	});
 
 	// Handle double-click to zoom to native size
-	map.on("dblclick", (e) => {
-		if (map!.getZoom() < ZOOM_LEVEL) {
+	map.on("dblclick", e => {
+		if (map!.getZoom() < CLOSE_ZOOM_LEVEL) {
 			map!.flyTo({
 				center: e.lngLat,
-				zoom: ZOOM_LEVEL
+				zoom: CLOSE_ZOOM_LEVEL
 			});
 		}
 	});
 
-	map.on("mousemove", (e) => {
+	map.on("mousemove", e => {
 		if (props.isDrawing) {
 			const coords = latLngToTileCoords([e.lngLat.lat, e.lngLat.lng]);
 			hoverCoords.value = coords;
@@ -631,7 +631,7 @@ onMounted(async () => {
 	darkMode.addEventListener("change", darkModeChanged);
 });
 
-watch(() => props.pixels, (newPixels) => {
+watch(() => props.pixels, newPixels => {
 	// Draw pixels on canvas
 	for (const pixel of newPixels) {
 		drawPixelOnCanvas(pixel.tileCoords, pixel.color);
@@ -687,7 +687,7 @@ const resetBearing = () => {
 	}
 };
 
-const flyToLocation = (latitude: number, longitude: number, zoom: number = ZOOM_LEVEL) => {
+const flyToLocation = (latitude: number, longitude: number, zoom = ZOOM_LEVEL) => {
 	if (map) {
 		map.flyTo({
 			center: [longitude, latitude],
@@ -697,7 +697,7 @@ const flyToLocation = (latitude: number, longitude: number, zoom: number = ZOOM_
 	}
 };
 
-const jumpToLocation = (latitude: number, longitude: number, zoom: number = ZOOM_LEVEL) => {
+const jumpToLocation = (latitude: number, longitude: number, zoom = ZOOM_LEVEL) => {
 	if (map) {
 		map.jumpTo({
 			center: [longitude, latitude],

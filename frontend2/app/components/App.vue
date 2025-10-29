@@ -29,7 +29,7 @@
           aria-label="Zoom in"
           @click="zoomIn"
         >
-          <Icon name="add" />
+          <Icon name="zoom_in" />
         </Button>
         <Button
           severity="secondary"
@@ -38,20 +38,7 @@
           aria-label="Zoom out"
           @click="zoomOut"
         >
-          <Icon name="remove" />
-        </Button>
-      </div>
-
-      <div class="app-overlays-random">
-        <Button
-          severity="secondary"
-          raised
-          rounded
-          aria-label="Go to random pixel"
-          :loading="isLoadingRandom"
-          @click="goToRandom"
-        >
-          <Icon name="explore" />
+          <Icon name="zoom_out" />
         </Button>
       </div>
 
@@ -92,6 +79,17 @@
         </Button>
 
         <Button
+          severity="secondary"
+          raised
+          rounded
+          aria-label="Go to random pixel"
+          :loading="isLoadingRandom"
+          @click="goToRandom"
+        >
+          <Icon name="explore" />
+        </Button>
+
+        <Button
           v-if="mapBearing !== 0"
           severity="secondary"
           raised
@@ -99,7 +97,7 @@
           aria-label="Reset map rotation"
           @click="resetMapRotation"
         >
-          🧭
+          <Icon name="compass" />
         </Button>
       </div>
 
@@ -158,7 +156,7 @@ import ColorPalette from "~/components/ColorPalette.vue";
 import UserAvatar from "~/components/UserAvatar.vue";
 import UserMenu from "~/components/UserMenu.vue";
 import PixelInfo from "~/components/PixelInfo.vue";
-import { getPixelId, type LatLng, latLngToTileCoords, type TileCoords, tileCoordsToLatLng } from "~/utils/coordinates";
+import { CLOSE_ZOOM_LEVEL, getPixelId, type LatLng, latLngToTileCoords, type TileCoords, tileCoordsToLatLng, ZOOM_LEVEL } from "~/utils/coordinates";
 import { type UserProfile, useUserProfile } from "~/composables/useUserProfile";
 import { useCharges } from "~/composables/useCharges";
 import { usePaint } from "~/composables/usePaint";
@@ -354,15 +352,6 @@ const handleMapClick = (event: LatLng) => {
 	if (isPaintOpen.value) {
 		drawPixel(event);
 	} else {
-		if (mapRef.value && mapRef.value.getZoom() < ZOOM_LEVEL) {
-			toast.add({
-				severity: "info",
-				summary: "Zoom in to view pixels",
-				life: 2000
-			});
-			return;
-		}
-
 		// Figure out if this is a double click
 		const now = Date.now();
 		lastClickTime = now;
@@ -370,6 +359,15 @@ const handleMapClick = (event: LatLng) => {
 		if (now - lastClickTime < DOUBLE_CLICK_THRESHOLD && isPixelInfoOpen.value) {
 			// Double-click to zoom - dismiss pixel info
 			isPixelInfoOpen.value = false;
+			return;
+		}
+
+		if (mapRef.value?.getZoom() < ZOOM_LEVEL) {
+			toast.add({
+				severity: "info",
+				summary: "Zoom in to view pixels",
+				life: 3000
+			});
 			return;
 		}
 
@@ -433,6 +431,7 @@ const handleSubmitPixels = async () => {
 	}
 
 	try {
+		// TODO: Tidy up
 		const paintPixels = pixels.value.map(p => ({
 			tileCoords: p.tileCoords,
 			color: p.color
@@ -474,7 +473,7 @@ const handleFavoriteChanged = async () => {
 };
 
 const handleFavoriteClick = (favorite: { id: number; name: string; latitude: number; longitude: number }) => {
-	const zoom = Math.max(mapRef.value.getZoom(), ZOOM_LEVEL);
+	const zoom = Math.max(mapRef.value.getZoom(), CLOSE_ZOOM_LEVEL);
 	mapRef.value.flyToLocation(favorite.latitude, favorite.longitude, zoom);
 
 	// Open pixel info
@@ -524,9 +523,9 @@ const goToRandom = async () => {
 	};
 	const [lat, lng] = tileCoordsToLatLng(tileCoords);
 
-	randomTargetCoords.value = { lat, lng, zoom: ZOOM_LEVEL };
+	randomTargetCoords.value = { lat, lng, zoom: CLOSE_ZOOM_LEVEL };
 	isAnimatingToRandom.value = true;
-	mapRef.value?.flyToLocation(lat, lng, ZOOM_LEVEL);
+	mapRef.value?.flyToLocation(lat, lng, CLOSE_ZOOM_LEVEL);
 
 	// To support skipping the animation by clicking the button again
 	setTimeout(() => {
@@ -575,6 +574,7 @@ const goToRandom = async () => {
 .app-overlays-zoom {
 	display: flex;
 	flex-direction: column;
+	align-items: flex-start;
 	gap: 0.75rem;
 	grid-area: top-left;
 	padding: 1rem;
@@ -593,6 +593,7 @@ const goToRandom = async () => {
 .app-overlays-profile {
 	display: flex;
 	flex-direction: column;
+	align-items: flex-end;
 	justify-content: flex-end;
 	align-self: end;
 	justify-self: end;
