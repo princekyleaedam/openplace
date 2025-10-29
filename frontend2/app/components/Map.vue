@@ -48,6 +48,7 @@ const props = defineProps<{
 	isDrawing: boolean;
 	isSatellite: boolean;
 	favoriteLocations?: FavoriteLocation[];
+	selectedPixelCoords?: TileCoords | null;
 }>();
 
 const emit = defineEmits<{
@@ -60,7 +61,7 @@ const emit = defineEmits<{
 }>();
 
 const TILE_RELOAD_INTERVAL = 15_000;
-const LOCATION_SAVE_INTERVAL = 5_000;
+const LOCATION_SAVE_INTERVAL = 5000;
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -339,14 +340,15 @@ const pixelGeoJSON = computed(() => ({
 }));
 
 const hoverGeoJSON = computed(() => {
-	if (!hoverCoords.value) {
+	const coords = props.selectedPixelCoords ?? hoverCoords.value;
+	if (!coords) {
 		return {
 			type: "FeatureCollection" as const,
 			features: []
 		};
 	}
 
-	const bounds = getPixelBounds(hoverCoords.value);
+	const bounds = getPixelBounds(coords);
 	return {
 		type: "FeatureCollection" as const,
 		features: [
@@ -508,20 +510,15 @@ onMounted(async () => {
 	});
 
 	map.on("mousemove", e => {
-		if (props.isDrawing) {
 			const coords = latLngToTileCoords([e.lngLat.lat, e.lngLat.lng]);
 			hoverCoords.value = coords;
 
-			// Spacebar held down
-			if (isDrawingActive.value && lastDrawnCoords.value) {
+		if (props.isDrawing && isDrawingActive.value && lastDrawnCoords.value) {
 				const pixelsToDraw = getPixelsBetween(lastDrawnCoords.value, coords);
 				if (pixelsToDraw.length > 0) {
 					emit("drawPixels", pixelsToDraw);
 					lastDrawnCoords.value = coords;
 				}
-			}
-		} else {
-			hoverCoords.value = null;
 		}
 
 		emit("mapHover", [e.lngLat.lng, e.lngLat.lat]);

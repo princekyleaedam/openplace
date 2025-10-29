@@ -8,6 +8,7 @@
         :is-drawing="isPaintOpen"
         :is-satellite="isSatellite"
         :favorite-locations="userProfile?.favoriteLocations"
+        :selected-pixel-coords="isPixelInfoOpen ? selectedPixelCoords : null"
         @map-click="handleMapClick"
         @map-right-click="handleMapRightClick"
         @map-hover="handleMapHover"
@@ -542,14 +543,14 @@ const goToRandom = async () => {
 <style scoped>
 .app-container {
 	width: 100vw;
-	height: 100vh;
+	height: 100dvh;
 	overflow: hidden;
 	user-select: none;
 }
 
 .map-loading {
 	width: 100vw;
-	height: 100vh;
+	height: 100dvh;
 }
 
 .app-overlays {
@@ -564,7 +565,7 @@ const goToRandom = async () => {
 	top: 0;
 	left: 0;
 	width: 100vw;
-	height: 100vh;
+	height: 100dvh;
 	z-index: 10;
 	pointer-events: none;
 }
