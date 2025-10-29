@@ -15,13 +15,13 @@ Openplace (écrit en minuscules) est un backend libre, non officiel et open sour
 ## Pour commencer  
 
 ### Windows  
-- [Guide d’installation pour Windows](translations/fr/INSTALLATION_WINDOWS.md)  
+- [Guide d’installation pour Windows](INSTALLATION_WINDOWS.md)  
 
 ### macOS  
-- [Guide d’installation pour macOS](translations/fr/INSTALLATION_MACOS.md)  
+- [Guide d’installation pour macOS](INSTALLATION_MACOS.md)  
 
 ### Docker  
-- [Guide d’installation pour Docker](translations/fr/INSTALLATION_DOCKER.md)  
+- [Guide d’installation pour Docker](INSTALLATION_DOCKER.md)  
 
 ### Accessibilité du serveur  
 Vous devrez configurer un certificat SSL si vous prévoyez d’utiliser ce service en production. Cependant, si vous ne l’utilisez qu’avec vos amis, vous pouvez simplement accéder à `https://{IP}:8080`.  
