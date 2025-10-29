@@ -11,7 +11,6 @@
         :selected-pixel-coords="isPixelInfoOpen ? selectedPixelCoords : null"
         @map-click="handleMapClick"
         @map-right-click="handleMapRightClick"
-        @map-hover="handleMapHover"
         @draw-pixels="handleDrawPixels"
         @bearing-change="mapBearing = $event"
         @favorite-click="handleFavoriteClick"
@@ -159,7 +158,7 @@ import ColorPalette from "~/components/ColorPalette.vue";
 import UserAvatar from "~/components/UserAvatar.vue";
 import UserMenu from "~/components/UserMenu.vue";
 import PixelInfo from "~/components/PixelInfo.vue";
-import { CLOSE_ZOOM_LEVEL, getPixelId, type LatLng, latLngToTileCoords, type TileCoords, tileCoordsToLatLng, ZOOM_LEVEL } from "~/utils/coordinates";
+import { CLOSE_ZOOM_LEVEL, getPixelId, type LngLat, lngLatToTileCoords, type TileCoords, tileCoordsToLngLat, ZOOM_LEVEL } from "~/utils/coordinates";
 import { type UserProfile, useUserProfile } from "~/composables/useUserProfile";
 import { useCharges } from "~/composables/useCharges";
 import { usePaint } from "~/composables/usePaint";
@@ -336,10 +335,8 @@ const drawPixelAtCoords = (tileCoords: TileCoords) => {
 	}
 };
 
-const drawPixel = (coords: LatLng) => {
-	// TODO: This is messed up
-	const tileCoords = latLngToTileCoords([coords[1], coords[0]]);
-	drawPixelAtCoords(tileCoords);
+const drawPixel = (coords: LngLat) => {
+	drawPixelAtCoords(lngLatToTileCoords(coords));
 };
 
 const handleDrawPixels = (coords: TileCoords[]) => {
@@ -351,7 +348,7 @@ const handleDrawPixels = (coords: TileCoords[]) => {
 let lastClickTime = 0;
 const DOUBLE_CLICK_THRESHOLD = 300;
 
-const handleMapClick = (event: LatLng) => {
+const handleMapClick = (event: LngLat) => {
 	if (isPaintOpen.value) {
 		drawPixel(event);
 	} else {
@@ -375,7 +372,7 @@ const handleMapClick = (event: LatLng) => {
 		}
 
 		// Show pixel info
-		const tileCoords = latLngToTileCoords([event[1], event[0]]);
+		const tileCoords = lngLatToTileCoords(event);
 		selectedPixelCoords.value = tileCoords;
 		isPixelInfoOpen.value = true;
 
@@ -391,13 +388,13 @@ const handleMapClick = (event: LatLng) => {
 	}
 };
 
-const handleMapRightClick = (event: LatLng) => {
+const handleMapRightClick = (event: LngLat) => {
 	if (!isPaintOpen.value) {
 		return;
 	}
 
 	// Right-click in paint mode to erase
-	const tileCoords = latLngToTileCoords([event[1], event[0]]);
+	const tileCoords = lngLatToTileCoords(event);
 	const pixelId = getPixelId(tileCoords);
 	const existingPixelIndex = pixels.value.findIndex(item => item.id === pixelId);
 
@@ -406,10 +403,6 @@ const handleMapRightClick = (event: LatLng) => {
 		incrementCharge();
 		mapRef.value?.drawPixelOnCanvas(tileCoords, "rgba(0,0,0,0)");
 	}
-};
-
-const handleMapHover = (_event: LatLng) => {
-	// TODO
 };
 
 const toggleUserMenu = (event: Event) => {
@@ -480,7 +473,7 @@ const handleFavoriteClick = (favorite: { id: number; name: string; latitude: num
 	mapRef.value.flyToLocation(favorite.latitude, favorite.longitude, zoom);
 
 	// Open pixel info
-	const tileCoords = latLngToTileCoords([favorite.latitude, favorite.longitude]);
+	const tileCoords = lngLatToTileCoords([favorite.longitude, favorite.latitude]);
 	selectedPixelCoords.value = tileCoords;
 	isPixelInfoOpen.value = true;
 
@@ -524,7 +517,7 @@ const goToRandom = async () => {
 		tile: [data.tile.x, data.tile.y],
 		pixel: [data.pixel.x, data.pixel.y]
 	};
-	const [lat, lng] = tileCoordsToLatLng(tileCoords);
+	const [lng, lat] = tileCoordsToLngLat(tileCoords);
 
 	randomTargetCoords.value = { lat, lng, zoom: CLOSE_ZOOM_LEVEL };
 	isAnimatingToRandom.value = true;

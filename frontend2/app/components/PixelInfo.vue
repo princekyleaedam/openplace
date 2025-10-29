@@ -127,7 +127,7 @@ import Card from "primevue/card";
 import Button from "primevue/button";
 import ProgressSpinner from "primevue/progressspinner";
 import type { TileCoords } from "~/utils/coordinates";
-import { tileCoordsToLatLng } from "~/utils/coordinates";
+import { tileCoordsToLngLat } from "~/utils/coordinates";
 import { useFavorites } from "~/composables/useFavorites";
 import { useUserProfile } from "~/composables/useUserProfile";
 
@@ -179,7 +179,7 @@ const checkIfFavorite = async () => {
 			return;
 		}
 
-		const [lat, lng] = tileCoordsToLatLng(props.coords);
+		const [lng, lat] = tileCoordsToLngLat(props.coords);
 
 		// Is this a favorite?
 		const tolerance = 0.0001;
@@ -223,7 +223,7 @@ const fetchPixelData = async () => {
 
 const toggleFavorite = async () => {
 	try {
-		const [lat, lng] = tileCoordsToLatLng(props.coords);
+		const [lng, lat] = tileCoordsToLngLat(props.coords);
 
 		if (isFavorite.value && favoriteId.value !== null) {
 			await removeFavorite(favoriteId.value);

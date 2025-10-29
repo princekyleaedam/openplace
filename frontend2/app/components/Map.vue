@@ -19,7 +19,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import type { Map as MaplibreMap } from "maplibre-gl";
-import { getPixelBounds, getPixelsBetween, getTileBounds, type LatLng, latLngToTileCoords, TILE_SIZE, type TileCoords, ZOOM_LEVEL } from "~/utils/coordinates";
+import { getPixelBounds, getPixelsBetween, getTileBounds, type LngLat, lngLatToTileCoords, TILE_SIZE, type TileCoords, ZOOM_LEVEL } from "~/utils/coordinates";
 
 // Expose things for user scripts to access
 declare global {
@@ -59,9 +59,9 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-	mapClick: [event: LatLng];
-	mapRightClick: [event: LatLng];
-	mapHover: [event: LatLng];
+	mapClick: [event: LngLat];
+	mapRightClick: [event: LngLat];
+	mapHover: [event: LngLat];
 	drawPixels: [coords: TileCoords[]];
 	bearingChange: [bearing: number];
 	favoriteClick: [favorite: FavoriteLocation];
@@ -268,11 +268,9 @@ const setUpMapLayers = (mapInstance: MaplibreMap, savedZoom?: number) => {
 	}
 
 	if (!mapInstance.getSource("pixel-tiles")) {
-		const config = useRuntimeConfig();
 		mapInstance.addSource("pixel-tiles", {
 			type: "raster",
-			// tiles: [`${config.public.backendUrl}/api/files/s0/tiles/{z}/{x}/{y}.png`],
-			tiles: [`${config.public.backendUrl}/files/s0/tiles/{x}/{y}.png`],
+			tiles: [],
 			tileSize: TILE_SIZE,
 			minzoom: ZOOM_LEVEL,
 			maxzoom: ZOOM_LEVEL,
@@ -421,8 +419,10 @@ const refreshTiles = () => {
 	if (map && map.getSource("pixel-tiles")) {
 		const config = useRuntimeConfig();
 		const source = map.getSource("pixel-tiles");
+		// TODO: Types?
 		if (source && "setTiles" in source && typeof source.setTiles === "function") {
 			// Force maplibre to fetch again by using a fragment
+			// source.setTiles([`${config.public.backendUrl}/files/s0/tiles/{z}/{x}/{y}.png#${Date.now()}`]);
 			source.setTiles([`${config.public.backendUrl}/files/s0/tiles/{x}/{y}.png#${Date.now()}`]);
 			lastTileRefreshTime = Date.now();
 		}
@@ -550,7 +550,8 @@ onMounted(async () => {
 	});
 
 	map.on("mousemove", e => {
-		const coords = latLngToTileCoords([e.lngLat.lat, e.lngLat.lng]);
+		const { lng, lat } = e.lngLat;
+		const coords = lngLatToTileCoords([lng, lat]);
 		hoverCoords.value = coords;
 
 		if (props.isDrawing && isDrawingActive.value && lastDrawnCoords.value) {
@@ -561,7 +562,7 @@ onMounted(async () => {
 			}
 		}
 
-		emit("mapHover", [e.lngLat.lng, e.lngLat.lat]);
+		emit("mapHover", [lng, lat]);
 	});
 
 	const handleKeyDown = (e: KeyboardEvent) => {
@@ -590,8 +591,8 @@ onMounted(async () => {
 
 	const updateCenterCoords = () => {
 		if (map) {
-			const center = map.getCenter();
-			centerCoords.value = latLngToTileCoords([center.lat, center.lng]);
+			const { lng, lat } = map.getCenter();
+			centerCoords.value = lngLatToTileCoords([lng, lat]);
 		}
 	};
 

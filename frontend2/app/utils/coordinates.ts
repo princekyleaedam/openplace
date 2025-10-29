@@ -4,15 +4,15 @@ export const ZOOM_LEVEL = 11;
 export const CLOSE_ZOOM_LEVEL = 15;
 
 export type Coords = [number, number];
-export type LatLng = Coords;
+export type LngLat = Coords;
 
 export interface TileCoords {
 	tile: Coords;
 	pixel: Coords;
 }
 
-export function latLngToTileCoords(latLng: LatLng): TileCoords {
-	const [lat, lng] = latLng;
+export function lngLatToTileCoords(lngLat: LngLat): TileCoords {
+	const [lng, lat] = lngLat;
 	const n = Math.pow(2, ZOOM_LEVEL);
 
 	const tileXFloat = (lng + 180) / 360 * n;
@@ -28,7 +28,7 @@ export function latLngToTileCoords(latLng: LatLng): TileCoords {
 	};
 }
 
-export function tileCoordsToLatLng(coords: TileCoords): LatLng {
+export function tileCoordsToLngLat(coords: TileCoords): LngLat {
 	const [tileX, tileY] = coords.tile;
 	const [x, y] = coords.pixel;
 
@@ -39,11 +39,11 @@ export function tileCoordsToLatLng(coords: TileCoords): LatLng {
 	const lng = (tileXFloat / n * 360) - 180;
 	const latRad = Math.atan(Math.sinh(Math.PI * (1 - 2 * tileYFloat / n)));
 	const lat = latRad * 180 / Math.PI;
-	return [lat, lng];
+	return [lng, lat];
 }
 
-export function snapToPixelGrid(latLng: LatLng): LatLng {
-	return tileCoordsToLatLng(latLngToTileCoords(latLng));
+export function snapToPixelGrid(lngLat: LngLat): LngLat {
+	return tileCoordsToLngLat(lngLatToTileCoords(lngLat));
 }
 
 export function getPixelId(coords: TileCoords): string {
@@ -53,10 +53,10 @@ export function getPixelId(coords: TileCoords): string {
 }
 
 export function getPixelBounds(coords: TileCoords): {
-	topLeft: LatLng;
-	topRight: LatLng;
-	bottomLeft: LatLng;
-	bottomRight: LatLng;
+	topLeft: LngLat;
+	topRight: LngLat;
+	bottomLeft: LngLat;
+	bottomRight: LngLat;
 } {
 	const [tileX, tileY] = coords.tile;
 	const [x, y] = coords.pixel;
@@ -121,7 +121,7 @@ export function getPixelsBetween(from: TileCoords, to: TileCoords): TileCoords[]
 	return pixels;
 }
 
-export function getTileBounds(tileX: number, tileY: number): [LatLng, LatLng, LatLng, LatLng] {
+export function getTileBounds(tileX: number, tileY: number): [LngLat, LngLat, LngLat, LngLat] {
 	const { topLeft } = getPixelBounds({
 		tile: [tileX, tileY],
 		pixel: [0, 0]
