@@ -408,6 +408,11 @@ const updateFavoriteMarkers = async () => {
 	}
 };
 
+const updateCursor = () => {
+	const canvas = map!.getCanvas();
+	canvas.style.cursor = props.isDrawing || map!.getZoom() >= ZOOM_LEVEL ? "crosshair" : "grab";
+};
+
 onMounted(async () => {
 	if (!mapContainer.value) {
 		return;
@@ -510,15 +515,15 @@ onMounted(async () => {
 	});
 
 	map.on("mousemove", e => {
-			const coords = latLngToTileCoords([e.lngLat.lat, e.lngLat.lng]);
-			hoverCoords.value = coords;
+		const coords = latLngToTileCoords([e.lngLat.lat, e.lngLat.lng]);
+		hoverCoords.value = coords;
 
 		if (props.isDrawing && isDrawingActive.value && lastDrawnCoords.value) {
-				const pixelsToDraw = getPixelsBetween(lastDrawnCoords.value, coords);
-				if (pixelsToDraw.length > 0) {
-					emit("drawPixels", pixelsToDraw);
-					lastDrawnCoords.value = coords;
-				}
+			const pixelsToDraw = getPixelsBetween(lastDrawnCoords.value, coords);
+			if (pixelsToDraw.length > 0) {
+				emit("drawPixels", pixelsToDraw);
+				lastDrawnCoords.value = coords;
+			}
 		}
 
 		emit("mapHover", [e.lngLat.lng, e.lngLat.lat]);
@@ -583,6 +588,8 @@ onMounted(async () => {
 			const resamplingMode = currentZoom.value >= ZOOM_LEVEL ? "nearest" : "linear";
 			map!.setPaintProperty("pixel-tiles-layer", "raster-resampling", resamplingMode);
 		}
+
+		updateCursor();
 	});
 
 	map.on("move", () => {
@@ -596,11 +603,6 @@ onMounted(async () => {
 
 	currentZoom.value = map.getZoom();
 	updateCenterCoords();
-
-	const updateCursor = () => {
-		const canvas = map!.getCanvas();
-		canvas.style.cursor = props.isDrawing ? "crosshair" : "grab";
-	};
 
 	map.on("mousedown", () => {
 		if (!props.isDrawing) {
@@ -643,10 +645,7 @@ watch(hoverGeoJSON, () => {
 }, { deep: true });
 
 watch(() => props.isDrawing, () => {
-	const canvas = map!.getCanvas();
-
-	// Drawing mode cursor
-	canvas.style.cursor = props.isDrawing ? "crosshair" : "grab";
+	updateCursor();
 });
 
 watch(() => props.isSatellite, () => {
