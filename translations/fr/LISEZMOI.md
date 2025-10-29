@@ -10,18 +10,18 @@
 Openplace (écrit en minuscules) est un backend libre, non officiel et open source pour [wplace.](https://wplace.live) Notre objectif est d’offrir la liberté et la flexibilité à tous les utilisateurs afin qu’ils puissent créer leur propre expérience wplace privée — pour eux-mêmes, leurs amis ou même leur communauté.  
 
 > [AVERTISSEMENT ⚠️]  
-> Ce projet est en cours de développement. Attendez-vous à des fonctionnalités incomplètes et à des bugs. Merci de nous aider en signalant les problèmes dans le canal #help-n-support sur notre [serveur Discord](https://discord.gg/ZRC4DnP9Z2) ou en proposant des *pull requests*. Merci !  
+> Ce projet est en cours de développement. Attendez-vous à des fonctionnalités incomplètes et à des bugs. Merci de nous aider en signalant les problèmes dans le canal #tech-support sur notre [serveur Discord](https://discord.gg/ZRC4DnP9Z2) ou en proposant des *pull requests*. Merci !  
 
 ## Pour commencer  
 
 ### Windows  
-- [Guide d’installation pour Windows](translations/fr/INSTALLATION_WINDOWS.md)  
+- [Guide d’installation pour Windows](INSTALLATION_WINDOWS.md)  
 
 ### macOS  
-- [Guide d’installation pour macOS](translations/fr/INSTALLATION_MACOS.md)  
+- [Guide d’installation pour macOS](INSTALLATION_MACOS.md)  
 
 ### Docker  
-- [Guide d’installation pour Docker](translations/fr/INSTALLATION_DOCKER.md)  
+- [Guide d’installation pour Docker](INSTALLATION_DOCKER.md)  
 
 ### Accessibilité du serveur  
 Vous devrez configurer un certificat SSL si vous prévoyez d’utiliser ce service en production. Cependant, si vous ne l’utilisez qu’avec vos amis, vous pouvez simplement accéder à `https://{IP}:8080`.  
