@@ -10,7 +10,7 @@
 Openplace (écrit en minuscules) est un backend libre, non officiel et open source pour [wplace.](https://wplace.live) Notre objectif est d’offrir la liberté et la flexibilité à tous les utilisateurs afin qu’ils puissent créer leur propre expérience wplace privée — pour eux-mêmes, leurs amis ou même leur communauté.  
 
 > [AVERTISSEMENT ⚠️]  
-> Ce projet est en cours de développement. Attendez-vous à des fonctionnalités incomplètes et à des bugs. Merci de nous aider en signalant les problèmes dans le canal #help-n-support sur notre [serveur Discord](https://discord.gg/ZRC4DnP9Z2) ou en proposant des *pull requests*. Merci !  
+> Ce projet est en cours de développement. Attendez-vous à des fonctionnalités incomplètes et à des bugs. Merci de nous aider en signalant les problèmes dans le canal #tech-support sur notre [serveur Discord](https://discord.gg/ZRC4DnP9Z2) ou en proposant des *pull requests*. Merci !  
 
 ## Pour commencer  
 
