@@ -101,7 +101,7 @@
               outlined
               @click="$emit('report')"
             >
-              <Icon name="flag" />
+              <Icon name="report" />
               Report
             </Button>
           </div>
