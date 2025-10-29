@@ -278,6 +278,8 @@ const setUpMapLayers = (mapInstance: MaplibreMap, savedZoom?: number) => {
 		});
 	}
 
+	refreshTiles();
+
 	const zoom = savedZoom ?? mapInstance.getZoom();
 	const resamplingMode = zoom >= ZOOM_LEVEL ? "nearest" : "linear";
 	if (!mapInstance.getLayer("pixel-tiles-layer")) {
