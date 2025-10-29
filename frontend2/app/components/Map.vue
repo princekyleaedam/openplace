@@ -267,10 +267,11 @@ const setUpMapLayers = (mapInstance: MaplibreMap, savedZoom?: number) => {
 	}
 
 	if (!mapInstance.getSource("pixel-tiles")) {
+		const config = useRuntimeConfig();
 		mapInstance.addSource("pixel-tiles", {
 			type: "raster",
-			// tiles: ["/api/files/s0/tiles/{z}/{x}/{y}.png"],
-			tiles: ["/api/files/s0/tiles/{x}/{y}.png"],
+			// tiles: [`${config.public.backendUrl}/api/files/s0/tiles/{z}/{x}/{y}.png`],
+			tiles: [`${config.public.backendUrl}/files/s0/tiles/{x}/{y}.png`],
 			tileSize: TILE_SIZE,
 			minzoom: ZOOM_LEVEL,
 			maxzoom: ZOOM_LEVEL,
