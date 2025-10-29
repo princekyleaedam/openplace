@@ -472,8 +472,8 @@ onMounted(async () => {
 		// TODO: Fix type
 		container: mapContainer.value as any,
 		style: mapStyle.value,
-		center: savedLocation ? [savedLocation.lng, savedLocation.lat] : [135.4135, -30.5088],
-		zoom: savedLocation?.zoom ?? 11,
+		center: savedLocation ? [savedLocation.lng, savedLocation.lat] : [151.208, -33.852],
+		zoom: savedLocation?.zoom ?? CLOSE_ZOOM_LEVEL,
 		minZoom: 0,
 		maxZoom: 22,
 		doubleClickZoom: false,
@@ -517,7 +517,7 @@ onMounted(async () => {
 	map.dragRotate.disable();
 
 	map.on("load", () => {
-		setUpMapLayers(map!, savedLocation?.zoom ?? 11);
+		setUpMapLayers(map!, savedLocation?.zoom ?? CLOSE_ZOOM_LEVEL);
 		updateFavoriteMarkers();
 	});
 
