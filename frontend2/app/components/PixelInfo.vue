@@ -56,11 +56,11 @@
             <div class="pixel-info-row">
               <span class="pixel-info-label">User:</span>
               <span>{{ pixelData.paintedBy.name }}#{{ pixelData.paintedBy.id }}</span>
-							<span
-								v-if="pixelData.paintedBy.verified"
-								v-tooltip.top="'This player has been verified by an administrator of this instance.'">
-								<Icon name="verified" />
-							</span>
+              <span
+                v-if="pixelData.paintedBy.verified"
+                v-tooltip.top="'This player has been verified by an administrator of this instance.'">
+                <Icon name="verified" />
+              </span>
             </div>
             <div
               v-if="pixelData.paintedBy.discord"
@@ -132,34 +132,34 @@ import { useFavorites } from "~/composables/useFavorites";
 import { useUserProfile } from "~/composables/useUserProfile";
 
 interface PixelData {
-	paintedBy: {
-		id: number;
-		name: string;
-		allianceId: number;
-		allianceName: string;
-		equippedFlag: number;
-		discord?: string;
-		verified?: boolean;
-	};
-	region: {
-		id: number;
-		cityId: number;
-		name: string;
-		number: number;
-		countryId: number;
-	};
+  paintedBy: {
+    id: number;
+    name: string;
+    allianceId: number;
+    allianceName: string;
+    equippedFlag: number;
+    discord?: string;
+    verified?: boolean;
+  };
+  region: {
+    id: number;
+    cityId: number;
+    name: string;
+    number: number;
+    countryId: number;
+  };
 }
 
 const props = defineProps<{
-	isOpen: boolean;
-	coords: TileCoords;
+  isOpen: boolean;
+  coords: TileCoords;
 }>();
 
 const emit = defineEmits<{
-	close: [];
-	report: [];
-	favoriteAdded: [];
-	favoriteRemoved: [];
+  close: [];
+  report: [];
+  favoriteAdded: [];
+  favoriteRemoved: [];
 }>();
 
 const pixelData = ref<PixelData | null>(null);
@@ -173,180 +173,180 @@ const { fetchUserProfile } = useUserProfile();
 const isFavorite = computed(() => favoriteId.value !== null);
 
 const checkIfFavorite = async () => {
-	try {
-		const userProfile = await fetchUserProfile();
-		if (!userProfile) {
-			favoriteId.value = null;
-			return;
-		}
+  try {
+    const userProfile = await fetchUserProfile();
+    if (!userProfile) {
+      favoriteId.value = null;
+      return;
+    }
 
-		const [lng, lat] = tileCoordsToLngLat(props.coords);
+    const [lng, lat] = tileCoordsToLngLat(props.coords);
 
-		// Is this a favorite?
-		const tolerance = 0.0001;
-		const favorite = userProfile.favoriteLocations.find(
-			item => Math.abs(item.latitude - lat) < tolerance && Math.abs(item.longitude - lng) < tolerance
-		);
+    // Is this a favorite?
+    const tolerance = 0.0001;
+    const favorite = userProfile.favoriteLocations.find(
+      item => Math.abs(item.latitude - lat) < tolerance && Math.abs(item.longitude - lng) < tolerance
+    );
 
-		favoriteId.value = favorite ? favorite.id : null;
-	} catch (error: unknown) {
-		console.error("Failed to check favorite status:", error);
-		favoriteId.value = null;
-	}
+    favoriteId.value = favorite ? favorite.id : null;
+  } catch (error: unknown) {
+    console.error("Failed to check favorite status:", error);
+    favoriteId.value = null;
+  }
 };
 
 const fetchPixelData = async () => {
-	const [tileX, tileY] = props.coords.tile;
-	const [x, y] = props.coords.pixel;
+  const [tileX, tileY] = props.coords.tile;
+  const [x, y] = props.coords.pixel;
 
-	loading.value = true;
-	error.value = null;
+  loading.value = true;
+  error.value = null;
 
-	try {
-		const config = useRuntimeConfig();
-		const response = await fetch(`${config.public.backendUrl}/s0/pixel/${tileX}/${tileY}?x=${x}&y=${y}`, { credentials: "include" });
+  try {
+    const config = useRuntimeConfig();
+    const response = await fetch(`${config.public.backendUrl}/s0/pixel/${tileX}/${tileY}?x=${x}&y=${y}`, { credentials: "include" });
 
-		if (!response.ok) {
-			throw new Error(`Failed to fetch pixel data: ${response.statusText}`);
-		}
+    if (!response.ok) {
+      throw new Error(`Failed to fetch pixel data: ${response.statusText}`);
+    }
 
-		pixelData.value = await response.json();
+    pixelData.value = await response.json();
 
-		// Check if this pixel is favorited
-		await checkIfFavorite();
-	} catch (error_: any) {
-		error.value = error_?.toString();
-		console.error("Failed to fetch pixel data:", error_);
-	} finally {
-		loading.value = false;
-	}
+    // Check if this pixel is favorited
+    await checkIfFavorite();
+  } catch (error_: any) {
+    error.value = error_?.toString();
+    console.error("Failed to fetch pixel data:", error_);
+  } finally {
+    loading.value = false;
+  }
 };
 
 const toggleFavorite = async () => {
-	try {
-		const [lng, lat] = tileCoordsToLngLat(props.coords);
+  try {
+    const [lng, lat] = tileCoordsToLngLat(props.coords);
 
-		if (isFavorite.value && favoriteId.value !== null) {
-			await removeFavorite(favoriteId.value);
-			favoriteId.value = null;
-			emit("favoriteRemoved");
-		} else {
-			const result = await addFavorite(lat, lng);
-			favoriteId.value = result.id;
-			emit("favoriteAdded");
-		}
-	} catch (error_: any) {
-		console.error("Failed to toggle favorite:", error_?.toString());
-	}
+    if (isFavorite.value && favoriteId.value !== null) {
+      await removeFavorite(favoriteId.value);
+      favoriteId.value = null;
+      emit("favoriteRemoved");
+    } else {
+      const result = await addFavorite(lat, lng);
+      favoriteId.value = result.id;
+      emit("favoriteAdded");
+    }
+  } catch (error_: any) {
+    console.error("Failed to toggle favorite:", error_?.toString());
+  }
 };
 
 watch(() => props.isOpen, (newValue) => {
-	if (newValue) {
-		fetchPixelData();
-	} else {
-		pixelData.value = null;
-		error.value = null;
-	}
+  if (newValue) {
+    fetchPixelData();
+  } else {
+    pixelData.value = null;
+    error.value = null;
+  }
 });
 
 watch(() => props.coords, () => {
-	if (props.isOpen) {
-		fetchPixelData();
-	}
+  if (props.isOpen) {
+    fetchPixelData();
+  }
 }, { deep: true });
 </script>
 
 <style scoped>
 .pixel-info-container {
-	position: fixed;
-	bottom: 1rem;
-	left: 50%;
-	transform: translateX(-50%);
-	z-index: 1000;
-	max-width: 500px;
-	width: calc(100vw - 2rem);
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  max-width: 500px;
+  width: calc(100vw - 2rem);
 }
 
 .pixel-info-card {
-	box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
 }
 
 .pixel-info-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: 1rem;
-	border-bottom: 1px solid var(--p-surface-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--p-surface-border);
 }
 
 .pixel-info-header h3 {
-	margin: 0;
-	font-size: 1.25rem;
-	font-weight: 600;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .pixel-info-loading {
-	display: flex;
-	justify-content: center;
-	padding: 2rem;
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
 }
 
 .pixel-info-content {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .pixel-info-section {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .pixel-info-section h4 {
-	margin: 0;
-	font-size: 1rem;
-	font-weight: 600;
-	color: var(--p-text-color);
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--p-text-color);
 }
 
 .pixel-info-row {
-	display: flex;
-	gap: 0.5rem;
-	font-size: 0.875rem;
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.875rem;
 }
 
 .pixel-info-label {
-	font-weight: 600;
-	min-width: 80px;
-	color: var(--p-text-muted-color);
+  font-weight: 600;
+  min-width: 80px;
+  color: var(--p-text-muted-color);
 }
 
 .pixel-info-empty {
-	color: var(--p-text-muted-color);
-	font-style: italic;
-	margin: 0;
+  color: var(--p-text-muted-color);
+  font-style: italic;
+  margin: 0;
 }
 
 .pixel-info-error {
-	padding: 1rem;
-	text-align: center;
-	color: var(--p-red-500);
+  padding: 1rem;
+  text-align: center;
+  color: var(--p-red-500);
 }
 
 .error-message {
-	font-size: 0.875rem;
-	margin-top: 0.5rem;
-	opacity: 0.8;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  opacity: 0.8;
 }
 
 .pixel-info-actions {
-	display: flex;
-	gap: 0.5rem;
-	margin-top: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .pixel-info-actions button {
-	flex: 1;
+  flex: 1;
 }
 </style>

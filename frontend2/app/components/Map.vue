@@ -145,7 +145,7 @@ const getTileCanvas = (tileX: number, tileY: number): TileCanvas => {
 					"raster-opacity": 1,
 					"raster-resampling": currentZoom.value >= ZOOM_LEVEL ? "nearest" : "linear"
 				}
-			}, "hover-border");
+			}, "pending-pixels-border");
 		}
 	}
 
@@ -301,10 +301,30 @@ const setUpMapLayers = (mapInstance: MaplibreMap, savedZoom?: number) => {
 		});
 	}
 
+	if (!mapInstance.getSource("pending-pixels-border")) {
+		mapInstance.addSource("pending-pixels-border", {
+			type: "geojson",
+			data: pendingPixelBordersGeoJSON.value
+		});
+	}
+
 	if (!mapInstance.getSource("hover")) {
 		mapInstance.addSource("hover", {
 			type: "geojson",
 			data: hoverGeoJSON.value
+		});
+	}
+
+	if (!mapInstance.getLayer("pending-pixels-border")) {
+		mapInstance.addLayer({
+			id: "pending-pixels-border",
+			type: "line",
+			source: "pending-pixels-border",
+			paint: {
+				"line-color": "#fff",
+				"line-width": 4,
+				"line-opacity": 0.5
+			}
 		});
 	}
 
@@ -343,6 +363,31 @@ const pixelGeoJSON = computed(() => ({
 			properties: {
 				id: pixel.id,
 				color: pixel.color
+			}
+		};
+	})
+}));
+
+const pendingPixelBordersGeoJSON = computed(() => ({
+	type: "FeatureCollection" as const,
+	features: props.pixels.map(pixel => {
+		const bounds = getPixelBounds(pixel.tileCoords, 0.015);
+		return {
+			type: "Feature" as const,
+			geometry: {
+				type: "Polygon" as const,
+				coordinates: [
+					[
+						bounds.topLeft,
+						bounds.topRight,
+						bounds.bottomRight,
+						bounds.bottomLeft,
+						bounds.topLeft
+					]
+				]
+			},
+			properties: {
+				id: pixel.id
 			}
 		};
 	})
@@ -668,6 +713,20 @@ watch(() => props.pixels, newPixels => {
 	// Draw pixels on canvas
 	for (const pixel of newPixels) {
 		drawPixelOnCanvas(pixel.tileCoords, pixel.color);
+	}
+}, { deep: true });
+
+watch(pixelGeoJSON, () => {
+	const pixels = map?.getSource("pixels");
+	if (pixels && "setData" in pixels && typeof pixels.setData === "function") {
+		pixels.setData(pixelGeoJSON.value);
+	}
+}, { deep: true });
+
+watch(pendingPixelBordersGeoJSON, () => {
+	const borders = map?.getSource("pending-pixels-border");
+	if (borders && "setData" in borders && typeof borders.setData === "function") {
+		borders.setData(pendingPixelBordersGeoJSON.value);
 	}
 }, { deep: true });
 

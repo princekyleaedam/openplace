@@ -52,7 +52,7 @@ export function getPixelId(coords: TileCoords): string {
 	return `${tileX}-${tileY}-${x}-${y}`;
 }
 
-export function getPixelBounds(coords: TileCoords): {
+export function getPixelBounds(coords: TileCoords, inset = 0): {
 	topLeft: LngLat;
 	topRight: LngLat;
 	bottomLeft: LngLat;
@@ -61,8 +61,8 @@ export function getPixelBounds(coords: TileCoords): {
 	const [tileX, tileY] = coords.tile;
 	const [x, y] = coords.pixel;
 
-	const [tileXLeft, tileYTop] = [tileX + (x / TILE_SIZE), tileY + (y / TILE_SIZE)];
-	const [tileXRight, tileYBottom] = [tileX + ((x + 1) / TILE_SIZE), tileY + ((y + 1) / TILE_SIZE)];
+	const [tileXLeft, tileYTop] = [tileX + ((x + inset) / TILE_SIZE), tileY + ((y + inset) / TILE_SIZE)];
+	const [tileXRight, tileYBottom] = [tileX + ((x + 1 - inset) / TILE_SIZE), tileY + ((y + 1 - inset) / TILE_SIZE)];
 
 	const n = Math.pow(2, ZOOM_LEVEL);
 
