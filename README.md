@@ -10,7 +10,7 @@
 Openplace (styled lowercase) is a free unofficial open source backend for [wplace.](https://wplace.live) We aim to give the freedom and flexibility for all users to be able to make their own private wplace experience for themselves, their friends, or even their community.
 
 > [WARNING ⚠️]
-> This is a work-in-progress. Expect unfinished features and bugs. Please help us by posting issues in #help-n-support on our [Discord server](https://discord.gg/ZRC4DnP9Z2) or by contributing pull requests. Thanks!
+> This is a work-in-progress. Expect unfinished features and bugs. Please help us by posting issues in #tech-support on our [Discord server](https://discord.gg/ZRC4DnP9Z2) or by contributing pull requests. Thanks!
 
 ## Getting Started
 
