@@ -4,7 +4,7 @@
 <p align="center">
     <a href="../translations/id/README.md"><img src="https://flagcdn.com/256x192/id.png" width="48" alt="Indonesia Flag"></a>
     <a href="translations/fr/LISEZMOI.md"><img src="https://flagcdn.com/256x192/fr.png" width="48" alt="French Flag"></a>
-  &nbsp;
+    <a href="translations/de/LIESMICH.md"><img src="https://flagcdn.com/256x192/de.png" width="48" alt="German Flag"></a>
 
 ## 
 
