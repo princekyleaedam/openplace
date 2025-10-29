@@ -77,7 +77,7 @@ defineProps<{
 	maxCharges: number;
 	pixelCount: number;
 	timeUntilNext: string;
-	extraColorsBitmap: string | null;
+  extraColorsBitmap: number;
 }>();
 
 defineEmits<{

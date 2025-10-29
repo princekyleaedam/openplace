@@ -368,7 +368,7 @@ export function getClosestColor(color: RGBA, usePaidColors = false): PaletteColo
 }
 
 // Check if a color is unlocked for the user
-export function isColorUnlocked(colorIndex: number, extraColorsBitmap: string | null): boolean {
+export function isColorUnlocked(colorIndex: number, extraColorsBitmap: number): boolean {
 	if (colorIndex < 32) {
 		return true;
 	}
@@ -377,11 +377,6 @@ export function isColorUnlocked(colorIndex: number, extraColorsBitmap: string | 
 		return false;
 	}
 
-	const bitmap = Number.parseInt(extraColorsBitmap, 10);
-	if (Number.isNaN(bitmap)) {
-		return false;
-	}
-
 	const mask = 1 << (colorIndex - 32);
-	return (bitmap & mask) !== 0;
+	return (extraColorsBitmap & mask) !== 0;
 }

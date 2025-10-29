@@ -13,7 +13,7 @@ export interface UserProfile {
 	};
 	droplets: number;
 	equippedFlag: number | null;
-	extraColorsBitmap: string | null;
+	extraColorsBitmap: number | null;
 	favoriteLocations: {
 		id: number;
 		name: string;
