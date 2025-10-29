@@ -139,6 +139,7 @@ interface PixelData {
 		allianceName: string;
 		equippedFlag: number;
 		discord?: string;
+		verified?: boolean;
 	};
 	region: {
 		id: number;
