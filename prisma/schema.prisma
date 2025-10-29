@@ -20,6 +20,7 @@ model User {
   email                  String?                @unique
   passwordHash           String
   banned                 Boolean                @default(false)
+  verified               Boolean                @default(false)
   suspensionReason       String?
   timeoutUntil           DateTime               @default(now())
   needsPhoneVerification Boolean                @default(false)
