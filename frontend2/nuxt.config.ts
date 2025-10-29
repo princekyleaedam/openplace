@@ -92,7 +92,10 @@ export default defineNuxtConfig({
 		}
 	},
 
-	modules: ["@primevue/nuxt-module"],
+	modules: [
+		"@nuxt/eslint",
+		"@primevue/nuxt-module"
+	],
 
 	primevue: {
 		options: {

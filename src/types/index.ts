@@ -13,12 +13,10 @@ export interface AuthenticatedRequest extends Request {
 	};
 }
 
-export interface ColorPalette {
-	[key: number]: {
+export type ColorPalette = Record<number, {
 		rgb: [number, number, number];
 		paid: boolean;
-	};
-}
+	}>;
 
 export interface BitMap {
 	bytes: Uint8Array;

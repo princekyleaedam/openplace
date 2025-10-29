@@ -238,7 +238,7 @@ export class UserService {
 		}
 	}
 
-	async ban(userId: number, state: boolean, reason: BanReason | null, isRecursive: boolean = false) {
+	async ban(userId: number, state: boolean, reason: BanReason | null, isRecursive = false) {
 		await this.prisma.user.update({
 			where: { id: userId },
 			data: {

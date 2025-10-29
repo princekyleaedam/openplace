@@ -5,7 +5,7 @@ import { leaderboardService } from "../services/leaderboard.js";
 const validModes = new Set(["today", "week", "month", "all-time"]);
 
 // TODO: Split up file
-// eslint-disable-next-line max-lines-per-function
+ 
 export default function (app: App) {
 	app.get("/leaderboard/region/:mode/:country", async (req, res) => {
 		try {

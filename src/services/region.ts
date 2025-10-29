@@ -85,7 +85,7 @@ export class RegionService {
 			// FORGIVE ME FATHER FOR I HAVE SINNED T.T
 			// Build a lightweight KD-Tree (2D) for fast nearest lookup (lazy version no lib)
 			// TODO: Lazy-calculate neighbors and cache to database instead of in-memory
-			type Point = {
+			interface Point {
 				latitude: number;
 				longitude: number;
 				id: number;
@@ -93,7 +93,7 @@ export class RegionService {
 				name: string;
 				number: number;
 				countryId: number
-			};
+			}
 			const pts: Point[] = rows.map(r => ({
 				latitude: r.latitude as unknown as number,
 				longitude: r.longitude as unknown as number,

@@ -72,7 +72,6 @@ export function getPixelBounds(coords: TileCoords): {
 	];
 	const [latTop, latBottom] = [latTopRad * 180 / Math.PI, latBottomRad * 180 / Math.PI];
 
-	// TODO: Wait, isn’t this backwards?
 	return {
 		topLeft: [lngLeft, latTop],
 		topRight: [lngRight, latTop],
@@ -97,7 +96,6 @@ export function getPixelsBetween(from: TileCoords, to: TileCoords): TileCoords[]
 	const [sx, sy] = [x0 < x1 ? 1 : -1, y0 < y1 ? 1 : -1];
 	let err = dx - dy;
 
-	// eslint-disable-next-line no-constant-condition
 	while (true) {
 		pixels.push({
 			tile: from.tile,
@@ -120,4 +118,23 @@ export function getPixelsBetween(from: TileCoords, to: TileCoords): TileCoords[]
 	}
 
 	return pixels;
+}
+
+export function getTileBounds(tileX: number, tileY: number): [LatLng, LatLng, LatLng, LatLng] {
+	const { topLeft } = getPixelBounds({
+		tile: [tileX, tileY],
+		pixel: [0, 0]
+	});
+
+	const { topRight, bottomRight } = getPixelBounds({
+		tile: [tileX, tileY],
+		pixel: [TILE_SIZE - 1, TILE_SIZE - 1]
+	});
+
+	return [
+		topLeft,
+		[topRight[0], topLeft[1]],
+		bottomRight,
+		[topLeft[0], bottomRight[1]]
+	];
 }

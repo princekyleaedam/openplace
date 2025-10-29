@@ -8,7 +8,7 @@
         <div class="palette-header">
           <div>
             <Icon name="paint" />
-            Paint pixel ({{ pixelCount }} pixels, {{ charges }} charges)
+            Paint {{ pixelCount.toLocaleString() }} pixels ({{ charges.toLocaleString() }} charges)
           </div>
 
           <div>
@@ -44,7 +44,8 @@
             }]"
             :style="{ backgroundColor: `rgba(${item.rgba.join(',')})` }"
             :raised="selectedColor === `rgba(${item.rgba.join(',')})`"
-            aria-label="Select color"
+            :disabled="!isColorUnlocked(item.index, extraColorsBitmap)"
+            :aria-label="isColorUnlocked(item.index, extraColorsBitmap) ? 'Select color' : 'Color locked'"
             @click="$emit('colorSelect', `rgba(${item.rgba.join(',')})`)"
           />
         </div>
@@ -55,6 +56,8 @@
           :max-charges="maxCharges"
           :time-until-next="timeUntilNext"
           :is-drawing="true"
+          :pending-pixels="pixelCount"
+          @click="$emit('submit')"
         />
       </template>
     </Card>
@@ -62,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { palette } from "../../utils/palette";
+import { isColorUnlocked, palette } from "../../utils/palette";
 import Card from "primevue/card";
 import Button from "primevue/button";
 
@@ -74,12 +77,14 @@ defineProps<{
 	maxCharges: number;
 	pixelCount: number;
 	timeUntilNext: string;
+	extraColorsBitmap: string | null;
 }>();
 
 defineEmits<{
 	colorSelect: [color: string];
 	close: [];
 	toggleEraser: [];
+	submit: [];
 }>();
 </script>
 
@@ -118,6 +123,23 @@ defineEmits<{
 
 .color-button-selected {
 	border: 3px solid var(--p-primary-color);
+}
+
+.color-button:disabled {
+	opacity: 0.3;
+	cursor: not-allowed;
+	position: relative;
+}
+
+/* TODO: Make this nicer */
+.color-button:disabled::after {
+	content: "🔒";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	font-size: 12px;
+	filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
 }
 
 .palette-paint-button {

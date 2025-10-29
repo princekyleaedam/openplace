@@ -6,14 +6,14 @@
   >
     <template #start>
       <div class="user-menu-header">
-        <div class="flex align-items-center gap-3">
+        <div class="user-info">
           <div class="avatar-container">
             <Avatar
               :label="user.username.charAt(0).toUpperCase()"
-              :image="user.avatar || undefined"
+              :image="user.avatar"
               size="large"
               shape="circle"
-              style="background-color: #4ade80"
+              style="background-color: #4ade80;"
             />
             <Badge
               :value="user.level"
@@ -21,92 +21,71 @@
               class="level-badge"
             />
           </div>
-          <div class="flex flex-column gap-1">
-            <div class="flex align-items-center gap-2">
-              <span class="font-bold text-lg">{{ user.username }}</span>
-              <span class="rank-badge">#{{ user.id }}</span>
-              <Chip
-                label="👑"
-                class="crown-chip"
-              />
+          <div class="user-details">
+            <div class="user-name-row">
+              <span class="user-name">{{ user.username }}</span>
+              <span class="user-id">#{{ user.id }}</span>
+              <span
+                v-if="countryFlag"
+                class="country-flag"
+              >{{ countryFlag }}</span>
             </div>
-            <div class="flex align-items-center gap-1 text-sm text-color-secondary">
-              <i
-                class="pi pi-palette"
-                style="font-size: 0.75rem"
-              />
-              <span>Pixels painted: <strong>{{ user.pixelsPainted }}</strong></span>
+            <div class="user-stat">
+              <span>Pixels painted: {{ user.pixelsPainted }}</span>
             </div>
-            <div class="flex align-items-center gap-1 text-sm text-color-secondary">
-              <i
-                class="pi pi-arrow-up"
-                style="font-size: 0.75rem"
-              />
+            <div class="user-stat">
               <span>Level {{ user.level }} ({{ user.levelProgress }}%)</span>
-              <Button
-                icon="pi pi-question"
-                text
-                rounded
-                size="small"
-                severity="secondary"
-                aria-label="Level info"
-              />
             </div>
           </div>
         </div>
       </div>
     </template>
     <template #item="{ item }">
-      <a class="flex align-items-center gap-2 p-menuitem-link">
-        <i
-          :class="item.icon"
-          :style="{ color: item.color }"
+      <a
+        class="menu-item-link"
+        @click="(event) => item.command?.({ originalEvent: event, item })"
+      >
+        <Icon
+          v-if="item.icon"
+          :name="item.icon"
         />
         <span>{{ item.label }}</span>
       </a>
-    </template>
-    <template #end>
-      <div class="p-3 flex gap-2">
-        <Button
-          icon="pi pi-globe"
-          severity="secondary"
-          text
-          rounded
-          aria-label="Language"
-        />
-        <Button
-          icon="pi pi-volume-up"
-          severity="secondary"
-          text
-          rounded
-          aria-label="Sound"
-        />
-      </div>
     </template>
   </Menu>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import Menu from "primevue/menu";
 import Avatar from "primevue/avatar";
 import Badge from "primevue/badge";
-import Button from "primevue/button";
-import Chip from "primevue/chip";
+import { COUNTRIES } from "../../../src/utils/country";
 
-defineProps<{
+const props = defineProps<{
 	isOpen: boolean;
 	user: {
 		username: string;
+		id: number;
 		level: number;
 		levelProgress: number;
 		pixelsPainted: number;
 		avatar: string;
+		equippedFlag: number;
 	};
 }>();
 
+const countryFlag = computed(() => {
+	if (!props.user.equippedFlag) {
+		return null;
+	}
+	const country = COUNTRIES.find(item => item.id === props.user.equippedFlag);
+	return country?.flag ?? null;
+});
+
 const emit = defineEmits<{
 	close: [];
+	logout: [];
 }>();
 
 const menu = ref();
@@ -115,7 +94,7 @@ const menuItems = ref([
 	{
 		label: "Log out",
 		command: () => {
-			// TODO
+			emit("logout");
 			emit("close");
 		}
 	}
@@ -129,13 +108,15 @@ defineExpose({
 </script>
 
 <style scoped>
-.p-menu {
-	min-width: 300px;
-}
-
 .user-menu-header {
 	padding: 1rem;
 	border-bottom: 1px solid var(--p-surface-border);
+}
+
+.user-info {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
 }
 
 .avatar-container {
@@ -149,14 +130,55 @@ defineExpose({
 	background-color: #a855f7;
 }
 
-.rank-badge {
-	color: #f97316;
-	font-weight: 700;
+.user-details {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	flex: 1;
 }
 
-.crown-chip {
-	background-color: #f3e8ff;
-	padding: 0.125rem 0.5rem;
+.user-name-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.user-name {
+	font-weight: 600;
+	font-size: 1.125rem;
+}
+
+.user-id {
+	font-size: 0.9rem;
+}
+
+.user-stat {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	font-size: 0.875rem;
+	color: var(--p-text-muted-color);
+}
+
+.user-stat i {
 	font-size: 0.75rem;
+}
+
+.menu-item-link {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1rem;
+	cursor: pointer;
+	text-decoration: none;
+	color: inherit;
+}
+
+.menu-item-link:hover {
+	background-color: var(--p-menuitem-hover-background);
+}
+
+.country-flag {
+	font-size: 1.25rem;
 }
 </style>

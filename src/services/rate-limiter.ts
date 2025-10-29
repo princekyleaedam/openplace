@@ -25,7 +25,7 @@ export class RateLimiter {
 		}
 	}
 
-	checkRateLimit(ip: string, maxAttempts: number = 5, windowMs: number = 300_000): {
+	checkRateLimit(ip: string, maxAttempts = 5, windowMs = 300_000): {
 		allowed: boolean;
 		remaining: number;
 		resetTime: number;
