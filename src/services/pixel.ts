@@ -8,6 +8,7 @@ import { AuthService } from "./auth.js";
 import { BanReason } from "../types/index.js";
 import { UserService } from "./user.js";
 import { leaderboardService } from "./leaderboard.js";
+import { WplaceBitMap } from "../utils/bitmap.js";
 
 export interface PaintPixelsInput {
 	tileX: number;
@@ -490,12 +491,17 @@ export class PixelService {
 			return { painted: 0 };
 		}
 
-		const userEquippedFlag = user.equippedFlag;
 		let totalChargeCost = 0;
 		let discountedPixels = 0;
 
+		const flagsBitmap = user.flagsBitmap
+		? WplaceBitMap.fromBase64(Buffer.from(user.flagsBitmap)
+			.toString("base64"))
+		: new WplaceBitMap();
+
 		for (const pixel of validPixels) {
-			if (userEquippedFlag && pixel.region && userEquippedFlag === pixel.region.flagId) {
+
+			if (pixel.region && flagsBitmap.get(pixel.region.flagId)) {
 				totalChargeCost += 0.9;
 				discountedPixels++;
 			} else {
