@@ -132,16 +132,16 @@ const FRONTEND_PORT = process.env["FRONTEND_PORT"] || "3001";
 app.use(async (req, res, next) => {
 	if (req.path.startsWith("/beta") || req.path.startsWith("/icons") || req.path.startsWith("/_nuxt")) {
 		try {
-			const res = await fetch(`http://${FRONTEND_HOST}:${FRONTEND_PORT}${req.url}`, {
+			const res2 = await fetch(`http://${FRONTEND_HOST}:${FRONTEND_PORT}${req.url}`, {
 				method: req.method,
 				headers: req.headers as HeadersInit,
 				body: req.method !== "GET" && req.method !== "HEAD" ? JSON.stringify(req.body) : undefined
 			});
-			res.status(res.status);
-			for (const [key, value] of res.headers.entries()) {
-				res.set(key, value);
+			res.status(res2.status);
+			for (const [key, value] of res2.headers.entries()) {
+				res2.set(key, value);
 			}
-			return res.send(await res.text());
+			return res.send(await res2.text());
 		} catch (error) {
 			console.error("Frontend proxy error:", error);
 			return res.status(502)
