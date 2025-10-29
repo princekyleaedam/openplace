@@ -1,5 +1,10 @@
+packages:
+  - frontend2
+
 onlyBuiltDependencies:
+  - '@parcel/watcher'
   - '@prisma/client'
   - '@prisma/engines'
   - esbuild
   - prisma
+  - unrs-resolver

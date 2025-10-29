@@ -1,4 +1,41 @@
-http://localhost:8000, https://localhost:8080 {
+http://localhost:8000, https://localhost:8080, https://10.1.1.45:8080, https://100.69.206.91:8080 {
 	tls internal
+
+	# New frontend
+	handle /beta* {
+		reverse_proxy {$FRONTEND_HOST:localhost}:{$FRONTEND_PORT:3001}
+	}
+	handle /icons/* {
+		reverse_proxy {$FRONTEND_HOST:localhost}:{$FRONTEND_PORT:3001}
+	}
+	handle /_nuxt/* {
+		reverse_proxy {$FRONTEND_HOST:localhost}:{$FRONTEND_PORT:3001}
+	}
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy {$BACKEND_HOST:localhost}:{$BACKEND_PORT:3000}
+	}
+
+	# Backend API
+	reverse_proxy {$BACKEND_HOST:localhost}:{$BACKEND_PORT:3000}
+}
+
+https://mbp.tail253cff.ts.net {
+	# New frontend
+	handle /beta* {
+		reverse_proxy {$FRONTEND_HOST:localhost}:{$FRONTEND_PORT:3001}
+	}
+	handle /icons/* {
+		reverse_proxy {$FRONTEND_HOST:localhost}:{$FRONTEND_PORT:3001}
+	}
+	handle /_nuxt/* {
+		reverse_proxy {$FRONTEND_HOST:localhost}:{$FRONTEND_PORT:3001}
+	}
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy {$BACKEND_HOST:localhost}:{$BACKEND_PORT:3000}
+	}
+
+	# Backend API
 	reverse_proxy {$BACKEND_HOST:localhost}:{$BACKEND_PORT:3000}
 }

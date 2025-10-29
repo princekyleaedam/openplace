@@ -1,4 +1,5 @@
 {
-	"*.{j,t}s{,x}": "npm exec -- eslint --fix",
+	"{src,scripts}/**/*.{js,ts,jsx,tsx}": "npm exec -- eslint --fix",
+	"frontend2/**/*.{js,ts,jsx,tsx,vue}": "cd frontend2 && npm exec -- eslint --fix",
 	"*.prisma": "npm exec -- prisma format"
 }
