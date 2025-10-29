@@ -56,6 +56,11 @@
             <div class="pixel-info-row">
               <span class="pixel-info-label">User:</span>
               <span>{{ pixelData.paintedBy.name }}#{{ pixelData.paintedBy.id }}</span>
+							<span
+								v-if="pixelData.paintedBy.verified"
+								v-tooltip.top="'This player has been verified by an administrator of this instance.'">
+								<Icon name="verified" />
+							</span>
             </div>
             <div
               v-if="pixelData.paintedBy.discord"
@@ -88,7 +93,7 @@
               :outlined="!isFavorite"
               @click="toggleFavorite"
             >
-              <Icon :name="isFavorite ? 'favorite' : 'favorite_border'" />
+              <Icon :name="isFavorite ? 'favorite_off' : 'favorite_on'" />
               {{ isFavorite ? 'Unfavorite' : 'Favorite' }}
             </Button>
             <Button

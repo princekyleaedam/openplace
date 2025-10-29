@@ -49,6 +49,7 @@ export interface PixelInfoResult {
 		picture?: string | null;
 		discord?: string | null;
 		discordUserId?: string | null;
+		verified?: boolean;
 	}[];
 	region: Region;
 }
@@ -148,7 +149,8 @@ export class PixelService {
 					equippedFlag: pixel.user.equippedFlag,
 					picture: pixel.user.picture,
 					discord: pixel.user.discord,
-					discordUserId: pixel.user.discordUserId
+					discordUserId: pixel.user.discordUserId,
+					verified: pixel.user.verified
 				});
 			} else {
 				paintedBy.push({
