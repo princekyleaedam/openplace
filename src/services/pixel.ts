@@ -273,10 +273,10 @@ export class PixelService {
 				season,
 				x: tileX,
 				y: tileY,
-				imageData: buffer
+				imageData: new Uint8Array(buffer)
 			},
 			update: {
-				imageData: buffer
+				imageData: new Uint8Array(buffer)
 			}
 		});
 
@@ -354,10 +354,10 @@ export class PixelService {
 						season,
 						x: tileX,
 						y: tileY,
-						imageData: buffer
+						imageData: new Uint8Array(buffer)
 					},
 					update: {
-						imageData: buffer
+						imageData: new Uint8Array(buffer)
 					}
 				});
 			});
@@ -638,22 +638,16 @@ export class PixelService {
 
 		// Update region stats and invalidate leaderboards for real-time updates
 		if (painted > 0) {
-			// For large pixel counts (>10k), prioritize painting first, then update stats asynchronously
-			if (painted > 10_000) {
-				// Update stats asynchronously to avoid blocking user
-				setImmediate(async () => {
-					try {
-						await this.updateRegionStats(userId, validPixels);
-						await this.invalidateRelevantLeaderboards(userId, validPixels);
-					} catch (error) {
-						console.error("Error updating region stats asynchronously:", error);
-					}
-				});
-			} else {
-				// For small pixel counts, update synchronously
-				await this.updateRegionStats(userId, validPixels);
-				await this.invalidateRelevantLeaderboards(userId, validPixels);
-			}
+			// Always update stats asynchronously to avoid blocking user response
+			// This prevents race conditions and improves performance under high load
+			setImmediate(async () => {
+				try {
+					await this.updateRegionStats(userId, validPixels);
+					await this.invalidateRelevantLeaderboards(userId, validPixels);
+				} catch (error) {
+					console.error("Error updating region stats asynchronously:", error);
+				}
+			});
 		}
 
 		return { painted };
@@ -691,23 +685,39 @@ export class PixelService {
 		const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 		for (const stats of regionStatsMap.values()) {
 			try {
-				// Use raw SQL to handle null values in unique constraint
-				await this.prisma.$executeRaw`
-					INSERT INTO UserRegionStats (userId, regionCityId, regionCountryId, allianceId, timePeriod, pixelsPainted, lastPaintedAt)
-					VALUES (${userId}, ${stats.regionCityId}, ${stats.regionCountryId}, ${allianceId}, ${todayDate}, ${stats.count}, NOW())
-					ON DUPLICATE KEY UPDATE
-					pixelsPainted = pixelsPainted + ${stats.count},
-					lastPaintedAt = NOW()
-				`;
+				const updatedRowsStats = await this.prisma.$executeRaw`
+					UPDATE UserRegionStats
+					SET pixelsPainted = pixelsPainted + ${stats.count}, lastPaintedAt = NOW()
+					WHERE userId = ${userId}
+					AND regionCityId <=> ${stats.regionCityId}
+					AND regionCountryId <=> ${stats.regionCountryId}
+					AND allianceId <=> ${allianceId}
+					AND timePeriod = ${todayDate}
+				` as unknown as number;
 
-				// Upsert daily table (date column stores midnight date)
-				await this.prisma.$executeRaw`
-					INSERT INTO UserRegionStatsDaily (userId, regionCityId, regionCountryId, allianceId, date, pixelsPainted, lastPaintedAt)
-					VALUES (${userId}, ${stats.regionCityId}, ${stats.regionCountryId}, ${allianceId}, ${todayDate}, ${stats.count}, NOW())
-					ON DUPLICATE KEY UPDATE
-					pixelsPainted = pixelsPainted + ${stats.count},
-					lastPaintedAt = NOW()
-				`;
+				if (!updatedRowsStats || updatedRowsStats === 0) {
+					await this.prisma.$executeRaw`
+						INSERT INTO UserRegionStats (userId, regionCityId, regionCountryId, allianceId, timePeriod, pixelsPainted, lastPaintedAt)
+						VALUES (${userId}, ${stats.regionCityId}, ${stats.regionCountryId}, ${allianceId}, ${todayDate}, ${stats.count}, NOW())
+					`;
+				}
+
+				const updatedRowsDaily = await this.prisma.$executeRaw`
+					UPDATE UserRegionStatsDaily
+					SET pixelsPainted = pixelsPainted + ${stats.count}, lastPaintedAt = NOW()
+					WHERE userId = ${userId}
+					AND regionCityId <=> ${stats.regionCityId}
+					AND regionCountryId <=> ${stats.regionCountryId}
+					AND allianceId <=> ${allianceId}
+					AND date = ${todayDate}
+				` as unknown as number;
+
+				if (!updatedRowsDaily || updatedRowsDaily === 0) {
+					await this.prisma.$executeRaw`
+						INSERT INTO UserRegionStatsDaily (userId, regionCityId, regionCountryId, allianceId, date, pixelsPainted, lastPaintedAt)
+						VALUES (${userId}, ${stats.regionCityId}, ${stats.regionCountryId}, ${allianceId}, ${todayDate}, ${stats.count}, NOW())
+					`;
+				}
 			} catch (error) {
 				console.error("Error updating region stats:", error);
 			}
