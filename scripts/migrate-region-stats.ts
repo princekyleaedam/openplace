@@ -193,7 +193,6 @@ async function migratePixelsWithoutRegion() {
 		let totalProcessed = 0;
 		let totalUpdated = 0;
 
-		// eslint-disable-next-line no-constant-condition
 		while (true) {
 			const pixels = await prisma.pixel.findMany({
 				where: {

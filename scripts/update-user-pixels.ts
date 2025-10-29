@@ -71,7 +71,7 @@ try {
 
 		// Count pixels for this batch using raw SQL for better performance
 		const userIds = users.map(u => u.id);
-		const pixelCounts = await prisma.$queryRaw<Array<{paintedBy: number, count: bigint}>>`
+		const pixelCounts = await prisma.$queryRaw<{paintedBy: number, count: bigint}[]>`
 			SELECT paintedBy, COUNT(*) as count
 			FROM Pixel
 			WHERE paintedBy IN (${Prisma.join(userIds)})
@@ -156,7 +156,7 @@ try {
 	for (const alliance of alliances) {
 		try {
 			// Get alliance pixels using optimized query
-			const alliancePixelCount = await prisma.$queryRaw<Array<{total: bigint}>>`
+			const alliancePixelCount = await prisma.$queryRaw<{total: bigint}[]>`
 				SELECT COALESCE(SUM(pixel_count), 0) as total
 				FROM (
 					SELECT COUNT(*) as pixel_count

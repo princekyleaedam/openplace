@@ -83,8 +83,9 @@ const lastDrawnCoords = ref<TileCoords | null>(null);
 const isDrawingActive = ref(false);
 const centerCoords = ref<TileCoords | null>(null);
 
-let saveLocationTimeout: NodeJS.Timeout | null = null;
-let tileReloadInterval: NodeJS.Timeout | null = null;
+let saveLocationTimeout: number | null = null;
+let tileReloadInterval: number | null = null;
+let lastTileRefreshTime = 0;
 
 const tileCanvases = new Map<string, TileCanvas>();
 
@@ -416,6 +417,34 @@ const updateFavoriteMarkers = async () => {
 	}
 };
 
+const refreshTiles = () => {
+	if (map && map.getSource("pixel-tiles")) {
+		const config = useRuntimeConfig();
+		const source = map.getSource("pixel-tiles");
+		if (source && "setTiles" in source && typeof source.setTiles === "function") {
+			// Force maplibre to fetch again by using a fragment
+			source.setTiles([`${config.public.backendUrl}/files/s0/tiles/{x}/{y}.png#${Date.now()}`]);
+			lastTileRefreshTime = Date.now();
+		}
+	}
+};
+
+const startTileReloadTimer = () => {
+	stopTileReloadTimer();
+	tileReloadInterval = setInterval(refreshTiles, TILE_RELOAD_INTERVAL);
+
+	if (Date.now() - lastTileRefreshTime >= TILE_RELOAD_INTERVAL) {
+		refreshTiles();
+	}
+};
+
+const stopTileReloadTimer = () => {
+	if (tileReloadInterval) {
+		clearInterval(tileReloadInterval);
+		tileReloadInterval = null;
+	}
+};
+
 const updateCursor = () => {
 	const canvas = map!.getCanvas();
 	canvas.style.cursor = props.isDrawing || map!.getZoom() >= ZOOM_LEVEL ? "crosshair" : "grab";
@@ -624,17 +653,10 @@ onMounted(async () => {
 	updateCursor();
 
 	// Reload tiles every 15 seconds
-	tileReloadInterval = setInterval(() => {
-		if (map && map.getSource("pixel-tiles")) {
-			const config = useRuntimeConfig();
-			const source = map.getSource("pixel-tiles");
-			// TODO: Types!!
-			if (source && "setTiles" in source && typeof source.setTiles === "function") {
-				// Force maplibre to fetch again by using a fragment
-				source.setTiles([`${config.public.backendUrl}/files/s0/tiles/{x}/{y}.png#${Date.now()}`]);
-			}
-		}
-	}, TILE_RELOAD_INTERVAL);
+	startTileReloadTimer();
+
+	globalThis.addEventListener("blur", stopTileReloadTimer);
+	globalThis.addEventListener("focus", startTileReloadTimer);
 
 	darkMode.addEventListener("change", darkModeChanged);
 });
@@ -675,12 +697,14 @@ onUnmounted(() => {
 	}
 	favoriteMarkers.length = 0;
 
-	if (tileReloadInterval) {
-		clearInterval(tileReloadInterval);
-	}
+	stopTileReloadTimer();
 	if (saveLocationTimeout) {
 		clearTimeout(saveLocationTimeout);
 	}
+
+	globalThis.removeEventListener("blur", stopTileReloadTimer);
+	globalThis.removeEventListener("focus", startTileReloadTimer);
+
 	darkMode.removeEventListener("change", darkModeChanged);
 	removeAllCanvases();
 });
