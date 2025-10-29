@@ -626,9 +626,12 @@ onMounted(async () => {
 	// Reload tiles every 15 seconds
 	tileReloadInterval = setInterval(() => {
 		if (map && map.getSource("pixel-tiles")) {
+			const config = useRuntimeConfig();
 			const source = map.getSource("pixel-tiles");
-			if (source && "reload" in source && typeof source.reload === "function") {
-				source.reload();
+			// TODO: Types!!
+			if (source && "setTiles" in source && typeof source.setTiles === "function") {
+				// Force maplibre to fetch again by using a fragment
+				source.setTiles([`${config.public.backendUrl}/files/s0/tiles/{x}/{y}.png#${Date.now()}`]);
 			}
 		}
 	}, TILE_RELOAD_INTERVAL);
