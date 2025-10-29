@@ -73,6 +73,7 @@ const props = defineProps<{
 		username: string;
 		id: number;
 		level: number;
+		verified: boolean;
 		levelProgress: number;
 		pixelsPainted: number;
 		avatar: string;
