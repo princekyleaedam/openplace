@@ -106,6 +106,14 @@ app.use((req, _res, next) => {
 	return next?.();
 });
 
+// Strip /api prefix from paths for frontend2
+app.use((req, _res, next) => {
+	if (req.path.startsWith("/api")) {
+		req.url = req.url.slice(4);
+	}
+	return next?.();
+});
+
 admin(app);
 alliance(app);
 auth(app);
@@ -117,6 +125,32 @@ moderator(app);
 pixel(app);
 reportUser(app);
 store(app);
+
+// Proxy new frontend paths
+const FRONTEND_HOST = process.env["FRONTEND_HOST"] || "localhost";
+const FRONTEND_PORT = process.env["FRONTEND_PORT"] || "3001";
+app.use(async (req, res, next) => {
+	if (req.path.startsWith("/beta") || req.path.startsWith("/icons") || req.path.startsWith("/_nuxt")) {
+		try {
+			const res = await fetch(`http://${FRONTEND_HOST}:${FRONTEND_PORT}${req.url}`, {
+				method: req.method,
+				headers: req.headers as HeadersInit,
+				body: req.method !== "GET" && req.method !== "HEAD" ? JSON.stringify(req.body) : undefined
+			});
+			res.status(res.status);
+			for (const [key, value] of res.headers.entries()) {
+				res.set(key, value);
+			}
+			return res.send(await res.text());
+		} catch (error) {
+			console.error("Frontend proxy error:", error);
+			return res.status(502)
+				.send("Bad Gateway");
+		}
+		return;
+	}
+	return next?.();
+});
 
 app.use(sirv("./frontend", {
 	dev: isDev,
