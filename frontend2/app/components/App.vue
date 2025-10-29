@@ -622,3 +622,18 @@ const goToRandom = async () => {
 	z-index: 12;
 }
 </style>
+
+<style>
+/* Blue Marble fixes */
+#bm-A p,
+#bm-A hr,
+#bm-A h1 {
+	margin: 0;
+}
+
+#bm-A input,
+#bm-A button,
+#bm-A textarea {
+	border: none;
+}
+</style>

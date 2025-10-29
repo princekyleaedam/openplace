@@ -83,8 +83,9 @@ const lastDrawnCoords = ref<TileCoords | null>(null);
 const isDrawingActive = ref(false);
 const centerCoords = ref<TileCoords | null>(null);
 
-let saveLocationTimeout: NodeJS.Timeout | null = null;
-let tileReloadInterval: NodeJS.Timeout | null = null;
+let saveLocationTimeout: number | null = null;
+let tileReloadInterval: number | null = null;
+let lastTileRefreshTime = 0;
 
 const tileCanvases = new Map<string, TileCanvas>();
 
@@ -267,10 +268,11 @@ const setUpMapLayers = (mapInstance: MaplibreMap, savedZoom?: number) => {
 	}
 
 	if (!mapInstance.getSource("pixel-tiles")) {
+		const config = useRuntimeConfig();
 		mapInstance.addSource("pixel-tiles", {
 			type: "raster",
-			// tiles: ["/api/files/s0/tiles/{z}/{x}/{y}.png"],
-			tiles: ["/api/files/s0/tiles/{x}/{y}.png"],
+			// tiles: [`${config.public.backendUrl}/api/files/s0/tiles/{z}/{x}/{y}.png`],
+			tiles: [`${config.public.backendUrl}/files/s0/tiles/{x}/{y}.png`],
 			tileSize: TILE_SIZE,
 			minzoom: ZOOM_LEVEL,
 			maxzoom: ZOOM_LEVEL,
@@ -412,6 +414,34 @@ const updateFavoriteMarkers = async () => {
 			.addTo(map);
 
 		favoriteMarkers.push(marker);
+	}
+};
+
+const refreshTiles = () => {
+	if (map && map.getSource("pixel-tiles")) {
+		const config = useRuntimeConfig();
+		const source = map.getSource("pixel-tiles");
+		if (source && "setTiles" in source && typeof source.setTiles === "function") {
+			// Force maplibre to fetch again by using a fragment
+			source.setTiles([`${config.public.backendUrl}/files/s0/tiles/{x}/{y}.png#${Date.now()}`]);
+			lastTileRefreshTime = Date.now();
+		}
+	}
+};
+
+const startTileReloadTimer = () => {
+	stopTileReloadTimer();
+	tileReloadInterval = setInterval(refreshTiles, TILE_RELOAD_INTERVAL);
+
+	if (Date.now() - lastTileRefreshTime >= TILE_RELOAD_INTERVAL) {
+		refreshTiles();
+	}
+};
+
+const stopTileReloadTimer = () => {
+	if (tileReloadInterval) {
+		clearInterval(tileReloadInterval);
+		tileReloadInterval = null;
 	}
 };
 
@@ -623,14 +653,10 @@ onMounted(async () => {
 	updateCursor();
 
 	// Reload tiles every 15 seconds
-	tileReloadInterval = setInterval(() => {
-		if (map && map.getSource("pixel-tiles")) {
-			const source = map.getSource("pixel-tiles");
-			if (source && "reload" in source && typeof source.reload === "function") {
-				source.reload();
-			}
-		}
-	}, TILE_RELOAD_INTERVAL);
+	startTileReloadTimer();
+
+	globalThis.addEventListener("blur", stopTileReloadTimer);
+	globalThis.addEventListener("focus", startTileReloadTimer);
 
 	darkMode.addEventListener("change", darkModeChanged);
 });
@@ -671,12 +697,14 @@ onUnmounted(() => {
 	}
 	favoriteMarkers.length = 0;
 
-	if (tileReloadInterval) {
-		clearInterval(tileReloadInterval);
-	}
+	stopTileReloadTimer();
 	if (saveLocationTimeout) {
 		clearTimeout(saveLocationTimeout);
 	}
+
+	globalThis.removeEventListener("blur", stopTileReloadTimer);
+	globalThis.removeEventListener("focus", startTileReloadTimer);
+
 	darkMode.removeEventListener("change", darkModeChanged);
 	removeAllCanvases();
 });
