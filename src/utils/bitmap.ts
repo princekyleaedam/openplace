@@ -4,7 +4,7 @@ export class WplaceBitMap implements BitMap {
 	bytes: Uint8Array;
 
 	constructor(bytes?: Uint8Array) {
-		this.bytes = bytes || new Uint8Array(0);
+		this.bytes = bytes ?? new Uint8Array(0);
 	}
 
 	set(index: number, value: boolean): void {
@@ -13,10 +13,7 @@ export class WplaceBitMap implements BitMap {
 
 		if (byteIndex >= this.bytes.length) {
 			const newBytes = new Uint8Array(byteIndex + 1);
-			const offset = newBytes.length - this.bytes.length;
-			for (let i = 0; i < this.bytes.length; i++) {
-				newBytes[i + offset] = this.bytes[i]!;
-			}
+			newBytes.set(this.bytes, newBytes.length - this.bytes.length);
 			this.bytes = newBytes;
 		}
 

@@ -172,7 +172,7 @@ export default function (app: App) {
 				});
 
 				for (const user of sameIpData) {
-					const userIps = userIpMap.get(user.id) || [];
+					const userIps = userIpMap.get(user.id) ?? [];
 					const count = sameIpUsers.filter(otherUser =>
 						userIps.includes(otherUser.lastIP || "") ||
 						userIps.includes(otherUser.registrationIP || "")
@@ -190,13 +190,13 @@ export default function (app: App) {
 				const reportedUser = ticket.reportedUser;
 				const author = ticket.user;
 
-				const reportedCount = reportedCountMap.get(reportedUser.id) || 0;
-				const timeoutCount = timeoutCountMap.get(reportedUser.id) || 0;
-				const pixelsPainted = pixelsCountMap.get(reportedUser.id) || 0;
-				const authorReportedCount = authorReportedCountMap.get(author.id) || 0;
-				const authorPixelsPainted = authorPixelsCountMap.get(author.id) || 0;
+				const reportedCount = reportedCountMap.get(reportedUser.id) ?? 0;
+				const timeoutCount = timeoutCountMap.get(reportedUser.id) ?? 0;
+				const pixelsPainted = pixelsCountMap.get(reportedUser.id) ?? 0;
+				const authorReportedCount = authorReportedCountMap.get(author.id) ?? 0;
+				const authorPixelsPainted = authorPixelsCountMap.get(author.id) ?? 0;
 
-				const sameIpAccounts = sameIpCountMap.get(reportedUser.id) || 0;
+				const sameIpAccounts = sameIpCountMap.get(reportedUser.id) ?? 0;
 
 				return {
 					id: ticket.id,

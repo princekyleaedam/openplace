@@ -61,7 +61,7 @@
 
 			statusDiv.style.display = "none";
 			contentDiv.style.display = "block";
-			discordUsernameSpan.textContent = userData.discord || "Unknown";
+			discordUsernameSpan.textContent = userData.discord ?? "Unknown";
 
 			unlinkButton.addEventListener("click", async () => {
 				try {

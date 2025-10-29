@@ -205,7 +205,7 @@ export class LeaderboardService {
 	private async getRegionPlayersLeaderboard(cityId: number, limit: number, mode: LeaderboardMode = "all-time"): Promise<LeaderboardEntry[]> {
 		try {
 			// Get date filter like global leaderboard
-			const dateFilter = this.getDateFilter(mode, this.warmupSnapshotTime || undefined);
+			const dateFilter = this.getDateFilter(mode, this.warmupSnapshotTime ?? undefined);
 			let queryPromise: Promise<any>;
 			if (mode === "all-time") {
 				queryPromise = prisma.userRegionStats.groupBy({
@@ -298,7 +298,7 @@ export class LeaderboardService {
 	private async getRegionAlliancesLeaderboard(cityId: number, limit: number, mode: LeaderboardMode = "all-time"): Promise<LeaderboardEntry[]> {
 		try {
 			// Time filter
-			const dateFilter = this.getDateFilter(mode, this.warmupSnapshotTime || undefined);
+			const dateFilter = this.getDateFilter(mode, this.warmupSnapshotTime ?? undefined);
 			let allianceStats: any[] = [];
 			if (mode === "all-time") {
 				allianceStats = await prisma.userRegionStats.groupBy({
@@ -686,7 +686,7 @@ export class LeaderboardService {
 				this.updateQueue.delete(cacheKey);
 
 				const [type, mode, entityIdStr] = cacheKey.split(":");
-				const entityId = entityIdStr === "all" ? undefined : Number.parseInt(entityIdStr || "0");
+				const entityId = entityIdStr === "all" ? undefined : Number.parseInt(entityIdStr ?? "0");
 
 				const item: { type: LeaderboardType; mode: LeaderboardMode; entityId?: number } = {
 					type: type as LeaderboardType,
@@ -1011,7 +1011,7 @@ export class LeaderboardService {
 
 
 	async invalidateLeaderboard(type: LeaderboardType, mode?: LeaderboardMode, entityId?: number): Promise<void> {
-		const cacheKey = this.getCacheKey(type, mode || "all-time", entityId);
+		const cacheKey = this.getCacheKey(type, mode ?? "all-time", entityId);
 
 		if (this.updateQueue.size >= this.maxQueueSize) {
 			console.warn(`Leaderboard queue overflow (${this.updateQueue.size}/${this.maxQueueSize}), dropping oldest 100 entries`);

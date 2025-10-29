@@ -56,7 +56,7 @@ export class UserService {
 				alliance: true,
 				favoriteLocations: true
 			}
-		}) as any;
+		});
 
 		if (!user) {
 			throw new Error("User not found");
@@ -102,7 +102,7 @@ export class UserService {
 			droplets: user.droplets,
 			equippedFlag: user.equippedFlag,
 			extraColorsBitmap: user.extraColorsBitmap,
-			favoriteLocations: user.favoriteLocations.map((loc: any) => ({
+			favoriteLocations: user.favoriteLocations.map(loc => ({
 				id: loc.id,
 				name: loc.name,
 				latitude: loc.latitude,

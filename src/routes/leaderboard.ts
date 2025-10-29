@@ -5,7 +5,7 @@ import { leaderboardService } from "../services/leaderboard.js";
 const validModes = new Set(["today", "week", "month", "all-time"]);
 
 // TODO: Split up file
- 
+
 export default function (app: App) {
 	app.get("/leaderboard/region/:mode/:country", async (req, res) => {
 		try {
@@ -16,8 +16,8 @@ export default function (app: App) {
 					.json({ error: "Invalid mode", status: 400 });
 			}
 
-			const countryId = Number.parseInt(country || "0");
-			const limitParam = Number.parseInt(String(req.query["limit"] || "50"));
+			const countryId = Number.parseInt(country ?? "0");
+			const limitParam = Number.parseInt(String(req.query["limit"] ?? "50"));
 			const limit = Number.isNaN(limitParam) ? 50 : Math.max(1, Math.min(limitParam, 50));
 
 			const response = await leaderboardService.getLeaderboard("region", mode as any, countryId > 0 ? countryId : undefined, limit);
@@ -88,7 +88,7 @@ export default function (app: App) {
 	app.get("/leaderboard/region/players/:city/:mode", async (req, res) => {
 		try {
 			const { city, mode } = req.params;
-			const paramId = Number.parseInt(city || "0");
+			const paramId = Number.parseInt(city ?? "0");
 			if (!mode || !validModes.has(mode) || Number.isNaN(paramId)) {
 				return res.status(400)
 					.json({ error: "Invalid params", status: 400 });
@@ -119,7 +119,7 @@ export default function (app: App) {
 					.json({ error: "Invalid mode", status: 400 });
 			}
 
-			const paramId = Number.parseInt(city || "0");
+			const paramId = Number.parseInt(city ?? "0");
 			if (Number.isNaN(paramId)) {
 				return res.status(400)
 					.json({ error: "Invalid params", status: 400 });

@@ -44,7 +44,7 @@
 			if (response.ok) {
 				window.location.href = "/";
 			} else {
-				errorDiv.textContent = data.error || "Login failed";
+				errorDiv.textContent = data.error ?? "Login failed";
 			}
 		} catch (error) {
 		switch (response.status) {

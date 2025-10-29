@@ -49,19 +49,19 @@ export default function (app: App) {
 					.json({ error: "Unauthorized", status: 401 });
 			}
 
-			const amount = product.amount || 1;
-			
+			const amount = product.amount ?? 1;
+
 			// Strict validation for amount
-			if (typeof amount !== "number" || 
-				!Number.isFinite(amount) || 
-				!Number.isInteger(amount) || 
+			if (typeof amount !== "number" ||
+				!Number.isFinite(amount) ||
+				!Number.isInteger(amount) ||
 				amount < 1) {
 				console.warn(`[${new Date()
 					.toISOString()}] Invalid purchase amount from ${req.ip}:`, amount);
 				return res.status(400)
 					.json({ error: "Bad Request", status: 400 });
 			}
-			
+
 			const totalCost = item.price * amount;
 
 			if (user.droplets < totalCost) {

@@ -264,7 +264,7 @@ onMounted(async () => {
 
 	if (latStr && lngStr && mapRef.value) {
 		const [lat, lng] = [Number.parseFloat(latStr), Number.parseFloat(lngStr)];
-		const zoom = Number.parseFloat(zoomStr || "") || 15;
+		const zoom = Number.parseFloat(zoomStr ?? "") || 15;
 
 		if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
 			mapRef.value.jumpToLocation(lat, lng, zoom);

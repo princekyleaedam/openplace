@@ -672,7 +672,7 @@ export class PixelService {
 		for (const pixel of pixels) {
 			if (!pixel.region) continue;
 
-			const key = `${pixel.region.cityId || "null"}-${pixel.region.countryId || "null"}`;
+			const key = `${pixel.region.cityId ?? "null"}-${pixel.region.countryId ?? "null"}`;
 			const existing = regionStatsMap.get(key);
 
 			if (existing) {

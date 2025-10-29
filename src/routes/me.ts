@@ -225,7 +225,7 @@ export default function (app: App) {
 
 	app.post("/me/profile-picture/change", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
-			const { pictureId } = req.body || {};
+			const { pictureId } = req.body ?? {};
 
 			// If no pictureId provided (empty payload {}), set empty profile picture
 			if (pictureId === undefined || pictureId === null) {
@@ -257,7 +257,7 @@ export default function (app: App) {
 
 	app.delete("/me", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
-			const { confirmText } = req.body || {};
+			const { confirmText } = req.body ?? {};
 			const currentNickname = await userService.getNickname(req.user!.id);
 			if (!currentNickname || confirmText !== currentNickname) {
 				return res.status(HTTP_STATUS.BAD_REQUEST)

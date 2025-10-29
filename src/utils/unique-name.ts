@@ -935,8 +935,8 @@ export const getRandomUniqueName = () => {
 	const randomNameIndex = Math.floor(Math.random() * GENERAL_NAMES.length);
 	const randomColorIndex = Math.floor(Math.random() * COLORS.length);
 
-	const name = capitalizeFirstLetter(GENERAL_NAMES[randomNameIndex] || "");
-	const color = capitalizeFirstLetter(COLORS[randomColorIndex] || "");
+	const name = capitalizeFirstLetter(GENERAL_NAMES[randomNameIndex] ?? "");
+	const color = capitalizeFirstLetter(COLORS[randomColorIndex] ?? "");
 
 	return `${color}${name}`;
 };
