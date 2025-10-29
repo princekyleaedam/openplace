@@ -21,6 +21,13 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import type { Map as MaplibreMap } from "maplibre-gl";
 import { getPixelBounds, getPixelsBetween, getTileBounds, type LatLng, latLngToTileCoords, TILE_SIZE, type TileCoords, ZOOM_LEVEL } from "~/utils/coordinates";
 
+// Expose things for user scripts to access
+declare global {
+	interface Window {
+		map: MaplibreMap;
+	}
+}
+
 interface Pixel {
 	id: string;
 	tileCoords: TileCoords;
@@ -443,10 +450,8 @@ onMounted(async () => {
 		attributionControl: false
 	});
 
-	// Debug: expose map on window
-	if (isDev) {
-		(globalThis as unknown as { map: MaplibreMap }).map = map;
-	}
+	// Expose map on window
+	globalThis.map = map;
 
 	// Gestures
 	let isRotating = false;
