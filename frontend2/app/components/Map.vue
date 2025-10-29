@@ -247,7 +247,8 @@ const setUpMapLayers = (mapInstance: MaplibreMap, savedZoom?: number) => {
 		mapInstance.addSource("satellite", {
 			type: "raster",
 			tiles: [
-				"https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{x}/{y}.jpeg"
+				// "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.jpeg"
+				"https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
 			],
 			tileSize: 256
 		});
