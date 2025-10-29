@@ -139,7 +139,7 @@ app.use(async (req, res, next) => {
 			});
 			res.status(res2.status);
 			for (const [key, value] of res2.headers.entries()) {
-				res2.set(key, value);
+				res.set(key, value);
 			}
 			return res.send(await res2.text());
 		} catch (error) {
