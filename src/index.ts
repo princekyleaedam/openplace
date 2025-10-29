@@ -127,10 +127,10 @@ reportUser(app);
 store(app);
 
 // Proxy new frontend paths
-const FRONTEND_HOST = process.env["FRONTEND_HOST"] || "localhost";
-const FRONTEND_PORT = process.env["FRONTEND_PORT"] || "3001";
+const FRONTEND_HOST = process.env["FRONTEND_HOST"] ?? "localhost";
+const FRONTEND_PORT = process.env["FRONTEND_PORT"] ?? "3001";
 app.use(async (req, res, next) => {
-	if (req.path.startsWith("/beta") || req.path.startsWith("/icons") || req.path.startsWith("/_nuxt")) {
+	if (req.path.startsWith("/beta") || req.path.startsWith("/_nuxt") || req.path.startsWith("/__nuxt")) {
 		try {
 			const res2 = await fetch(`http://${FRONTEND_HOST}:${FRONTEND_PORT}${req.url}`, {
 				method: req.method,
