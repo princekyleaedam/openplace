@@ -31,6 +31,7 @@
         >
           <Icon name="zoom_in" />
         </Button>
+
         <Button
           severity="secondary"
           raised
@@ -39,6 +40,17 @@
           @click="zoomOut"
         >
           <Icon name="zoom_out" />
+        </Button>
+
+        <Button
+          v-if="mapBearing !== 0"
+          severity="secondary"
+          raised
+          rounded
+          aria-label="Reset map rotation"
+          @click="resetMapRotation"
+        >
+          <Icon name="compass" />
         </Button>
       </div>
 
@@ -57,6 +69,7 @@
             @logout="handleLogout"
           />
         </div>
+
         <Button
           v-else
           severity="primary"
@@ -87,17 +100,6 @@
           @click="goToRandom"
         >
           <Icon name="explore" />
-        </Button>
-
-        <Button
-          v-if="mapBearing !== 0"
-          severity="secondary"
-          raised
-          rounded
-          aria-label="Reset map rotation"
-          @click="resetMapRotation"
-        >
-          <Icon name="compass" />
         </Button>
       </div>
 
