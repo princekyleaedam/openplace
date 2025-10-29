@@ -27,7 +27,17 @@
         >
           <ProgressSpinner />
         </div>
-           <h4>Painted By</h4>
+
+        <div
+          v-else-if="pixelData"
+          class="pixel-info-content"
+        >
+          <div class="pixel-info-section">
+                    <div
+            v-if="pixelData.paintedBy.id !== 0"
+            class="pixel-info-section"
+          >
+            <h4>Painted By</h4>
             <div class="pixel-info-row">
               <span class="pixel-info-label">User:</span>
               <span>{{ pixelData.paintedBy.name }}#{{ pixelData.paintedBy.id }}</span>
@@ -51,11 +61,8 @@
               <span class="pixel-info-label">Alliance:</span>
               <span>{{ pixelData.paintedBy.allianceName }}</span>
             </div>
-        <div
-          v-else-if="pixelData"
-          class="pixel-info-content"
-        >
-          <div class="pixel-info-section">
+          </div>
+          
             <h4>Location</h4>
             <div class="pixel-info-row">
               <span class="pixel-info-label">Tile:</span>
@@ -71,11 +78,7 @@
             </div>
           </div>
 
-          <div
-            v-if="pixelData.paintedBy.id !== 0"
-            class="pixel-info-section"
-          >
-          </div>
+
 
           <div
             v-else
