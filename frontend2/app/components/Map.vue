@@ -1,19 +1,19 @@
 <template>
-  <div class="map-container">
-    <div
-      ref="mapContainer"
-      class="map"
-    />
-    <div
-      v-if="isDev"
-      class="debug-label"
-    >
-      <div>Zoom: {{ currentZoom.toFixed(2) }}</div>
-      <div v-if="centerCoords">
-        Center: Tx {{ centerCoords.tile[0] }},{{ centerCoords.tile[1] }} Px {{ centerCoords.pixel[0] }},{{ centerCoords.pixel[1] }}
-      </div>
-    </div>
-  </div>
+	<div class="map-container">
+		<div
+			ref="mapContainer"
+			class="map"
+		/>
+		<div
+			v-if="isDev"
+			class="debug-label"
+		>
+			<div>Zoom: {{ currentZoom.toFixed(2) }}</div>
+			<div v-if="centerCoords">
+				Center: Tx {{ centerCoords.tile[0] }},{{ centerCoords.tile[1] }} Px {{ centerCoords.pixel[0] }},{{ centerCoords.pixel[1] }}
+			</div>
+		</div>
+	</div>
 </template>
 
 <script setup lang="ts">

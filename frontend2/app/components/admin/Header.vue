@@ -29,35 +29,35 @@ const items = ref([
 </script>
 
 <template>
-  <div class="header-container">
-    <div class="header-content">
-      <Menubar :model="items">
-        <template #start>
-          <NuxtLink
-            to="/admin/"
-            class="logo-link"
-          >
-            <img
-              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAADqADAAQAAAABAAAADgAAAAC98Dn6AAAAlklEQVQoFWNkwA7+owkzovEZ0AXAGhwzH6Ko2z9dHsaHq4czgDL/0TXAVMNoqAFgPTCNBDWha2aCCZBKg2wk2jaY4SAns8A4z5/vhTHBtKSkMwofnQPXCFIY6SEFll++4xm6Ogw+XCNIhhgNMBMGJlRhtv/XDtoHY2Olr65zAomjJACYQnCSQzcAqgGuCYUB0wmlCSZyAMUpJtMVXyyIAAAAAElFTkSuQmCC"
-              alt=""
-              class="logo"
-            >
-            <span class="logo-text">openplace admin</span>
-          </NuxtLink>
-        </template>
-        <template #item="{ item }">
-          <NuxtLink
-            v-if="item.route"
-            :to="item.route"
-            class="p-menubar-item-link"
-          >
-            <span :class="['menu-icon', item.icon]" />
-            <span>{{ item.label }}</span>
-          </NuxtLink>
-        </template>
-      </Menubar>
-    </div>
-  </div>
+	<div class="header-container">
+		<div class="header-content">
+			<Menubar :model="items">
+				<template #start>
+					<NuxtLink
+						to="/admin/"
+						class="logo-link"
+					>
+						<img
+							src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAADqADAAQAAAABAAAADgAAAAC98Dn6AAAAlklEQVQoFWNkwA7+owkzovEZ0AXAGhwzH6Ko2z9dHsaHq4czgDL/0TXAVMNoqAFgPTCNBDWha2aCCZBKg2wk2jaY4SAns8A4z5/vhTHBtKSkMwofnQPXCFIY6SEFll++4xm6Ogw+XCNIhhgNMBMGJlRhtv/XDtoHY2Olr65zAomjJACYQnCSQzcAqgGuCYUB0wmlCSZyAMUpJtMVXyyIAAAAAElFTkSuQmCC"
+							alt=""
+							class="logo"
+						>
+						<span class="logo-text">openplace admin</span>
+					</NuxtLink>
+				</template>
+				<template #item="{ item }">
+					<NuxtLink
+						v-if="item.route"
+						:to="item.route"
+						class="p-menubar-item-link"
+					>
+						<span :class="['menu-icon', item.icon]" />
+						<span>{{ item.label }}</span>
+					</NuxtLink>
+				</template>
+			</Menubar>
+		</div>
+	</div>
 </template>
 
 <style scoped>

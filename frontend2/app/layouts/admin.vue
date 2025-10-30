@@ -3,9 +3,9 @@ import "~/assets/common.scss";
 </script>
 
 <template>
-  <div>
-    <Header />
-    <slot />
-    <Footer />
-  </div>
+	<div>
+		<Header />
+		<slot />
+		<Footer />
+	</div>
 </template>

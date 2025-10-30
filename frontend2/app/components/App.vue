@@ -1,151 +1,151 @@
 <template>
-  <div class="app-container">
-    <Toast />
-    <ClientOnly>
-      <Map
-        ref="mapRef"
-        :pixels="pixels"
-        :is-drawing="isPaintOpen"
-        :is-satellite="isSatellite"
-        :favorite-locations="userProfile?.favoriteLocations"
-        :selected-pixel-coords="isPixelInfoOpen ? selectedPixelCoords : null"
-        @map-click="handleMapClick"
-        @map-right-click="handleMapRightClick"
-        @draw-pixels="handleDrawPixels"
-        @bearing-change="mapBearing = $event"
-        @favorite-click="handleFavoriteClick"
-      />
-      <template #fallback>
-        <div class="map-loading" />
-      </template>
-    </ClientOnly>
+	<div class="app-container">
+		<Toast />
+		<ClientOnly>
+			<Map
+				ref="mapRef"
+				:pixels="pixels"
+				:is-drawing="isPaintOpen"
+				:is-satellite="isSatellite"
+				:favorite-locations="userProfile?.favoriteLocations"
+				:selected-pixel-coords="isPixelInfoOpen ? selectedPixelCoords : null"
+				@map-click="handleMapClick"
+				@map-right-click="handleMapRightClick"
+				@draw-pixels="handleDrawPixels"
+				@bearing-change="mapBearing = $event"
+				@favorite-click="handleFavoriteClick"
+			/>
+			<template #fallback>
+				<div class="map-loading" />
+			</template>
+		</ClientOnly>
 
-    <div class="app-overlays">
-      <div class="app-overlays-zoom">
-        <Button
-          severity="secondary"
-          raised
-          rounded
-          aria-label="Zoom in"
-          @click="zoomIn"
-        >
-          <Icon name="zoom_in" />
-        </Button>
+		<div class="app-overlays">
+			<div class="app-overlays-zoom">
+				<Button
+					severity="secondary"
+					raised
+					rounded
+					aria-label="Zoom in"
+					@click="zoomIn"
+				>
+					<Icon name="zoom_in" />
+				</Button>
 
-        <Button
-          severity="secondary"
-          raised
-          rounded
-          aria-label="Zoom out"
-          @click="zoomOut"
-        >
-          <Icon name="zoom_out" />
-        </Button>
+				<Button
+					severity="secondary"
+					raised
+					rounded
+					aria-label="Zoom out"
+					@click="zoomOut"
+				>
+					<Icon name="zoom_out" />
+				</Button>
 
-        <Button
-          v-if="mapBearing !== 0"
-          severity="secondary"
-          raised
-          rounded
-          aria-label="Reset map rotation"
-          @click="resetMapRotation"
-        >
-          <Icon name="compass" />
-        </Button>
-      </div>
+				<Button
+					v-if="mapBearing !== 0"
+					severity="secondary"
+					raised
+					rounded
+					aria-label="Reset map rotation"
+					@click="resetMapRotation"
+				>
+					<Icon name="compass" />
+				</Button>
+			</div>
 
-      <div class="app-overlays-profile">
-        <div v-if="isLoggedIn">
-          <UserAvatar
-            :user="user"
-            @click="toggleUserMenu"
-          />
+			<div class="app-overlays-profile">
+				<div v-if="isLoggedIn">
+					<UserAvatar
+						:user="user"
+						@click="toggleUserMenu"
+					/>
 
-          <UserMenu
-            ref="userMenuRef"
-            :is-open="isUserMenuOpen"
-            :user="user"
-            @close="isUserMenuOpen = false"
-            @logout="handleLogout"
-          />
-        </div>
+					<UserMenu
+						ref="userMenuRef"
+						:is-open="isUserMenuOpen"
+						:user="user"
+						@close="isUserMenuOpen = false"
+						@logout="handleLogout"
+					/>
+				</div>
 
-        <Button
-          v-else
-          severity="primary"
-          raised
-          rounded
-          aria-label="Log in"
-          @click="handleLogin"
-        >
-          Log in
-        </Button>
+				<Button
+					v-else
+					severity="primary"
+					raised
+					rounded
+					aria-label="Log in"
+					@click="handleLogin"
+				>
+					Log in
+				</Button>
 
-        <Button
-          severity="secondary"
-          raised
-          rounded
-          aria-label="Toggle satellite"
-          @click="toggleSatellite"
-        >
-          <Icon :name="isSatellite ? 'map_vector' : 'map_satellite'" />
-        </Button>
+				<Button
+					severity="secondary"
+					raised
+					rounded
+					aria-label="Toggle satellite"
+					@click="toggleSatellite"
+				>
+					<Icon :name="isSatellite ? 'map_vector' : 'map_satellite'" />
+				</Button>
 
-        <Button
-          severity="secondary"
-          raised
-          rounded
-          aria-label="Go to random pixel"
-          :loading="isLoadingRandom"
-          @click="goToRandom"
-        >
-          <Icon name="explore" />
-        </Button>
-      </div>
+				<Button
+					severity="secondary"
+					raised
+					rounded
+					aria-label="Go to random pixel"
+					:loading="isLoadingRandom"
+					@click="goToRandom"
+				>
+					<Icon name="explore" />
+				</Button>
+			</div>
 
-      <div
-        v-if="isLoggedIn"
-        class="app-overlays-paint"
-      >
-        <PaintButton
-          :charges="currentCharges ?? 0"
-          :max-charges="maxCharges ?? 0"
-          :is-drawing="isPaintOpen"
-          :time-until-next="formattedTime"
-          @click="isPaintOpen = !isPaintOpen"
-        />
-      </div>
+			<div
+				v-if="isLoggedIn"
+				class="app-overlays-paint"
+			>
+				<PaintButton
+					:charges="currentCharges ?? 0"
+					:max-charges="maxCharges ?? 0"
+					:is-drawing="isPaintOpen"
+					:time-until-next="formattedTime"
+					@click="isPaintOpen = !isPaintOpen"
+				/>
+			</div>
 
-      <div
-        v-if="isLoggedIn"
-        class="app-overlays-palette"
-      >
-        <ColorPalette
-          :is-open="isPaintOpen"
-          :selected-color="selectedColor"
-          :is-eraser-mode="isEraserMode"
-          :charges="currentCharges ?? 0"
-          :max-charges="maxCharges ?? 0"
-          :pixel-count="pixels.length"
-          :time-until-next="formattedTime"
-          :extra-colors-bitmap="userProfile?.extraColorsBitmap ?? null"
-          @color-select="handleColorSelect"
-          @close="handleClosePaint"
-          @toggle-eraser="isEraserMode = !isEraserMode"
-          @submit="handleSubmitPixels"
-        />
-      </div>
-    </div>
+			<div
+				v-if="isLoggedIn"
+				class="app-overlays-palette"
+			>
+				<ColorPalette
+					:is-open="isPaintOpen"
+					:selected-color="selectedColor"
+					:is-eraser-mode="isEraserMode"
+					:charges="currentCharges ?? 0"
+					:max-charges="maxCharges ?? 0"
+					:pixel-count="pixels.length"
+					:time-until-next="formattedTime"
+					:extra-colors-bitmap="userProfile?.extraColorsBitmap ?? null"
+					@color-select="handleColorSelect"
+					@close="handleClosePaint"
+					@toggle-eraser="isEraserMode = !isEraserMode"
+					@submit="handleSubmitPixels"
+				/>
+			</div>
+		</div>
 
-    <PixelInfo
-      :is-open="isPixelInfoOpen"
-      :coords="selectedPixelCoords!"
-      @close="isPixelInfoOpen = false"
-      @report="handleReportPixel"
-      @favorite-added="handleFavoriteChanged"
-      @favorite-removed="handleFavoriteChanged"
-    />
-  </div>
+		<PixelInfo
+			:is-open="isPixelInfoOpen"
+			:coords="selectedPixelCoords!"
+			@close="isPixelInfoOpen = false"
+			@report="handleReportPixel"
+			@favorite-added="handleFavoriteChanged"
+			@favorite-removed="handleFavoriteChanged"
+		/>
+	</div>
 </template>
 
 <script setup lang="ts">

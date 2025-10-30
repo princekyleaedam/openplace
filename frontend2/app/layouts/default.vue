@@ -3,7 +3,7 @@ import "~/assets/common.scss";
 </script>
 
 <template>
-  <div>
-    <slot />
-  </div>
+	<div>
+		<slot />
+	</div>
 </template>

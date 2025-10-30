@@ -31,5 +31,5 @@ watch(
 </script>
 
 <template>
-  <component :is="IconComponent" />
+	<component :is="IconComponent" />
 </template>

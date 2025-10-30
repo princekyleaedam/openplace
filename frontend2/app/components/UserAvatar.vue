@@ -1,23 +1,23 @@
 <template>
-  <button
-    class="avatar-button"
-    @click="$emit('click', $event)"
-  >
-    <div style="position: relative;">
-      <Avatar
-        :label="user.username.charAt(0).toUpperCase()"
-        :image="user.avatar || undefined"
-        size="large"
-        shape="circle"
-        class="avatar-button-avatar"
-      />
-      <Badge
-        :value="user.level"
-        severity="secondary"
-        class="avatar-button-badge"
-      />
-    </div>
-  </button>
+	<button
+		class="avatar-button"
+		@click="$emit('click', $event)"
+	>
+		<div style="position: relative;">
+			<Avatar
+				:label="user.username.charAt(0).toUpperCase()"
+				:image="user.avatar || undefined"
+				size="large"
+				shape="circle"
+				class="avatar-button-avatar"
+			/>
+			<Badge
+				:value="user.level"
+				severity="secondary"
+				class="avatar-button-badge"
+			/>
+		</div>
+	</button>
 </template>
 
 <script setup lang="ts">

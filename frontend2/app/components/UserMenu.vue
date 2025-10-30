@@ -1,63 +1,63 @@
 <template>
-  <Menu
-    ref="menu"
-    :model="menuItems"
-    :popup="true"
-  >
-    <template #start>
-      <div class="user-menu-header">
-        <div class="user-info">
-          <div class="avatar-container">
-            <Avatar
-              :label="user.username.charAt(0).toUpperCase()"
-              :image="user.avatar"
-              size="large"
-              shape="circle"
-              style="background-color: #4ade80;"
-            />
-            <Badge
-              :value="user.level"
-              severity="secondary"
-              class="level-badge"
-            />
-          </div>
-          <div class="user-details">
-            <div class="user-name-row">
-              <span class="user-name">{{ user.username }}</span>
-              <span class="user-id">#{{ user.id }}</span>
-			  <span
-                v-if="verified"
-                v-tooltip.top="'This player has been verified by an administrator of this instance.'">
-                <Icon name="verified" />
-              </span>
-              <span
-                v-if="countryFlag"
-                class="country-flag"
-              >{{ countryFlag }}</span>
-            </div>
-            <div class="user-stat">
-              <span>Pixels painted: {{ user.pixelsPainted }}</span>
-            </div>
-            <div class="user-stat">
-              <span>Level {{ user.level }} ({{ user.levelProgress }}%)</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </template>
-    <template #item="{ item }">
-      <a
-        class="menu-item-link"
-        @click="(event) => item.command?.({ originalEvent: event, item })"
-      >
-        <Icon
-          v-if="item.icon"
-          :name="item.icon"
-        />
-        <span>{{ item.label }}</span>
-      </a>
-    </template>
-  </Menu>
+	<Menu
+		ref="menu"
+		:model="menuItems"
+		:popup="true"
+	>
+		<template #start>
+			<div class="user-menu-header">
+				<div class="user-info">
+					<div class="avatar-container">
+						<Avatar
+							:label="user.username.charAt(0).toUpperCase()"
+							:image="user.avatar"
+							size="large"
+							shape="circle"
+							style="background-color: #4ade80;"
+						/>
+						<Badge
+							:value="user.level"
+							severity="secondary"
+							class="level-badge"
+						/>
+					</div>
+					<div class="user-details">
+						<div class="user-name-row">
+							<span class="user-name">{{ user.username }}</span>
+							<span class="user-id">#{{ user.id }}</span>
+							<span
+								v-if="verified"
+								v-tooltip.top="'This player has been verified by an administrator of this instance.'">
+								<Icon name="verified" />
+							</span>
+							<span
+								v-if="countryFlag"
+								class="country-flag"
+							>{{ countryFlag }}</span>
+						</div>
+						<div class="user-stat">
+							<span>Pixels painted: {{ user.pixelsPainted }}</span>
+						</div>
+						<div class="user-stat">
+							<span>Level {{ user.level }} ({{ user.levelProgress }}%)</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</template>
+		<template #item="{ item }">
+			<a
+				class="menu-item-link"
+				@click="(event) => item.command?.({ originalEvent: event, item })"
+			>
+				<Icon
+					v-if="item.icon"
+					:name="item.icon"
+				/>
+				<span>{{ item.label }}</span>
+			</a>
+		</template>
+	</Menu>
 </template>
 
 <script setup lang="ts">

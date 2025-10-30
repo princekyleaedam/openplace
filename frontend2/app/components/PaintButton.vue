@@ -1,18 +1,18 @@
 <template>
-  <Button
-    severity="info"
-    size="large"
-    raised
-    rounded
-    :class="['paint-button', { 'paint-button-shimmer': hasPendingPixels }]"
-    @click="$emit('click')"
-  >
-    <Icon name="paint" />
-    <span :class="{ 'shimmer-text': hasPendingPixels }">
-      Paint {{ charges.toLocaleString() }}/{{ maxCharges.toLocaleString() }}
-    </span>
-    <span class="paint-button-time">{{ timeUntilNext }}</span>
-  </Button>
+	<Button
+		severity="info"
+		size="large"
+		raised
+		rounded
+		:class="['paint-button', { 'paint-button-shimmer': hasPendingPixels }]"
+		@click="$emit('click')"
+	>
+		<Icon name="paint" />
+		<span :class="{ 'shimmer-text': hasPendingPixels }">
+			Paint {{ charges.toLocaleString() }}/{{ maxCharges.toLocaleString() }}
+		</span>
+		<span class="paint-button-time">{{ timeUntilNext }}</span>
+	</Button>
 </template>
 
 <script setup lang="ts">
