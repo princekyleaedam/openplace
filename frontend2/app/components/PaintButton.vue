@@ -36,11 +36,13 @@ defineEmits<{
 
 <style scoped>
 .paint-button {
+	font-weight: 600;
 	font-feature-settings: "tnum";
 }
 
 .paint-button-time {
 	font-size: 0.8em;
+	font-weight: 500;
 	vertical-align: baseline;
 }
 
