@@ -173,86 +173,86 @@ const { fetchUserProfile } = useUserProfile();
 const isFavorite = computed(() => favoriteId.value !== null);
 
 const checkIfFavorite = async () => {
-  try {
-    const userProfile = await fetchUserProfile();
-    if (!userProfile) {
-      favoriteId.value = null;
-      return;
-    }
+	try {
+		const userProfile = await fetchUserProfile();
+		if (!userProfile) {
+			favoriteId.value = null;
+			return;
+		}
 
-    const [lng, lat] = tileCoordsToLngLat(props.coords);
+		const [lng, lat] = tileCoordsToLngLat(props.coords);
 
-    // Is this a favorite?
-    const tolerance = 0.0001;
-    const favorite = userProfile.favoriteLocations.find(
-      item => Math.abs(item.latitude - lat) < tolerance && Math.abs(item.longitude - lng) < tolerance
-    );
+		// Is this a favorite?
+		const tolerance = 0.0001;
+		const favorite = userProfile.favoriteLocations.find(
+			item => Math.abs(item.latitude - lat) < tolerance && Math.abs(item.longitude - lng) < tolerance
+		);
 
-    favoriteId.value = favorite ? favorite.id : null;
-  } catch (error: unknown) {
-    console.error("Failed to check favorite status:", error);
-    favoriteId.value = null;
-  }
+		favoriteId.value = favorite ? favorite.id : null;
+	} catch (error: unknown) {
+		console.error("Failed to check favorite status:", error);
+		favoriteId.value = null;
+	}
 };
 
 const fetchPixelData = async () => {
-  const [tileX, tileY] = props.coords.tile;
-  const [x, y] = props.coords.pixel;
+	const [tileX, tileY] = props.coords.tile;
+	const [x, y] = props.coords.pixel;
 
-  loading.value = true;
-  error.value = null;
+	loading.value = true;
+	error.value = null;
 
-  try {
-    const config = useRuntimeConfig();
-    const response = await fetch(`${config.public.backendUrl}/s0/pixel/${tileX}/${tileY}?x=${x}&y=${y}`, { credentials: "include" });
+	try {
+		const config = useRuntimeConfig();
+		const response = await fetch(`${config.public.backendUrl}/s0/pixel/${tileX}/${tileY}?x=${x}&y=${y}`, { credentials: "include" });
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch pixel data: ${response.statusText}`);
-    }
+		if (!response.ok) {
+			throw new Error(`Failed to fetch pixel data: ${response.statusText}`);
+		}
 
-    pixelData.value = await response.json();
+		pixelData.value = await response.json();
 
-    // Check if this pixel is favorited
-    await checkIfFavorite();
-  } catch (error_: any) {
-    error.value = error_?.toString();
-    console.error("Failed to fetch pixel data:", error_);
-  } finally {
-    loading.value = false;
-  }
+		// Check if this pixel is favorited
+		await checkIfFavorite();
+	} catch (error_: any) {
+		error.value = error_?.toString();
+		console.error("Failed to fetch pixel data:", error_);
+	} finally {
+		loading.value = false;
+	}
 };
 
 const toggleFavorite = async () => {
-  try {
-    const [lng, lat] = tileCoordsToLngLat(props.coords);
+	try {
+		const [lng, lat] = tileCoordsToLngLat(props.coords);
 
-    if (isFavorite.value && favoriteId.value !== null) {
-      await removeFavorite(favoriteId.value);
-      favoriteId.value = null;
-      emit("favoriteRemoved");
-    } else {
-      const result = await addFavorite(lat, lng);
-      favoriteId.value = result.id;
-      emit("favoriteAdded");
-    }
-  } catch (error_: any) {
-    console.error("Failed to toggle favorite:", error_?.toString());
-  }
+		if (isFavorite.value && favoriteId.value !== null) {
+			await removeFavorite(favoriteId.value);
+			favoriteId.value = null;
+			emit("favoriteRemoved");
+		} else {
+			const result = await addFavorite(lat, lng);
+			favoriteId.value = result.id;
+			emit("favoriteAdded");
+		}
+	} catch (error_: any) {
+		console.error("Failed to toggle favorite:", error_?.toString());
+	}
 };
 
 watch(() => props.isOpen, (newValue) => {
-  if (newValue) {
-    fetchPixelData();
-  } else {
-    pixelData.value = null;
-    error.value = null;
-  }
+	if (newValue) {
+		fetchPixelData();
+	} else {
+		pixelData.value = null;
+		error.value = null;
+	}
 });
 
 watch(() => props.coords, () => {
-  if (props.isOpen) {
-    fetchPixelData();
-  }
+	if (props.isOpen) {
+		fetchPixelData();
+	}
 }, { deep: true });
 </script>
 

@@ -186,6 +186,8 @@ const isLoadingRandom = ref(false);
 const isAnimatingToRandom = ref(false);
 const randomTargetCoords = ref<{ lat: number; lng: number; zoom: number } | null>(null);
 
+let lastUserProfileFetch = Date.now();
+
 const toast = useToast();
 
 const {
@@ -240,8 +242,40 @@ const handlePopState = () => {
 	}
 };
 
+const handleWindowFocus = async () => {
+	const now = Date.now();
+	if (now - lastUserProfileFetch < 30_000) {
+		return;
+	}
+
+	try {
+		lastUserProfileFetch = Date.now();
+		const profile = await fetchUserProfile();
+		userProfile.value = profile;
+		if (profile) {
+			initialize(
+				profile.charges.count,
+				profile.charges.max,
+				profile.charges.cooldownMs
+			);
+		}
+	} catch (error) {
+		console.error("Failed to refresh user profile on focus:", error);
+	}
+};
+
+const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+	if (mapRef.value?.hasUncommittedPixels?.()) {
+		// Show confirm navigation prompt
+		e.preventDefault();
+		e.returnValue = "";
+		return "";
+	}
+};
+
 onMounted(async () => {
 	try {
+		lastUserProfileFetch = Date.now();
 		userProfile.value = await fetchUserProfile();
 		if (userProfile.value) {
 			initialize(
@@ -272,11 +306,15 @@ onMounted(async () => {
 	}
 
 	globalThis.addEventListener("popstate", handlePopState);
+	globalThis.addEventListener("focus", handleWindowFocus);
+	globalThis.addEventListener("beforeunload", handleBeforeUnload);
 	document.addEventListener("keydown", handleKeyDown);
 });
 
 onUnmounted(() => {
 	globalThis.removeEventListener("popstate", handlePopState);
+	globalThis.removeEventListener("focus", handleWindowFocus);
+	globalThis.removeEventListener("beforeunload", handleBeforeUnload);
 	document.removeEventListener("keydown", handleKeyDown);
 });
 
@@ -461,8 +499,8 @@ const handleReportPixel = () => {
 };
 
 const handleFavoriteChanged = async () => {
-	// TODO
 	try {
+		lastUserProfileFetch = Date.now();
 		userProfile.value = await fetchUserProfile();
 	} catch (error: unknown) {
 		console.error("Failed to refresh user profile:", error);

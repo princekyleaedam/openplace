@@ -802,6 +802,11 @@ const zoomIn = () => map?.zoomIn();
 const zoomOut = () => map?.zoomOut();
 const getZoom = () => map?.getZoom() ?? ZOOM_LEVEL;
 
+const hasUncommittedPixels = () => {
+	return tileCanvases.values()
+		.some(tileCanvas => tileCanvas.isDirty);
+};
+
 defineExpose({
 	cancelPaint,
 	commitCanvases,
@@ -811,7 +816,8 @@ defineExpose({
 	jumpToLocation,
 	zoomIn,
 	zoomOut,
-	getZoom
+	getZoom,
+	hasUncommittedPixels
 });
 </script>
 
