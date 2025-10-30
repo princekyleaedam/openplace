@@ -1,1 +1,34 @@
-@use '@fortawesome/fontawesome-free/css/all.min.css';
+:root {
+	--p-backdrop-filter: blur(10px);
+	--p-background: #fffe;
+	--p-card-background: var(--p-background);
+	--p-menu-background: var(--p-background);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--p-background: #18181bee;
+	}
+}
+
+// Blur background
+.p-card,
+.p-menu {
+	backdrop-filter: var(--p-backdrop-filter);
+}
+
+// Blue Marble fixes
+#bm-A {
+	p,
+	hr,
+	h1 {
+		margin: 0;
+	}
+
+	input,
+	button,
+	textarea {
+		border: none;
+		color: inherit;
+	}
+}
