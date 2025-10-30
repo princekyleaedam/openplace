@@ -249,14 +249,14 @@ export default function (app: App) {
 			const params = new URLSearchParams([
 				["token", resetToken.id]
 			]);
-			const resetUrl = `${process.env["EXTERNAL_URL"]}/login?${params.toString()}`;
-			const message = `**Password Reset Request**
+			const resetUrl = `[Reset your password](${process.env["EXTERNAL_URL"]}/login?${params.toString()})`;
+			const message = `### Password Reset Requested
 
 A password reset was requested for your openplace account. If you requested this, click this link to reset your password:
 
 ${resetUrl}
 
-If you didn’t request this, you can safely ignore this message.`;
+*Wasn't you? You can safely ignore this message.*`;
 
 			await discordBot.sendDM(user.discordUserId, message);
 
