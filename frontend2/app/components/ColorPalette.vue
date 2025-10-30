@@ -15,6 +15,7 @@
             <Button
               :severity="isEraserMode ? 'danger' : 'secondary'"
               size="small"
+							rounded
               :outlined="!isEraserMode"
               :aria-label="isEraserMode ? 'Switch to painting' : 'Switch to eraser'"
               @click="$emit('toggleEraser')"
@@ -26,6 +27,7 @@
             <Button
               severity="secondary"
               size="small"
+							rounded
               text
               aria-label="Close"
               @click="$emit('close')"
@@ -37,31 +39,33 @@
       </template>
 
       <template #content>
-        <div class="color-grid">
-          <Button
-            v-for="item in palette"
-            :key="item.index"
-            v-tooltip.top="item.name"
-            :class="['color-button', {
-              'color-button-selected': selectedColor === `rgba(${item.rgba.join(',')})`
-            }]"
-            :style="{ backgroundColor: `rgba(${item.rgba.join(',')})` }"
-            :raised="selectedColor === `rgba(${item.rgba.join(',')})`"
-            :disabled="!isColorUnlocked(item.index, extraColorsBitmap)"
-            :aria-label="isColorUnlocked(item.index, extraColorsBitmap) ? 'Select color' : 'Color locked'"
-            @click="$emit('colorSelect', `rgba(${item.rgba.join(',')})`)"
-          />
-        </div>
+				<div class="palette-body">
+					<div class="color-grid">
+						<Button
+							v-for="item in palette"
+							:key="item.index"
+							v-tooltip.top="item.name"
+							:class="['color-button', {
+								'color-button-selected': selectedColor === `rgba(${item.rgba.join(',')})`
+							}]"
+							:style="{ backgroundColor: `rgba(${item.rgba.join(',')})` }"
+							:raised="selectedColor === `rgba(${item.rgba.join(',')})`"
+							:disabled="!isColorUnlocked(item.index, extraColorsBitmap)"
+							:aria-label="isColorUnlocked(item.index, extraColorsBitmap) ? 'Select color' : 'Color locked'"
+							@click="$emit('colorSelect', `rgba(${item.rgba.join(',')})`)"
+						/>
+					</div>
 
-        <PaintButton
-          class="palette-paint-button"
-          :charges="charges"
-          :max-charges="maxCharges"
-          :time-until-next="timeUntilNext"
-          :is-drawing="true"
-          :pending-pixels="pixelCount"
-          @click="$emit('submit')"
-        />
+					<PaintButton
+						class="palette-paint-button"
+						:charges="charges"
+						:max-charges="maxCharges"
+						:time-until-next="timeUntilNext"
+						:is-drawing="true"
+						:pending-pixels="pixelCount"
+						@click="$emit('submit')"
+					/>
+				</div>
       </template>
     </Card>
   </div>
@@ -108,11 +112,17 @@ defineEmits<{
   border-bottom: 1px solid var(--p-surface-border);
 }
 
+.palette-body {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	margin: -0.25rem 0;
+}
+
 .color-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
   gap: 0.5rem;
-  margin-bottom: 1rem;
 }
 
 .color-button {
@@ -146,6 +156,7 @@ defineEmits<{
 }
 
 .palette-paint-button {
-  width: 100%;
+  align-self: center;
+  margin-inline: auto;
 }
 </style>
