@@ -17,6 +17,8 @@
 				<input type="password" id="password" name="password" placeholder="Password" required>
 			</div>
 			<button type="submit">Login</button>
+			<input type="checkbox" id="betaSelect" name="betaSelect" value="betaSelect"></input>
+			<label for="betaSelect">Go to openplace beta</label><br>
 			<div id="error" class="error"></div>
 			<p class="agreement">By signing in, you agree to the rules set by the owner of this instance.</p>
 		</form>
@@ -42,7 +44,11 @@
 			const data = await response.json();
 
 			if (response.ok) {
-				window.location.href = "/";
+				if (betaSelect === TRUE){
+					window.location.href = "/beta/";
+				}
+				else{
+					window.location.href = "/";
 			} else {
 				errorDiv.textContent = data.error || "Login failed";
 			}
