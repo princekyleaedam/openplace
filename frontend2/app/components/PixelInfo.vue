@@ -214,7 +214,7 @@ const fetchPixelData = async () => {
 
 		// Check if this pixel is favorited
 		await checkIfFavorite();
-	} catch (error_: any) {
+	} catch (error_: unknown) {
 		error.value = error_?.toString();
 		console.error("Failed to fetch pixel data:", error_);
 	} finally {
@@ -235,7 +235,7 @@ const toggleFavorite = async () => {
 			favoriteId.value = result.id;
 			emit("favoriteAdded");
 		}
-	} catch (error_: any) {
+	} catch (error_: unknown) {
 		console.error("Failed to toggle favorite:", error_?.toString());
 	}
 };

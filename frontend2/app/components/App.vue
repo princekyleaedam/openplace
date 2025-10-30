@@ -471,7 +471,7 @@ const handleSubmitPixels = async () => {
 			tileCoords: p.tileCoords,
 			color: p.color
 		}));
-		const results = await submitPixels(paintPixels);
+		await submitPixels(paintPixels);
 
 		// Commit the painted pixels to our local canvas
 		mapRef.value?.commitCanvases();

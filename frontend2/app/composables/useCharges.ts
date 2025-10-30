@@ -4,7 +4,7 @@ export const useCharges = () => {
 	const currentCharges = ref<number | null>(null);
 	const max = ref<number | null>(null);
 	const cooldown = ref<number | null>(null);
-	let interval: NodeJS.Timeout | null = null;
+	let interval: number | null = null;
 
 	// Calculate time until next charge in seconds
 	const timeUntilNextCharge = ref(0);

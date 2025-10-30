@@ -13,13 +13,13 @@
 
           <div>
             <Button
+              v-tooltip.top="'This button is currently a placeholder.'"
               :severity="isEraserMode ? 'danger' : 'secondary'"
-              size="small"
-							rounded
+							size="small"
+              rounded
               :outlined="!isEraserMode"
               :aria-label="isEraserMode ? 'Switch to painting' : 'Switch to eraser'"
               @click="$emit('toggleEraser')"
-              v-tooltip.top="'This button is currently a placeholder.'"
             >
               <Icon name="eraser" />
             </Button>
