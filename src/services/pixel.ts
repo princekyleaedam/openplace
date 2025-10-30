@@ -495,12 +495,11 @@ export class PixelService {
 		let discountedPixels = 0;
 
 		const flagsBitmap = user.flagsBitmap
-		? WplaceBitMap.fromBase64(Buffer.from(user.flagsBitmap)
-			.toString("base64"))
-		: new WplaceBitMap();
+			? WplaceBitMap.fromBase64(Buffer.from(user.flagsBitmap)
+				.toString("base64"))
+			: new WplaceBitMap();
 
 		for (const pixel of validPixels) {
-
 			if (pixel.region && flagsBitmap.get(pixel.region.flagId)) {
 				totalChargeCost += 0.9;
 				discountedPixels++;

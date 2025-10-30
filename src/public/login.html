@@ -8,21 +8,80 @@
 </head>
 <body>
 	<div class="login-form">
-		<h1>Welcome!</h1>
-		<form id="loginForm">
-			<div class="form-group">
-				<input type="text" id="username" name="username" placeholder="Username" required>
-			</div>
-			<div class="form-group">
-				<input type="password" id="password" name="password" placeholder="Password" required>
-			</div>
-			<button type="submit">Login</button>
-			<div id="error" class="error"></div>
-			<p class="agreement">By signing in, you agree to the rules set by the owner of this instance.</p>
-		</form>
+		<div id="loginSection">
+			<h1>Welcome!</h1>
+			<form id="loginForm">
+				<div class="form-group">
+					<input type="text" id="username" name="username" placeholder="Username" required>
+				</div>
+				<div class="form-group">
+					<input type="password" id="password" name="password" placeholder="Password" required minlength="8">
+				</div>
+				<button type="submit">Login</button>
+				<div id="error" class="error"></div>
+				<p class="agreement">By signing in, you agree to the rules set by the owner of this instance.</p>
+				<p><a href="#" id="showResetLink">Reset password</a></p>
+			</form>
+		</div>
+
+		<div id="resetRequestSection" style="display: none;">
+			<h1>Reset Password</h1>
+			<p>If you have a Discord account linked, you can reset your password here.</p>
+			<form id="resetRequestForm">
+				<div class="form-group">
+					<input type="text" id="resetUsername" name="resetUsername" placeholder="Username" required>
+				</div>
+				<button type="submit">Send Reset Link</button>
+				<div id="resetError" class="error"></div>
+				<div id="resetSuccess" class="success" style="display: none;"></div>
+			</form>
+			<p><a href="#" id="showLoginLink">Back to Login</a></p>
+		</div>
+
+		<div id="resetPasswordSection" style="display: none;">
+			<h1>Set New Password</h1>
+			<form id="resetPasswordForm">
+				<div class="form-group">
+					<input type="password" id="newPassword" name="newPassword" placeholder="New Password (min 8 characters)" required minlength="8">
+				</div>
+				<div class="form-group">
+					<input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" required minlength="8">
+				</div>
+				<button type="submit">Reset Password</button>
+				<div id="resetPasswordError" class="error"></div>
+				<div id="resetPasswordSuccess" class="success" style="display: none;"></div>
+			</form>
+			<p><a href="#" id="showLoginLink2">Back</a></p>
+		</div>
 	</div>
 
 	<script>
+	const urlParams = new URLSearchParams(window.location.search);
+	const resetToken = urlParams.get("token");
+
+	if (resetToken) {
+		document.getElementById("loginSection").style.display = "none";
+		document.getElementById("resetPasswordSection").style.display = "block";
+	}
+
+	document.getElementById("showResetLink").addEventListener("click", (e) => {
+		e.preventDefault();
+		document.getElementById("loginSection").style.display = "none";
+		document.getElementById("resetRequestSection").style.display = "block";
+	});
+
+	document.getElementById("showLoginLink").addEventListener("click", (e) => {
+		e.preventDefault();
+		document.getElementById("resetRequestSection").style.display = "none";
+		document.getElementById("loginSection").style.display = "block";
+	});
+
+	document.getElementById("showLoginLink2").addEventListener("click", (e) => {
+		e.preventDefault();
+		document.getElementById("resetPasswordSection").style.display = "none";
+		document.getElementById("loginSection").style.display = "block";
+	});
+
 	document.getElementById("loginForm").addEventListener("submit", async (e) => {
 		e.preventDefault();
 
@@ -47,18 +106,109 @@
 				errorDiv.textContent = data.error ?? "Login failed";
 			}
 		} catch (error) {
-		switch (response.status) {
+			switch (response.status) {
 				case 429:
 					errorDiv.textContent = "Try again in a minute, rate limit exceeded";
 					break;
 				case 403:
 					errorDiv.textContent = "You have been banned.";
-        break;
-    	default:
-        	errorDiv.textContent = "Network error occurred";
-        break;
+					break;
+				default:
+					errorDiv.textContent = "Network error occurred";
+					break;
+			}
+		}
+	});
+
+	document.getElementById("resetRequestForm").addEventListener("submit", async (e) => {
+		e.preventDefault();
+
+		const username = document.getElementById("resetUsername").value;
+		const errorDiv = document.getElementById("resetError");
+		const successDiv = document.getElementById("resetSuccess");
+		const submitButton = e.target.querySelector("button[type='submit']");
+
+		errorDiv.textContent = "";
+		successDiv.style.display = "none";
+		submitButton.disabled = true;
+		submitButton.textContent = "Sending...";
+
+		try {
+			const response = await fetch("/auth/request-password-reset", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ username })
+			});
+
+			const data = await response.json();
+
+			if (response.ok) {
+				successDiv.textContent = "If your account has Discord linked, you will receive a password reset link via DM.";
+				successDiv.style.display = "block";
+				document.getElementById("resetUsername").value = "";
+			} else {
+				errorDiv.textContent = data.error ?? "Failed to send reset link";
+			}
+		} catch (error) {
+			errorDiv.textContent = "Network error occurred";
+		} finally {
+			submitButton.disabled = false;
+			submitButton.textContent = "Send Reset Link";
+		}
+	});
+
+	document.getElementById("resetPasswordForm").addEventListener("submit", async (e) => {
+		e.preventDefault();
+
+		const password = document.getElementById("newPassword").value;
+		const confirmPassword = document.getElementById("confirmPassword").value;
+		const errorDiv = document.getElementById("resetPasswordError");
+		const successDiv = document.getElementById("resetPasswordSuccess");
+		const submitButton = e.target.querySelector("button[type='submit']");
+
+		errorDiv.textContent = "";
+		successDiv.style.display = "none";
+
+		if (password !== confirmPassword) {
+			errorDiv.textContent = "Passwords do not match";
+			return;
 		}
 
+		if (password.length < 8) {
+			errorDiv.textContent = "Password must be at least 8 characters long";
+			return;
+		}
+
+		submitButton.disabled = true;
+		submitButton.textContent = "Resetting...";
+
+		try {
+			const response = await fetch("/auth/reset-password", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ token: resetToken, password })
+			});
+
+			const data = await response.json();
+
+			if (response.ok) {
+				successDiv.textContent = "Password has been reset.";
+				successDiv.style.display = "block";
+				document.getElementById("resetPasswordForm").style.display = "none";
+				setTimeout(() => location.replace("/login"), 2000);
+			} else {
+				errorDiv.textContent = data.error ?? "Unknown error";
+				submitButton.disabled = false;
+				submitButton.textContent = "Reset Password";
+			}
+		} catch (error) {
+			errorDiv.textContent = "Network error occurred";
+			submitButton.disabled = false;
+			submitButton.textContent = "Reset Password";
 		}
 	});
 	</script>

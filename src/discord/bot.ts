@@ -1,4 +1,4 @@
-import { Client, Events, GatewayIntentBits, GuildMember } from "discord.js";
+import { Client, EmbedBuilder, Events, GatewayIntentBits, GuildMember } from "discord.js";
 import { prisma } from "../config/database.js";
 import { ACTIVE_COOLDOWN_MS, BOOSTER_COOLDOWN_MS, COOLDOWN_MS } from "../services/user.js";
 
@@ -68,7 +68,6 @@ class DiscordBot {
 			await this.updateUser(await member.fetch());
 		});
 
-		// Handle errors
 		this.client.on(Events.Error, (error) => {
 			console.error("[Discord Bot] Error:", error);
 		});
@@ -210,6 +209,31 @@ class DiscordBot {
 
 		this.client.destroy();
 		this.client = null;
+	}
+
+	async sendDM(discordUserId: string, message: string): Promise<void> {
+		if (!this.isConfigured || !this.client) {
+			return;
+		}
+
+		try {
+			const user = await this.client.users.fetch(discordUserId);
+			if (!user) {
+				return;
+			}
+
+			const embed = new EmbedBuilder()
+				.setColor(0x41_69_E2)
+				.setAuthor({
+					name: "openplace",
+					iconURL: "https://openplace.live/img/favicon-96x96.png"
+				})
+				.setDescription(message);
+
+			await user.send({ embeds: [embed] });
+		} catch (error) {
+			console.error("[Discord Bot] Error sending DM:", error);
+		}
 	}
 }
 

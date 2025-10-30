@@ -10,6 +10,7 @@ import { AuthenticatedRequest, BanReason } from "../types/index.js";
 import { AuthService, AuthToken } from "../services/auth.js";
 import { getRandomUniqueName } from "../utils/unique-name.js";
 import { rateLimiter } from "../services/rate-limiter.js";
+import { discordBot } from "../discord/bot.js";
 
 const userService = new UserService(prisma);
 const authService = new AuthService(prisma);
@@ -37,10 +38,7 @@ export default function (app: App) {
 					.toISOString();
 				console.log(`[${timestamp}] Rate limit exceeded for IP ${req.ip}`);
 				return res.status(429)
-					.json({
-						error: "Too many attempts. Please try again later.",
-						retryAfter: Math.ceil((rateLimit.resetTime - Date.now()) / 1000)
-					});
+					.json({ error: "Too many attempts. Please try again later." });
 			}
 
 			if (!UserService.isAcceptableUsername(username)) {
@@ -171,6 +169,186 @@ export default function (app: App) {
 			return res.json({ success: true });
 		} catch (error) {
 			console.error("Logout error:", error);
+			return res.status(500)
+				.json({ error: "Internal Server Error" });
+		}
+	});
+
+	app.post("/auth/request-password-reset", async (req, res) => {
+		try {
+			const { username } = req.body;
+
+			if (!username) {
+				return res.status(400)
+					.json({ error: "Username required" });
+			}
+
+			const rateLimit = rateLimiter.checkRateLimit(req.ip!, 3, 600_000);
+			if (!rateLimit.allowed) {
+				return res.status(429)
+					.json({ error: "Too many password reset attempts. Please try again later." });
+			}
+
+			const user = await prisma.user.findFirst({
+				where: { name: username },
+				select: {
+					id: true,
+					name: true,
+					discordUserId: true,
+					banned: true,
+					role: true
+				}
+			});
+
+			if (!user) {
+				rateLimiter.recordAttempt(req.ip!, true);
+				return res.json({ success: true });
+			}
+
+			if (user.role === "deleted") {
+				return res.status(403)
+					.json({ error: "Your account has been deleted. If you believe this is a mistake, please contact the admin for assistance." });
+			}
+
+			if (user.banned) {
+				return res.status(403)
+					.json({ error: "You have been banned." });
+			}
+
+			if (!user.discordUserId) {
+				return res.status(400)
+					.json({ error: "No Discord account linked. Please contact the admin for assistance." });
+			}
+
+			const recentToken = await prisma.passwordResetToken.findFirst({
+				where: {
+					userId: user.id,
+					createdAt: {
+						gte: new Date(Date.now() - 10 * 60 * 1000)
+					}
+				}
+			});
+
+			if (recentToken) {
+				const waitTime = Math.ceil((recentToken.createdAt.getTime() + 10 * 60 * 1000 - Date.now()) / 1000);
+				return res.status(429)
+					.json({ error: "You already requested a password reset recently. Please wait before sending another one." });
+			}
+
+			await prisma.passwordResetToken.deleteMany({
+				where: { userId: user.id }
+			});
+
+			const resetToken = await prisma.passwordResetToken.create({
+				data: {
+					userId: user.id,
+					expiresAt: new Date(Date.now() + 60 * 60 * 1000)
+				}
+			});
+
+			const params = new URLSearchParams([
+				["token", resetToken.id]
+			]);
+			const resetUrl = `${process.env["EXTERNAL_URL"]}/login?${params.toString()}`;
+			const message = `**Password Reset Request**
+
+A password reset was requested for your openplace account. If you requested this, click this link to reset your password:
+
+${resetUrl}
+
+If you didn’t request this, you can safely ignore this message.`;
+
+			await discordBot.sendDM(user.discordUserId, message);
+
+			rateLimiter.recordAttempt(req.ip!, true);
+			console.log(`[${new Date()
+				.toISOString()}] [${req.ip}] Password reset requested for ${user.name}#${user.id}`);
+
+			return res.json({ success: true });
+		} catch (error) {
+			console.error("Password reset request error:", error);
+			return res.status(500)
+				.json({ error: "Internal Server Error" });
+		}
+	});
+
+	app.post("/auth/reset-password", async (req, res) => {
+		try {
+			const { token, password } = req.body;
+
+			if (!token || !password) {
+				return res.status(400)
+					.json({ error: "Token and password required" });
+			}
+
+			if (password.length < 8) {
+				return res.status(400)
+					.json({ error: "Password must be at least 8 characters long" });
+			}
+
+			const rateLimit = rateLimiter.checkRateLimit(req.ip!, 5, 600_000);
+			if (!rateLimit.allowed) {
+				return res.status(429)
+					.json({ error: "Too many password reset attempts. Please try again later." });
+			}
+
+			const resetToken = await prisma.passwordResetToken.findUnique({
+				where: { id: token }
+			});
+
+			if (!resetToken || resetToken.expiresAt < new Date()) {
+				rateLimiter.recordAttempt(req.ip!, false);
+				return res.status(400)
+					.json({ error: "Invalid or expired reset token" });
+			}
+
+			const user = await prisma.user.findUnique({
+				where: { id: resetToken.userId },
+				select: {
+					id: true,
+					name: true,
+					banned: true,
+					role: true
+				}
+			});
+
+			if (!user) {
+				return res.status(400)
+					.json({ error: "User not found" });
+			}
+
+			if (user.role === "deleted") {
+				return res.status(403)
+					.json({ error: "Your account has been deleted. If you believe this is a mistake, please contact the admin for assistance." });
+			}
+
+			if (user.banned) {
+				return res.status(403)
+					.json({ error: "You have been banned." });
+			}
+
+			const passwordHash = await bcrypt.hash(password, 10);
+
+			await prisma.$transaction([
+				prisma.user.update({
+					where: { id: user.id },
+					data: { passwordHash }
+				}),
+				prisma.passwordResetToken.delete({
+					where: { id: token }
+				}),
+				prisma.session.deleteMany({
+					where: { userId: user.id }
+				})
+			]);
+
+			rateLimiter.recordAttempt(req.ip!, true);
+			console.log(`[${new Date()
+				.toISOString()}] [${req.ip}] Password reset completed for ${user.name}#${user.id}`);
+
+			return res.json({ success: true });
+		} catch (error) {
+			console.error("Password reset error:", error);
 			return res.status(500)
 				.json({ error: "Internal Server Error" });
 		}
