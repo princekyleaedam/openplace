@@ -51,6 +51,7 @@ export default function (app: App) {
 			});
 
 			if (user) {
+				var isNewAccount = false;
 				const passwordValid = await bcrypt.compare(password, user.passwordHash ?? "");
 				if (!passwordValid) {
 					rateLimiter.recordAttempt(req.ip!, false);
@@ -73,6 +74,7 @@ export default function (app: App) {
 					await userService.setLastIP(user.id, req.ip);
 				}
 			} else {
+				var isNewAccount = true;
 				if (!UserService.isValidUsername(username)) {
 					return res.status(400)
 						.json({ error: "Username must be between 3 and 16 characters and cannot contain special characters." });
@@ -144,7 +146,7 @@ export default function (app: App) {
 			rateLimiter.recordAttempt(req.ip!, true);
 			const date = new Date();
 			console.log(`[${date.toISOString()}] [${req.ip}] ${user.name}#${user.id} logged in`);
-			return res.json({ success: true });
+			return res.json({ success: true, "isNewAccount": isNewAccount });
 		} catch (error) {
 			console.error("Login error:", error);
 			return res.status(500)

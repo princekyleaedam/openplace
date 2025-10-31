@@ -34,6 +34,16 @@ export default function (app: App) {
 		res.setHeader("Content-Type", "text/html");
 		return res.send(html);
 	});
+	
+	app.get("/registration/link", optionalAuthMiddleware, async (req: AuthenticatedRequest, res) => {
+		if (!req.user) {
+			return res.redirect("/login");
+		}
+
+		const html = await fs.readFile("./src/public/login-nextstep.html", "utf8");
+		res.setHeader("Content-Type", "text/html");
+		return res.send(html);
+	});
 
 	app.get("/discord/unlink", optionalAuthMiddleware, async (req: AuthenticatedRequest, res) => {
 		if (!req.user) {
@@ -143,8 +153,28 @@ export default function (app: App) {
 						<h1>Success!</h1>
 						<p>Your Discord account (${discordUser.username}) has been linked.</p>
 						${cooldownMessage}
-						<a href="/">Back to Home</a>
+						<button class="skipButton">Back to Home</button>
 					</div>
+					<script>
+								// idk why the skip button is throwing a fit with the event listener sooooo this is gonna have to do ig - toby
+								function attachSkipListeners() {
+									document.querySelectorAll('.skipButton').forEach(btn => {
+										btn.onclick = async (event) => {
+											try {
+												btn.disabled = true;
+												btn.textContent = 'Redirecting...';
+												window.location.href = '/';
+											} catch (error) {
+												errorDiv.textContent = error.message;
+												btn.disabled = false;
+												btn.textContent = 'Not now';
+											}
+										};
+									});
+								}
+
+								attachSkipListeners();
+					</script>
 				</body>
 				</html>
 			`);

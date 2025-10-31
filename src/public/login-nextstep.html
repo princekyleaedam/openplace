@@ -3,20 +3,20 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Link Discord - openplace</title>
+	<title>One more step.. - openplace</title>
 	<link rel="stylesheet" href="/account.css">
 </head>
 <body>
 	<div class="login-form">
-		<h1>Link Discord Account</h1>
+		<h1>One more step..</h1>
 		<p id="status">Loading...</p>
 		<div id="error" class="error"></div>
 		<div id="content" style="display: none;">
-			<p>Connect your Discord account to openplace.</p>
-			<p>Your Discord username on your profile cannot be changed while linked. You can unlink at any time.</p>
+			<p>Link your Discord account to openplace!</p>
+			<p>When you link your Discord account to openplace, you will receive exclusive perks such as shortened cooldown times, account recovery, and much more.</p>
 			<button id="linkButton">Link Discord Account</button>
 			<br><br>
-			<a href="/">Back to Home</a>
+			<button class="secondary-button skipButton">Not now</button>
 		</div>
 		<div id="success" style="display: none;">
 			<p>Discord account linked successfully!</p>
@@ -31,6 +31,7 @@
 		const contentDiv = document.getElementById("content");
 		const successDiv = document.getElementById("success");
 		const linkButton = document.getElementById("linkButton");
+
 		try {
 			const meRes = await fetch("/me", {
 				credentials: "include"
@@ -50,32 +51,21 @@
 					<p><strong>Discord Username:</strong> ${userData.discord || "Unknown"}</p>
 					<a href="/discord/unlink">Unlink Discord Account</a>
 					<br><br>
-					<button class="secondary-button skipButton">Back to Home</button>
+					<button id="skipButton" class="secondary-button">Back to home</button>
 				`;
 				return;
 			}
-				
+
 			const configRes = await fetch("/discord/configured");
 			if (!configRes.ok) {
-				statusDiv.textContent = "Discord linking is not available.";
+				statusDiv.textContent = "";
 				errorDiv.textContent = "Discord OAuth is not configured on this server.";
 				return;
 			}
 
 			statusDiv.style.display = "none";
 			contentDiv.style.display = "block";
-				skipButton.addEventListener("click", async () => {
-					try {
-						skipButton.disabled = true;
-						skipButton.textContent = "Redirecting...";
 
-						window.location.href = "/";
-					} catch (error) {
-						errorDiv.textContent = error.message;
-						skipButton.disabled = false;
-						skipButton.textContent = "Back to home";
-					}
-				});
 			linkButton.addEventListener("click", async () => {
 				try {
 					linkButton.disabled = true;
@@ -96,6 +86,7 @@
 					linkButton.disabled = false;
 					linkButton.textContent = "Link Discord Account";
 				}
+			});
 				// idk why the skip button is throwing a fit with the event listener sooooo this is gonna have to do ig - toby
 				function attachSkipListeners() {
 					document.querySelectorAll('.skipButton').forEach(btn => {
@@ -114,7 +105,6 @@
 				}
 
 				attachSkipListeners();
-			});
 		} catch (error) {
 			statusDiv.textContent = "An error occurred.";
 			errorDiv.textContent = error.message;

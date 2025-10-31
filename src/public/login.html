@@ -100,7 +100,9 @@
 
 			const data = await response.json();
 
-			if (response.ok) {
+			if (data.isNewAccount) {
+				window.location.href = "/registration/link";
+			} else if (data.success) {
 				window.location.href = "/";
 			} else {
 				errorDiv.textContent = data.error ?? "Login failed";

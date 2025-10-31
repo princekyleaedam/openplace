@@ -53,6 +53,19 @@ button {
 button:hover {
 	background-color: #0056b3;
 }
+.secondary-button {
+	width: 100%;
+	padding: 12px;
+	background-color: #e5e5e5;
+	color: rgb(0, 0, 0);
+	border: none;
+	border-radius: 10px;
+	font-size: 16px;
+	cursor: pointer;
+}
+.secondary-button:hover {
+	background-color: #c5c5c5;
+}
 .error {
 	color: red;
 	margin-top: 10px;
@@ -131,5 +144,18 @@ button:hover {
 		color: #777;
 		text-align: center;
 		margin-top: 20px;
+	}
+	.secondary-button {
+		width: 100%;
+		padding: 12px;
+		background-color: #2c2c2c;
+		color: rgb(255, 255, 255);
+		border: none;
+		border-radius: 10px;
+		font-size: 16px;
+		cursor: pointer;
+	}
+	.secondary-button:hover {
+		background-color: #3c3c3c;
 	}
 }
