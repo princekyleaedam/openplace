@@ -19,6 +19,7 @@ import moderator from "./routes/moderator.js";
 import pixel from "./routes/pixel.js";
 import reportUser from "./routes/report-user.js";
 import store from "./routes/store.js";
+import checkrobots from "./routes/checkrobots.js";
 import { leaderboardService } from "./services/leaderboard.js";
 import { discordBot } from "./discord/bot.js";
 
@@ -125,6 +126,7 @@ moderator(app);
 pixel(app);
 reportUser(app);
 store(app);
+checkrobots(app);
 
 // Proxy new frontend paths
 const FRONTEND_HOST = process.env["FRONTEND_HOST"] ?? "localhost";
