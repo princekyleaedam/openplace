@@ -30,6 +30,14 @@ export class RateLimiter {
 		remaining: number;
 		resetTime: number;
 	} {
+		if (process.env["ENABLE_RATE_LIMIT"] !== "true") {
+			return {
+				allowed: true,
+				remaining: maxAttempts,
+				resetTime: Date.now() + windowMs
+			};
+		}
+
 		const now = Date.now();
 		const key = ip;
 		let entry = this.attempts.get(key);
