@@ -23,6 +23,7 @@ interface LeaderboardEntry {
 export class LeaderboardService {
 	private updateQueue = new Set<string>();
 	private isUpdating = false;
+	private isWarmingUp = false;
 	private batchSize = 5;
 	private maxQueueSize = 1000;
 	private updateInterval = 3000;
@@ -1058,27 +1059,54 @@ export class LeaderboardService {
 	}
 
 	async warmupGlobalLeaderboards(): Promise<void> {
-		const modes: LeaderboardMode[] = ["today", "week", "month", "all-time"];
-		const types: LeaderboardType[] = ["player", "alliance", "country", "region"];
+		if (this.isWarmingUp) {
+			return;
+		}
 
-		// Create snapshot timestamp for consistent data across all modes
-		this.warmupSnapshotTime = new Date();
+		this.isWarmingUp = true;
+		const startTime = Date.now();
+		const timeout = 5 * 60 * 1000;
+		let timeoutId: NodeJS.Timeout | null = null;
 
-		// Queue all updates at once for parallel processing
-		for (const type of types) {
-			for (const mode of modes) {
-				// Queue update with snapshot time for consistency
-				this.queueUpdate(type, mode);
+		try {
+			const warmupPromise = (async () => {
+				const modes: LeaderboardMode[] = ["today", "week", "month", "all-time"];
+				const types: LeaderboardType[] = ["player", "alliance", "country", "region"];
+
+				this.warmupSnapshotTime = new Date();
+
+				for (const type of types) {
+					for (const mode of modes) {
+						this.queueUpdate(type, mode);
+					}
+				}
+
+				if (!this.isUpdating) {
+					await this.processUpdateQueue();
+				}
+			})();
+
+			const timeoutPromise = new Promise<never>((_, reject) => {
+				timeoutId = setTimeout(() => {
+					reject(new Error(`Warmup timeout after ${timeout}ms`));
+				}, timeout);
+			});
+
+			await Promise.race([warmupPromise, timeoutPromise]);
+
+			// const duration = Date.now() - startTime;
+			// console.log(`[LeaderboardService] Warmup completed in ${duration}ms`);
+		} catch (error) {
+			const duration = Date.now() - startTime;
+			console.error(`[LeaderboardService] Warmup failed after ${duration}ms:`, error);
+			throw error;
+		} finally {
+			if (timeoutId) {
+				clearTimeout(timeoutId);
 			}
+			this.isWarmingUp = false;
+			this.warmupSnapshotTime = null;
 		}
-
-		// Process all updates in parallel batches
-		if (!this.isUpdating) {
-			await this.processUpdateQueue();
-		}
-
-		// Clear snapshot time after warmup
-		this.warmupSnapshotTime = null;
 	}
 
 
