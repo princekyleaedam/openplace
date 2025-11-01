@@ -407,17 +407,6 @@ export class PixelService {
 			throw new Error("banned");
 		}
 
-		const currentCharges = calculateChargeRecharge(
-			user.currentCharges,
-			user.maxCharges,
-			user.chargesLastUpdatedAt || new Date(),
-			user.chargesCooldownMs
-		);
-
-		if (currentCharges < colors.length) {
-			throw new Error("attempted to paint more pixels than there was charges.");
-		}
-
 		for (const colorId of colors) {
 			if (!checkColorUnlocked(colorId, user.extraColorsBitmap)) {
 				throw new Error("attempted to paint with a colour that was not purchased.");
@@ -551,16 +540,6 @@ export class PixelService {
 			}
 		}
 
-		const newCharges = Math.max(0, currentCharges - totalChargeCost);
-		const newPixelsPainted = user.pixelsPainted + painted;
-		const newLevel = calculateLevel(newPixelsPainted);
-
-		// Rewards calculations
-		const levelUpRewards = {
-			droplets: Math.floor(newLevel) !== Math.floor(user.level) ? LEVEL_UP_DROPLETS_REWARD : 0,
-			maxCharges: LEVEL_UP_MAX_CHARGES_REWARD * (Math.floor(newLevel) - Math.floor(user.level))
-		};
-
 		const paintedRewards = {
 			droplets: painted * PAINTED_DROPLETS_REWARD
 		};
@@ -571,19 +550,39 @@ export class PixelService {
 			try {
 				await this.prisma.$transaction(async (tx) => {
 					// Lock user first, then alliance to prevent deadlock
-					const rows = await tx.$queryRaw<{ id: number; currentCharges: number; maxCharges: number; pixelsPainted: number; level: number; droplets: number }[]>(
-						Prisma.sql`SELECT id, currentCharges, maxCharges, pixelsPainted, level, droplets FROM User WHERE id = ${userId} LIMIT 1 FOR UPDATE`
+					const rows = await tx.$queryRaw<{ id: number; currentCharges: number; maxCharges: number; pixelsPainted: number; level: number; droplets: number; chargesLastUpdatedAt: Date; chargesCooldownMs: number; extraColorsBitmap: number }[]>(
+						Prisma.sql`SELECT id, currentCharges, maxCharges, pixelsPainted, level, droplets, chargesLastUpdatedAt, chargesCooldownMs, extraColorsBitmap FROM User WHERE id = ${userId} LIMIT 1 FOR UPDATE`
 					);
 					const u = rows[0];
 					if (!u) return;
+
+					const currentCharges = calculateChargeRecharge(
+						u.currentCharges,
+						u.maxCharges,
+						u.chargesLastUpdatedAt || new Date(),
+						u.chargesCooldownMs
+					);
+
+					if (currentCharges < totalChargeCost) {
+						throw new Error("attempted to paint more pixels than there was charges.");
+					}
+
+					const newCharges = Math.max(0, currentCharges - totalChargeCost);
+					const newPixelsPainted = u.pixelsPainted + painted;
+					const newLevel = calculateLevel(newPixelsPainted);
+
+					const levelUpRewards = {
+						droplets: Math.floor(newLevel) !== Math.floor(u.level) ? LEVEL_UP_DROPLETS_REWARD : 0,
+						maxCharges: LEVEL_UP_MAX_CHARGES_REWARD * (Math.floor(newLevel) - Math.floor(u.level))
+					};
 
 					// Update user first
 					await tx.user.update({
 						where: { id: userId },
 						data: {
 							currentCharges: newCharges,
-							pixelsPainted: u.pixelsPainted + painted,
-							level: calculateLevel(u.pixelsPainted + painted),
+							pixelsPainted: newPixelsPainted,
+							level: newLevel,
 							droplets: u.droplets + levelUpRewards.droplets + paintedRewards.droplets,
 							maxCharges: u.maxCharges + levelUpRewards.maxCharges,
 							chargesLastUpdatedAt: new Date()
@@ -637,20 +636,31 @@ export class PixelService {
 				throw error;
 			}
 		}
-
-		// await this.updatePixelTile(tileX, tileY, season);
+		
+        // await this.updatePixelTile(tileX, tileY, season);
 		await this.drawPixelsToTile(validPixels, tileX, tileY, season);
-
-		// Update region stats and invalidate leaderboards for real-time updates
 		if (painted > 0) {
-			// Always update stats asynchronously to avoid blocking user response
-			// This prevents race conditions and improves performance under high load
-			setImmediate(async () => {
+			let retries = 5;
+			while (retries > 0) {
 				try {
 					await this.updateRegionStats(userId, validPixels);
+					break;
+				} catch (error) {
+					retries--;
+					if (retries > 0) {
+						console.warn(`[PixelService] Error updating region stats, retrying... (${3 - retries}/3):`, error);
+						await new Promise(resolve => setTimeout(resolve, 100 * (3 - retries)));
+						continue;
+					}
+					console.error("[PixelService] Failed to update region stats after retries:", error);
+				}
+			}
+
+			setImmediate(async () => {
+				try {
 					await this.invalidateRelevantLeaderboards(userId, validPixels);
 				} catch (error) {
-					console.error("Error updating region stats asynchronously:", error);
+					console.error("Error invalidating leaderboards:", error);
 				}
 			});
 		}
@@ -666,31 +676,31 @@ export class PixelService {
 
 		const allianceId = user?.allianceId;
 
-		const regionStatsMap = new Map<string, { regionCityId?: number; regionCountryId?: number; count: number }>();
+		const regionStatsMap = new Map<string, { regionCityId?: number | null; regionCountryId?: number | null; count: number }>();
 
 		for (const pixel of pixels) {
-			if (!pixel.region) continue;
-
-			const key = `${pixel.region.cityId ?? "null"}-${pixel.region.countryId ?? "null"}`;
+			const regionCityId = pixel.region?.cityId ?? null;
+			const regionCountryId = pixel.region?.countryId ?? null;
+			const key = `${regionCityId ?? "null"}-${regionCountryId ?? "null"}`;
 			const existing = regionStatsMap.get(key);
 
 			if (existing) {
 				existing.count++;
 			} else {
 				regionStatsMap.set(key, {
-					regionCityId: pixel.region.cityId,
-					regionCountryId: pixel.region.countryId,
+					regionCityId,
+					regionCountryId,
 					count: 1
 				});
 			}
 		}
 
-		// Update UserRegionStats (daily bucket via timePeriod) and UserRegionStatsDaily
 		const today = new Date();
 		const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-		for (const stats of regionStatsMap.values()) {
-			try {
-				const updatedRowsStats = await this.prisma.$executeRaw`
+
+		await this.prisma.$transaction(async (tx) => {
+			for (const stats of regionStatsMap.values()) {
+				const updatedRowsStats = await tx.$executeRaw`
 					UPDATE UserRegionStats
 					SET pixelsPainted = pixelsPainted + ${stats.count}, lastPaintedAt = NOW()
 					WHERE userId = ${userId}
@@ -701,13 +711,16 @@ export class PixelService {
 				` as unknown as number;
 
 				if (!updatedRowsStats || updatedRowsStats === 0) {
-					await this.prisma.$executeRaw`
+					await tx.$executeRaw`
 						INSERT INTO UserRegionStats (userId, regionCityId, regionCountryId, allianceId, timePeriod, pixelsPainted, lastPaintedAt)
 						VALUES (${userId}, ${stats.regionCityId}, ${stats.regionCountryId}, ${allianceId}, ${todayDate}, ${stats.count}, NOW())
+						ON DUPLICATE KEY UPDATE
+							pixelsPainted = pixelsPainted + ${stats.count},
+							lastPaintedAt = NOW()
 					`;
 				}
 
-				const updatedRowsDaily = await this.prisma.$executeRaw`
+				const updatedRowsDaily = await tx.$executeRaw`
 					UPDATE UserRegionStatsDaily
 					SET pixelsPainted = pixelsPainted + ${stats.count}, lastPaintedAt = NOW()
 					WHERE userId = ${userId}
@@ -718,15 +731,19 @@ export class PixelService {
 				` as unknown as number;
 
 				if (!updatedRowsDaily || updatedRowsDaily === 0) {
-					await this.prisma.$executeRaw`
+					await tx.$executeRaw`
 						INSERT INTO UserRegionStatsDaily (userId, regionCityId, regionCountryId, allianceId, date, pixelsPainted, lastPaintedAt)
 						VALUES (${userId}, ${stats.regionCityId}, ${stats.regionCountryId}, ${allianceId}, ${todayDate}, ${stats.count}, NOW())
+						ON DUPLICATE KEY UPDATE
+							pixelsPainted = pixelsPainted + ${stats.count},
+							lastPaintedAt = NOW()
 					`;
 				}
-			} catch (error) {
-				console.error("Error updating region stats:", error);
 			}
-		}
+		}, {
+			timeout: 10_000,
+			isolationLevel: "ReadCommitted"
+		});
 	}
 
 	private async invalidateRelevantLeaderboards(_userId: number, pixels: any[]): Promise<void> {
