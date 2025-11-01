@@ -8,6 +8,7 @@ import { createErrorResponse, HTTP_STATUS } from "../utils/response.js";
 import { prisma } from "../config/database.js";
 import { UserService } from "../services/user.js";
 import { AuthenticatedRequest } from "../types/index.js";
+import { rateLimiter } from "../services/rate-limiter.js";
 
 const pixelService = new PixelService(prisma);
 const userService = new UserService(prisma);
@@ -104,10 +105,16 @@ export default function (app: App) {
 
 	app.post("/:season/pixel/:tileX/:tileY", authMiddleware, async (req: AuthenticatedRequest, res) => {
 		try {
+			const rateLimit = rateLimiter.checkRateLimit(req.ip!, 60, 10_000);
+			if (!rateLimit.allowed) {
+				return res.status(429)
+					.json({ error: "Too many requests. Please slow down." });
+			}
+
 			const season = req.params["season"] as string;
 			const tileX = Number.parseInt(req.params["tileX"] as string);
 			const tileY = Number.parseInt(req.params["tileY"] as string);
-			const { colors, coords, fp } = req.body;
+			const { colors, coords } = req.body;
 
 			const validationError = validatePaintPixels({ season, tileX, tileY, colors, coords });
 			if (validationError) {
