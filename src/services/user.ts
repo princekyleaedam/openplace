@@ -200,7 +200,7 @@ export class UserService {
 			this.prisma.user.update({
 				where: { id: userId },
 				data: {
-					nickname: "Delete Account",
+					nickname: "Deleted Account",
 					role: "deleted"
 				}
 			})
