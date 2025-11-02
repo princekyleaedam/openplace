@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
-import { pngQuantize } from "@napi-rs/image";
+import imagemin from "imagemin";
+import pngquant from "imagemin-pngquant";
 import { checkColorUnlocked, COLOR_PALETTE } from "../utils/colors.js";
 import { calculateChargeRecharge } from "../utils/charges.js";
 import { Region, RegionService } from "./region.js";
@@ -375,11 +376,16 @@ export class PixelService {
 	}
 
 	private async quantize(buffer: Buffer): Promise<Buffer> {
-		return await pngQuantize(buffer, {
-			minQuality: 100,
-			maxQuality: 100,
-			speed: 10
-		});
+		return Buffer.from(await imagemin.buffer(buffer, {
+			plugins: [
+				pngquant({
+					posterize: 0,
+					quality: [1, 1],
+					speed: 9,
+					strip: true
+				})
+			]
+		}));
 	}
 
 	async paintPixels(account: { userId: number; ip: string; country?: string; }, input: PaintPixelsInput, season = 0): Promise<PaintPixelsResult> {
