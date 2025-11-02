@@ -262,7 +262,7 @@ export class PixelService {
 		}
 		ctx.putImageData(imageData, 0, 0);
 
-		const buffer = await pngQuantize(canvas.toBuffer("image/png"));
+		const buffer = await this.quantize(canvas.toBuffer("image/png"));
 		const { updatedAt } = await this.prisma.tile.upsert({
 			where: {
 				season_x_y: {
@@ -343,7 +343,7 @@ export class PixelService {
 				}
 				ctx.putImageData(imageData, 0, 0);
 
-				const buffer = await pngQuantize(canvas.toBuffer("image/png"));
+				const buffer = await this.quantize(canvas.toBuffer("image/png"));
 				await tx.tile.upsert({
 					where: {
 						season_x_y: {
@@ -372,6 +372,14 @@ export class PixelService {
 				image = null;
 			}
 		}
+	}
+
+	private async quantize(buffer: Buffer): Promise<Buffer> {
+		return await pngQuantize(buffer, {
+			minQuality: 100,
+			maxQuality: 100,
+			speed: 10
+		});
 	}
 
 	async paintPixels(account: { userId: number; ip: string; country?: string; }, input: PaintPixelsInput, season = 0): Promise<PaintPixelsResult> {
@@ -638,7 +646,7 @@ export class PixelService {
 			}
 		}
 
-		// await this.updatePixelTile(tileX, tileY, season);
+        // await this.updatePixelTile(tileX, tileY, season);
 		await this.drawPixelsToTile(validPixels, tileX, tileY, season);
 		if (painted > 0) {
 			let retries = 5;
