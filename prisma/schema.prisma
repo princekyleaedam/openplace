@@ -152,12 +152,7 @@ model Pixel {
 
   @@unique([season, tileX, tileY, x, y])
   @@index([season, tileX, tileY])
-  @@index([regionCityId])
-  @@index([regionCountryId])
-  @@index([paintedAt])
   @@index([paintedBy, paintedAt])
-  @@index([paintedAt, regionCityId])
-  @@index([paintedAt, regionCountryId])
 }
 
 model Region {
