@@ -344,25 +344,37 @@ const handleKeyDown = (event: KeyboardEvent) => {
 	}
 };
 
-const drawPixelAtCoords = (tileCoords: TileCoords) => {
-	if (!isPaintOpen.value || !currentCharges.value || currentCharges.value <= 0) {
-		return;
-	}
-
+const erasePixelAtCoords = (tileCoords: TileCoords) => {
 	const pixelId = getPixelId(tileCoords);
 	const existingPixelIndex = pixels.value.findIndex(item => item.id === pixelId);
 
+	if (existingPixelIndex !== -1) {
+		pixels.value = pixels.value.filter((_, index) => index !== existingPixelIndex);
+		incrementCharge();
+		mapRef.value?.drawPixelOnCanvas(tileCoords, "rgba(0,0,0,0)");
+	}
+};
+
+const drawPixelAtCoords = (tileCoords: TileCoords) => {
+	if (!isPaintOpen.value) {
+		return;
+	}
+
 	if (isEraserMode.value) {
-		if (existingPixelIndex !== -1) {
-			pixels.value = pixels.value.filter((_, index) => index !== existingPixelIndex);
-			incrementCharge();
-		}
+		// Eraser mode
+		erasePixelAtCoords(tileCoords);
 	} else {
-		const color = selectedColor.value;
+		// Paint mode
+		if (!currentCharges.value || currentCharges.value <= 0) {
+			return;
+		}
+
+		const pixelId = getPixelId(tileCoords);
+		const existingPixelIndex = pixels.value.findIndex(item => item.id === pixelId);
 		const newPixel: Pixel = {
 			id: pixelId,
 			tileCoords,
-			color
+			color: selectedColor.value
 		};
 
 		if (existingPixelIndex === -1) {
@@ -434,14 +446,7 @@ const handleMapRightClick = (event: LngLat) => {
 
 	// Right-click in paint mode to erase
 	const tileCoords = lngLatToTileCoords(event);
-	const pixelId = getPixelId(tileCoords);
-	const existingPixelIndex = pixels.value.findIndex(item => item.id === pixelId);
-
-	if (existingPixelIndex !== -1) {
-		pixels.value = pixels.value.filter((_, index) => index !== existingPixelIndex);
-		incrementCharge();
-		mapRef.value?.drawPixelOnCanvas(tileCoords, "rgba(0,0,0,0)");
-	}
+	erasePixelAtCoords(tileCoords);
 };
 
 const toggleUserMenu = (event: Event) => {

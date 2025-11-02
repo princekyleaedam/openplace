@@ -13,7 +13,7 @@
 
 					<div>
 						<Button
-							v-tooltip.top="'This button is currently a placeholder.'"
+							v-tooltip.top="isEraserMode ? 'Switch to painting' : 'Switch to eraser'"
 							:severity="isEraserMode ? 'danger' : 'secondary'"
 							size="small"
 							rounded
@@ -25,6 +25,7 @@
 						</Button>
 
 						<Button
+							v-tooltip.top="pixelCount == 0 ? 'Close' : 'Discard changes'"
 							severity="secondary"
 							size="small"
 							rounded
