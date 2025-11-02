@@ -146,7 +146,7 @@ export default function (app: App) {
 			rateLimiter.recordAttempt(req.ip!, true);
 			const date = new Date();
 			console.log(`[${date.toISOString()}] [${req.ip}] ${user.name}#${user.id} logged in`);
-			return res.json({ success: true, "isNewAccount": isNewAccount });
+			return res.json({ success: true, isNewAccount });
 		} catch (error) {
 			console.error("Login error:", error);
 			return res.status(500)

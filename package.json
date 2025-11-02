@@ -20,6 +20,7 @@
 	},
 	"dependencies": {
 		"@napi-rs/canvas": "^0.1.81",
+		"@napi-rs/image": "^1.11.2",
 		"@prisma/client": "^6.18.0",
 		"@tinyhttp/app": "^3.0.1",
 		"@tinyhttp/cookie-parser": "^2.0.6",

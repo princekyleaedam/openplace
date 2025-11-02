@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { pngQuantize } from "@napi-rs/image";
 import { checkColorUnlocked, COLOR_PALETTE } from "../utils/colors.js";
 import { calculateChargeRecharge } from "../utils/charges.js";
 import { Region, RegionService } from "./region.js";
@@ -261,7 +262,7 @@ export class PixelService {
 		}
 		ctx.putImageData(imageData, 0, 0);
 
-		const buffer = canvas.toBuffer("image/png");
+		const buffer = await pngQuantize(canvas.toBuffer("image/png"));
 		const { updatedAt } = await this.prisma.tile.upsert({
 			where: {
 				season_x_y: {
@@ -342,7 +343,7 @@ export class PixelService {
 				}
 				ctx.putImageData(imageData, 0, 0);
 
-				const buffer = canvas.toBuffer("image/png");
+				const buffer = await pngQuantize(canvas.toBuffer("image/png"));
 				await tx.tile.upsert({
 					where: {
 						season_x_y: {
@@ -636,8 +637,8 @@ export class PixelService {
 				throw error;
 			}
 		}
-		
-        // await this.updatePixelTile(tileX, tileY, season);
+
+		// await this.updatePixelTile(tileX, tileY, season);
 		await this.drawPixelsToTile(validPixels, tileX, tileY, season);
 		if (painted > 0) {
 			let retries = 5;
