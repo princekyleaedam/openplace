@@ -1,9 +1,10 @@
 # openplace  
 
-<p align="center"><strong>Terjemahan</strong></p>
+<p align="center"><strong>Terjemahan</strong> v4.1</p>
 <p align="center">
-    <a href="../../README.md"><img src="https://flagcdn.com/256x192/us.png" width="48" alt="United States Flag"></a>
-    <a href="translations/fr/LISEZMOI.md"><img src="https://flagcdn.com/256x192/fr.png" width="48" alt="French Flag"></a>
+    <a href="../../README.md"><img src="https://flagcdn.com/256x192/us.png" width="48" alt="United States Flag"></a>    
+    <a href="../de/LIESMICH.md"><img src="https://flagcdn.com/256x192/de.png" width="48" alt="German Flag"></a>
+    <a href="../fr/LISEZMOI.md"><img src="https://flagcdn.com/256x192/fr.png" width="48" alt="French Flag"></a>
   &nbsp;
 
 ## 
@@ -16,15 +17,15 @@ Openplace (format huruf kecil) adalah backend sumber terbuka gratis yang tidak r
 
 ### Windows
 
-- [Panduan Instalasi untuk Windows](translations/id/SETUP_WINDOWS.md)
+- [Panduan Instalasi untuk Windows](SETUP_WINDOWS.md)
 
 ### macOS
 
-- [Panduan Instalasi untuk macOS](translations/id/SETUP_MACOS.md)
+- [Panduan Instalasi untuk macOS](SETUP_MACOS.md)
 
 ### Docker
 
-- [Panduan Instalasi untuk Docker](translations/id/SETUP_DOCKER.md)
+- [Panduan Instalasi untuk Docker](SETUP_DOCKER.md)
 
 
 ### Aksesibilitas server
