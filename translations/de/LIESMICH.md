@@ -1,10 +1,10 @@
 # openplace
 
-<p align="center"><strong>Übersetzungen</strong></p>
+<p align="center"><strong>Übersetzungen</strong> v4.1</p>
 <p align="center">
-    <a href="../translations/id/README.md"><img src="https://flagcdn.com/256x192/id.png" width="48" alt="Flagge Indonesiens"></a>
-    <a href="../../README.md"><img src="https://flagcdn.com/256x192/us.png" width="48" alt="Flagge der vereinigten Staaten"></a>
-    <a href="translations/fr/LISEZMOI.md"><img src="https://flagcdn.com/256x192/fr.png" width="48" alt="Flagge Frankreichs"></a>
+    <a href="../../README.md"><img src="https://flagcdn.com/256x192/us.png" width="48" alt="United States Flag"></a>    
+    <a href="../fr/LISEZMOI.md"><img src="https://flagcdn.com/256x192/fr.png" width="48" alt="French Flag"></a>
+    <a href="../id/README.md"><img src="https://flagcdn.com/256x192/id.png" width="48" alt="Indonesia Flag"></a>
 
 ## 
 
@@ -17,15 +17,15 @@ Openplace (kleingeschrieben) ist ein inoffizielles Open-Source-Backend für [wpl
 
 ### Windows
 
-- [Installationsanweisungen unter Windows](translations/de/SETUP_WINDOWS.md)
+- [Installationsanweisungen unter Windows](SETUP_WINDOWS.md)
 
 ### macOS
 
-- [Installationsanweisungen unter macOS](translations/de/SETUP_MACOS.md)
+- [Installationsanweisungen unter macOS](SETUP_MACOS.md)
 
 ### Docker
 
-- [Installationsanweisungen unter Docker](translations/de/SETUP_DOCKER.md)
+- [Installationsanweisungen unter Docker](SETUP_DOCKER.md)
 
 
 ### Serverzugänglichkeit
